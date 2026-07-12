@@ -188,8 +188,8 @@ func (r *userTestRepo) List(_ context.Context, tenantID, search string, pr *dtos
 }
 
 type refreshTokenTestRepo struct {
-	byHash map[string]*models.RefreshToken
-	byID   map[string]*models.RefreshToken
+	byHash  map[string]*models.RefreshToken
+	byID    map[string]*models.RefreshToken
 	revoked []string
 }
 
@@ -443,7 +443,6 @@ type mockFedProvider struct {
 	id          string
 	name        string
 	configured  bool
-	enabled     bool
 	redirectURL string
 	claims      *domains.OIDCUserClaims
 	exchangeErr error

@@ -97,9 +97,9 @@ func TestHardDeleteModel_BeforeCreate(t *testing.T) {
 
 func TestUser_BeforeSave(t *testing.T) {
 	tests := []struct {
-		name       string
-		email      string
-		wantLower  string
+		name      string
+		email     string
+		wantLower string
 	}{
 		{"lowercases email", "User@Example.COM", "user@example.com"},
 		{"trims whitespace", "  user@example.com  ", "user@example.com"},

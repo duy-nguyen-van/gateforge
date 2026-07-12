@@ -3,11 +3,12 @@ package repositories
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUserRepository_CreateWithPasswordHash(t *testing.T) {

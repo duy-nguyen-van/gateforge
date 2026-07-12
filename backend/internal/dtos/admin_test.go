@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/stretchr/testify/require"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
-
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewAdminUserResponse(t *testing.T) {

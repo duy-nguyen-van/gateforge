@@ -68,7 +68,7 @@ func TestAppError_Unwrap(t *testing.T) {
 
 func TestAppError_WithContextOperationResource(t *testing.T) {
 	err := NewAppError(constants.NotFound, "missing", ErrorTypeNotFound, http.StatusNotFound)
-	err.WithContext("id", "123").
+	err = err.WithContext("id", "123").
 		WithOperation("get_user").
 		WithResource("user")
 
@@ -77,7 +77,7 @@ func TestAppError_WithContextOperationResource(t *testing.T) {
 	require.Equal(t, "user", err.Resource)
 
 	err2 := NewAppError(constants.NotFound, "missing", ErrorTypeNotFound, http.StatusNotFound)
-	err2.WithContext("key", "value")
+	err2 = err2.WithContext("key", "value")
 	require.NotNil(t, err2.Context)
 }
 

@@ -68,7 +68,6 @@ func TestTokenService_ParseSelectionToken_Errors(t *testing.T) {
 	require.Error(t, err)
 }
 
-
 type errCache struct{}
 
 func (errCache) Get(context.Context, string) (string, error) {

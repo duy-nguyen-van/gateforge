@@ -162,8 +162,8 @@ func TestPlatformAdminBootstrap_ExistingMembershipSkipped(t *testing.T) {
 		EmailLower: "admin@example.com",
 	}
 	repo := &stubBootstrapUserRepo{
-		users:   map[string]*models.User{"user-1": existing},
-		byEmail: map[string]*models.User{"admin@example.com": existing},
+		users:    map[string]*models.User{"user-1": existing},
+		byEmail:  map[string]*models.User{"admin@example.com": existing},
 		promoted: map[string]bool{},
 	}
 	memberships := &stubBootstrapMembershipStub{exists: true}

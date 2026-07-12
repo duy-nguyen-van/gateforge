@@ -20,7 +20,6 @@ import (
 )
 
 type errAdminService struct {
-	stubAdminListService
 	err error
 }
 
@@ -83,7 +82,7 @@ func (s errAdminService) GetClientByID(context.Context, string) (*dtos.AdminClie
 func (s errAdminService) UpdateClient(context.Context, string, *dtos.AdminUpdateClientRequest) (*dtos.AdminClientResponse, error) {
 	return nil, s.withErr()
 }
-func (s errAdminService) DeleteClient(context.Context, string) error { return s.withErr() }
+func (s errAdminService) DeleteClient(context.Context, string) error            { return s.withErr() }
 func (s errAdminService) DisableUser(context.Context, string, string) error     { return s.withErr() }
 func (s errAdminService) ForceLogoutUser(context.Context, string, string) error { return s.withErr() }
 func (s errAdminService) ResetMFA(context.Context, string, string) error        { return s.withErr() }
@@ -302,7 +301,7 @@ func TestAuthHandler_errorPaths(t *testing.T) {
 
 	t.Run("SwitchTenant unauthorized", func(t *testing.T) {
 		h := authHandler(&stubAuthUserService{}, &stubAuthSessionService{}, &stubAuthMFAService{}, &stubAuthFederationService{})
-		c, rec := newJSONContext(http.MethodPost, "/", `{"tenant_id":"`+testTenantID+ `"}`)
+		c, rec := newJSONContext(http.MethodPost, "/", `{"tenant_id":"`+testTenantID+`"}`)
 		require.NoError(t, h.SwitchTenant(c))
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
 	})

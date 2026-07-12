@@ -3,9 +3,10 @@ package repositories
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
-	"github.com/stretchr/testify/require"
 )
 
 func TestTenantRepository_CreateAndGet(t *testing.T) {

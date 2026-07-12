@@ -3,8 +3,9 @@ package repositories
 import (
 	"testing"
 
-	"github.com/gateforge-iam/gateforge-iam/internal/models"
 	"github.com/stretchr/testify/require"
+
+	"github.com/gateforge-iam/gateforge-iam/internal/models"
 )
 
 func TestRefreshTokenRepository_CreateAndFindValid(t *testing.T) {

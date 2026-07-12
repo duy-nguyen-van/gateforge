@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gateforge-iam/gateforge-iam/internal/constants"
-	"github.com/gateforge-iam/gateforge-iam/internal/db"
-	"github.com/gateforge-iam/gateforge-iam/internal/errors"
-	"github.com/gateforge-iam/gateforge-iam/internal/models"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/gateforge-iam/gateforge-iam/internal/constants"
+	"github.com/gateforge-iam/gateforge-iam/internal/db"
+	"github.com/gateforge-iam/gateforge-iam/internal/errors"
+	"github.com/gateforge-iam/gateforge-iam/internal/models"
 )
 
 // sqliteTestSchema mirrors production tables without PostgreSQL-specific column types.
@@ -266,11 +267,11 @@ func seedTenant(t *testing.T, pg *db.PostgresDB, name, domain string) *models.Te
 func seedUser(t *testing.T, pg *db.PostgresDB, email string) *models.User {
 	t.Helper()
 	user := &models.User{
-		BaseModel:  models.NewBaseModel(),
-		FirstName:  "Test",
-		LastName:   "User",
-		Email:      email,
-		Status:     constants.UserStatusActive,
+		BaseModel: models.NewBaseModel(),
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     email,
+		Status:    constants.UserStatusActive,
 	}
 	require.NoError(t, pg.WithContext(testCtx()).Create(user).Error)
 	return user

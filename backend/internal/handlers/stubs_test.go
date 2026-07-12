@@ -96,7 +96,6 @@ type stubAuthUserService struct {
 	completeErr   error
 	revokeErr     error
 	hasUser       *models.User
-	mfaOnLogin    bool
 }
 
 func (s *stubAuthUserService) testUser() *models.User {
@@ -180,7 +179,7 @@ func (s *stubAuthUserService) RevokeAllRefreshTokensForUser(_ context.Context, _
 }
 
 type stubAuthSessionService struct {
-	session     *models.Session
+	session       *models.Session
 	getSessionErr error
 	createSID     string
 	createTTL     time.Duration
@@ -221,11 +220,11 @@ func (s *stubAuthSessionService) InvalidateAllForUser(_ context.Context, _ strin
 func (s *stubAuthSessionService) BrowserSessionTTL(bool) time.Duration { return time.Hour }
 
 type stubAuthMFAService struct {
-	hasMFA         bool
-	hasMFAErr      error
-	ticket         string
-	ticketExp      int64
-	ticketErr      error
+	hasMFA             bool
+	hasMFAErr          error
+	ticket             string
+	ticketExp          int64
+	ticketErr          error
 	verifyChallengeErr error
 }
 
@@ -466,8 +465,10 @@ func (stubAdminListService) ListClients(_ context.Context, _ string, _ *dtos.Pag
 func (stubAdminListService) ListIdentityProviders(_ context.Context, _ string, _ *dtos.PageableRequest) ([]*dtos.AdminIdentityProviderResponse, *dtos.Pageable, error) {
 	return []*dtos.AdminIdentityProviderResponse{{Provider: "google", Enabled: true}}, &dtos.Pageable{Page: 1, PageSize: 20, Total: 1}, nil
 }
-func (stubAdminListService) AddMemberByEmail(context.Context, string, string, string) error { return nil }
-func (stubAdminListService) RemoveMember(context.Context, string, string) error               { return nil }
+func (stubAdminListService) AddMemberByEmail(context.Context, string, string, string) error {
+	return nil
+}
+func (stubAdminListService) RemoveMember(context.Context, string, string) error { return nil }
 func (stubAdminListService) GetClientUsage(_ context.Context, _ string) (*dtos.AdminClientUsageResponse, error) {
 	return &dtos.AdminClientUsageResponse{ActiveRefreshTokens: 5}, nil
 }
@@ -477,8 +478,8 @@ func (stubAdminListService) ListLoginHistory(_ context.Context, _ dtos.AdminLogi
 
 type stubAdminUserActionsService struct {
 	stubAdminAuditService
-	forceLogoutTarget string
-	resetMFATarget    string
+	forceLogoutTarget  string
+	resetMFATarget     string
 	resetPasskeyTarget string
 }
 

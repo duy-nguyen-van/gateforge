@@ -33,7 +33,7 @@ func (s *stubUserRepo) GetOneByID(_ context.Context, _ string) (*models.User, er
 func (s *stubUserRepo) GetByEmailLower(_ context.Context, _ string) (*models.User, error) {
 	return nil, nil
 }
-func (s *stubUserRepo) Count(_ context.Context) (int64, error) { return 0, nil }
+func (s *stubUserRepo) Count(_ context.Context) (int64, error)               { return 0, nil }
 func (s *stubUserRepo) CountPlatformAdmins(_ context.Context) (int64, error) { return 0, nil }
 func (s *stubUserRepo) SetPlatformAdmin(_ context.Context, _ string, _ bool) error {
 	return nil

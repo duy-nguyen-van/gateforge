@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAuditLogRepository_CreateListCount(t *testing.T) {

@@ -25,14 +25,6 @@ export function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    if (!user) {
-      return
-    }
-    setFirstName(user.first_name ?? '')
-    setLastName(user.last_name ?? '')
-  }, [user])
-
-  useEffect(() => {
     if (!success) {
       return
     }

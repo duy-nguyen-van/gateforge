@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-webauthn/webauthn/webauthn"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"

@@ -20,7 +20,7 @@ func TestProvideStorageAdapter_InvalidProvider(t *testing.T) {
 func TestProvideStorageAdapter_GCSMissingCredentials(t *testing.T) {
 	cfg := &config.Config{
 		StorageProvider:        constants.StorageProviderGCS,
-		GCSCredentialsJSONPath:   "/does/not/exist/credentials.json",
+		GCSCredentialsJSONPath: "/does/not/exist/credentials.json",
 		GCSBucket:              "bucket",
 	}
 	adapter, err := ProvideStorageAdapter(cfg)

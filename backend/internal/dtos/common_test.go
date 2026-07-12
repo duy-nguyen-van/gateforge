@@ -56,9 +56,9 @@ func TestPageableRequest_GetOffset(t *testing.T) {
 
 func TestMeta_HttpCode(t *testing.T) {
 	tests := []struct {
-		name      string
-		meta      Meta
-		wantCode  int
+		name     string
+		meta     Meta
+		wantCode int
 	}{
 		{
 			name:     "explicit Code takes precedence",

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
@@ -115,9 +116,9 @@ func TestFederationService_CompleteOAuthLogin_ErrorPaths(t *testing.T) {
 	svc := &federationService{
 		cfg: testConfig(), cache: cache, userRepo: newUserTestRepo(),
 		membershipRepo: &stubMembershipRepo{active: map[string]map[string]bool{}},
-		fedRepo: newFedIdentityTestRepo(), tipRepo: tip,
+		fedRepo:        newFedIdentityTestRepo(), tipRepo: tip,
 		providers: map[string]FederationIdentityProvider{"google": provider},
-		audit: &auditCapture{},
+		audit:     &auditCapture{},
 	}
 
 	state, err := federationRandomHex(8)
@@ -282,7 +283,7 @@ func TestFederationService_CompleteOAuthLogin_InvalidPayload(t *testing.T) {
 	svc := &federationService{
 		cfg: testConfig(), cache: cache,
 		providers: map[string]FederationIdentityProvider{"google": provider},
-		tipRepo: &fedTipStub{enabled: map[string]bool{"tenant-1:google": true}},
+		tipRepo:   &fedTipStub{enabled: map[string]bool{"tenant-1:google": true}},
 	}
 	state := "state-invalid-json"
 	require.NoError(t, cache.Set(context.Background(), federationStateCacheKey("google", state), "not-json", 0))
@@ -313,4 +314,3 @@ func TestSessionService_InvalidateAllForUser_Error(t *testing.T) {
 	svc := ProvideSessionService(testConfig(), brokenSessionRepo{}, &auditCapture{})
 	require.Error(t, svc.InvalidateAllForUser(context.Background(), "user-1"))
 }
-

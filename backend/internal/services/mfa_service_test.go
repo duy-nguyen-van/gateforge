@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pquerna/otp/totp"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"

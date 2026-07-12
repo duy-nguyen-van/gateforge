@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
@@ -139,18 +140,6 @@ func (r *errMFATOTPActiveRepo) GetActiveByUserID(ctx context.Context, userID str
 		return nil, r.activeErr
 	}
 	return r.mfaTOTPTestRepo.GetActiveByUserID(ctx, userID)
-}
-
-type errMFARecoveryMarkRepo struct {
-	*mfaRecoveryTestRepo
-	markErr error
-}
-
-func (r *errMFARecoveryMarkRepo) MarkUsed(ctx context.Context, id string) error {
-	if r.markErr != nil {
-		return r.markErr
-	}
-	return r.mfaRecoveryTestRepo.MarkUsed(ctx, id)
 }
 
 type fedProviderRedirectErr struct {
@@ -619,8 +608,10 @@ func (r *errMembershipExistsRepo) ListByTenantID(context.Context, string) ([]mod
 func (r *errMembershipExistsRepo) ListByTenantIDPaginated(context.Context, string, *dtos.PageableRequest) (*dtos.DataResponse[models.TenantMembership], error) {
 	return nil, nil
 }
-func (r *errMembershipExistsRepo) CountByTenantID(context.Context, string) (int64, error) { return 0, nil }
-func (r *errMembershipExistsRepo) Delete(context.Context, string, string) error           { return nil }
+func (r *errMembershipExistsRepo) CountByTenantID(context.Context, string) (int64, error) {
+	return 0, nil
+}
+func (r *errMembershipExistsRepo) Delete(context.Context, string, string) error { return nil }
 
 // --- federation coverage ---
 
@@ -965,9 +956,9 @@ func (brokenMemCache) Get(context.Context, string) (string, error) { return "", 
 func (brokenMemCache) Set(context.Context, string, string, time.Duration) error {
 	return context.Canceled
 }
-func (brokenMemCache) Delete(context.Context, string) error { return nil }
+func (brokenMemCache) Delete(context.Context, string) error         { return nil }
 func (brokenMemCache) Exists(context.Context, string) (bool, error) { return false, nil }
-func (brokenMemCache) Close() error                             { return nil }
+func (brokenMemCache) Close() error                                 { return nil }
 
 func TestOIDCService_VerifyPKCE_EmptyVerifier(t *testing.T) {
 	require.False(t, verifyPKCE("", "challenge", "S256"))

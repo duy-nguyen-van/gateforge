@@ -33,7 +33,7 @@ func TestGetEnv(t *testing.T) {
 }
 
 func TestGetEnvAsInt(t *testing.T) {
-		t.Setenv("TEST_INT_KEY", "42")
+	t.Setenv("TEST_INT_KEY", "42")
 	require.Equal(t, 42, getEnvAsInt("TEST_INT_KEY", 10))
 	require.Equal(t, 7, getEnvAsInt("TEST_INT_MISSING", 7))
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/descope/virtualwebauthn"
+
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
@@ -194,7 +195,9 @@ func (r *errWebauthnCredRepo) GetByCredentialID(context.Context, string) (*model
 func (r *errWebauthnCredRepo) UpdateCredentialJSON(context.Context, string, string, int64) error {
 	return nil
 }
-func (r *errWebauthnCredRepo) DeleteAllByUserID(context.Context, string) (int64, error) { return 0, nil }
+func (r *errWebauthnCredRepo) DeleteAllByUserID(context.Context, string) (int64, error) {
+	return 0, nil
+}
 
 type trackingWebauthnCredRepo struct {
 	*webauthnCredTestRepo

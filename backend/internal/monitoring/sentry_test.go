@@ -26,6 +26,7 @@ func TestGetSentryHub(t *testing.T) {
 }
 
 func TestNewSentryWriter(t *testing.T) {
+	//nolint:staticcheck // explicitly testing nil-context fallback to Background
 	w := NewSentryWriter(nil)
 	require.NotNil(t, w)
 	n, err := w.Write([]byte("test log line"))

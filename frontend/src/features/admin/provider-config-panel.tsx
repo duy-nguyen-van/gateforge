@@ -1,5 +1,5 @@
 import { Loader2Icon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import type { AdminIdentityProviderResponse, PatchIdentityProviderRequest } from '@/api/types'
 import { ApiError } from '@/api/types'
@@ -21,13 +21,6 @@ export function ProviderConfigPanel({ provider, isSaving, onSave, onCancel }: Pr
 
   const displayName = provider.name
   const idPrefix = provider.provider
-
-  useEffect(() => {
-    setClientId(provider.oauth_client_id ?? '')
-    setClientSecret('')
-    setEnabled(provider.enabled)
-    setError(null)
-  }, [provider])
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()

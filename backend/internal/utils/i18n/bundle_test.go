@@ -48,11 +48,13 @@ func TestT_NilRequestUsesDefaultLanguage(t *testing.T) {
 
 func TestTFromContext_NilContext(t *testing.T) {
 	Init()
+	//nolint:staticcheck // explicitly testing nil-context fallback
 	msg := TFromContext(nil, constants.Unauthorized, nil)
 	require.Equal(t, "Unauthorized", msg)
 }
 
 func TestLanguageFromContext(t *testing.T) {
+	//nolint:staticcheck // explicitly testing nil-context fallback
 	require.Equal(t, "en", languageFromContext(nil))
 	ctx := request.NewLanguageCodeContext(context.Background(), "fr")
 	require.Equal(t, "fr", languageFromContext(ctx))

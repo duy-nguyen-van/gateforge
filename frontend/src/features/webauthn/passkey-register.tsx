@@ -1,6 +1,7 @@
 import { startRegistration } from '@simplewebauthn/browser'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2Icon, FingerprintIcon, Loader2Icon } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { listWebauthnCredentials, webauthnRegisterFinish, webauthnRegisterStart } from '@/api/client'
 import type { WebauthnCredentialResponse } from '@/api/types'
@@ -9,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatWebAuthnError, unwrapWebAuthnOptions } from '@/lib/webauthn-error'
+
+const passkeysQueryKey = ['webauthn', 'credentials'] as const
 
 function formatPasskeyDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -19,28 +22,20 @@ function formatPasskeyDate(iso: string) {
 }
 
 export function PasskeyRegisterPanel() {
-  const [passkeys, setPasskeys] = useState<WebauthnCredentialResponse[]>([])
+  const queryClient = useQueryClient()
+  const passkeysQuery = useQuery({
+    queryKey: passkeysQueryKey,
+    queryFn: async () => {
+      const envelope = await listWebauthnCredentials({ page_size: 100 })
+      return envelope.data
+    },
+  })
+  const passkeys: WebauthnCredentialResponse[] = passkeysQuery.data ?? []
+  const isLoadingList = passkeysQuery.isLoading
   const [deviceName, setDeviceName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingList, setIsLoadingList] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
-
-  const loadPasskeys = useCallback(async () => {
-    setIsLoadingList(true)
-    try {
-      const envelope = await listWebauthnCredentials({ page_size: 100 })
-      setPasskeys(envelope.data)
-    } catch {
-      // Keep existing list on refresh failure; registration errors surface separately.
-    } finally {
-      setIsLoadingList(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void loadPasskeys()
-  }, [loadPasskeys])
 
   async function handleRegister() {
     setError(null)
@@ -57,7 +52,7 @@ export function PasskeyRegisterPanel() {
       })
       setDeviceName('')
       setShowAddForm(false)
-      await loadPasskeys()
+      await queryClient.invalidateQueries({ queryKey: passkeysQueryKey })
     } catch (err) {
       setError(formatWebAuthnError(err, 'Passkey registration failed'))
     } finally {

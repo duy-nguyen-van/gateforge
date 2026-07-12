@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
-	"github.com/gateforge-iam/gateforge-iam/internal/db"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
+	"github.com/gateforge-iam/gateforge-iam/internal/db"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"

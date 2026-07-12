@@ -1,0 +1,158 @@
+{
+	"info": {
+		"name": "IAM — OIDC (authorize + PKCE + session)",
+		"description": "Authorization code + PKCE with iam_session cookie via POST /oidc/login.\n\n**Setup:** Edit collection variables (`baseUrl`, `clientId`, `redirectUriEncoded`, `codeVerifier`, `codeChallenge`, `state`, `email`, `password`). Generate PKCE locally (see docs/testing/OIDC_CURL.md) and paste `codeVerifier` / `codeChallenge`.\n\n**Order:** Run *0 — Discovery (warmup + CSRF)* first so Postman stores `csrf_token` and saves `csrfToken` from `X-CSRF-Token`. Then *1 → 2 → 3 → 4*. After *3*, copy `code` from the redirect `Location` into `authCode`. Run *5* then *6*.\n\n**Session:** Request *2* disables **follow redirects** so `Set-Cookie: iam_session=...` stays on the 302 response; the **Tests** script copies it to collection variable `iam_session`. Request *3* sends `Cookie: iam_session={{iam_session}}` so the session is visible and always applied.\n\n`redirectUriEncoded` must be URL-encoded (e.g. `http://127.0.0.1:9999/callback` → `http%3A%2F%2F127.0.0.1%3A9999%2Fcallback`).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:3000" },
+		{ "key": "clientId", "value": "your-client-id" },
+		{ "key": "redirectUriEncoded", "value": "http%3A%2F%2F127.0.0.1%3A9999%2Fcallback" },
+		{ "key": "codeVerifier", "value": "PASTE_PKCE_VERIFIER" },
+		{ "key": "codeChallenge", "value": "PASTE_PKCE_CHALLENGE_S256" },
+		{ "key": "state", "value": "PASTE_RANDOM_STATE" },
+		{ "key": "email", "value": "you@example.com" },
+		{ "key": "password", "value": "your-password" },
+		{ "key": "authCode", "value": "PASTE_CODE_FROM_LOCATION_AFTER_STEP_3" },
+		{ "key": "oidcAccessToken", "value": "" },
+		{ "key": "csrfToken", "value": "" },
+		{ "key": "iam_session", "value": "" }
+	],
+	"item": [
+		{
+			"name": "0 — Discovery (warmup + CSRF)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const t = pm.response.headers.get('X-CSRF-Token');",
+							"if (t) { pm.collectionVariables.set('csrfToken', t); }",
+							"pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{baseUrl}}/.well-known/openid-configuration"
+			}
+		},
+		{
+			"name": "1 — GET /authorize (no session → 302 login)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "{{baseUrl}}/authorize?response_type=code&client_id={{clientId}}&redirect_uri={{redirectUriEncoded}}&scope=openid%20profile&state={{state}}&code_challenge={{codeChallenge}}&code_challenge_method=S256"
+			}
+		},
+		{
+			"name": "2 — POST /oidc/login (sets iam_session)",
+			"protocolProfileBehavior": {
+				"followRedirects": false
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"(function () {",
+							"  const headers = pm.response.headers.all();",
+							"  for (let i = 0; i < headers.length; i++) {",
+							"    const h = headers[i];",
+							"    if (!h || h.key.toLowerCase() !== 'set-cookie') continue;",
+							"    const m = h.value.match(/\\biam_session=([^;]+)/);",
+							"    if (m && m[1]) {",
+							"      pm.collectionVariables.set('iam_session', m[1].trim());",
+							"      break;",
+							"    }",
+							"  }",
+							"})();",
+							"pm.test('Login returns 302', function () { pm.response.to.have.status(302); });",
+							"pm.test('iam_session captured', function () {",
+							"  pm.expect(pm.collectionVariables.get('iam_session')).to.be.ok;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"return_to\": \"{{baseUrl}}/authorize?response_type=code&client_id={{clientId}}&redirect_uri={{redirectUriEncoded}}&scope=openid%20profile&state={{state}}&code_challenge={{codeChallenge}}&code_challenge_method=S256\"\n}"
+				},
+				"url": "{{baseUrl}}/oidc/login"
+			}
+		},
+		{
+			"name": "3 — GET /authorize (with session → 302 + code)",
+			"protocolProfileBehavior": {
+				"followRedirects": false
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Cookie", "value": "iam_session={{iam_session}}" }
+				],
+				"url": "{{baseUrl}}/authorize?response_type=code&client_id={{clientId}}&redirect_uri={{redirectUriEncoded}}&scope=openid%20profile&state={{state}}&code_challenge={{codeChallenge}}&code_challenge_method=S256"
+			}
+		},
+		{
+			"name": "4 — POST /token (JSON)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"try {",
+							"  const j = pm.response.json();",
+							"  if (j.access_token) pm.collectionVariables.set('oidcAccessToken', j.access_token);",
+							"} catch (e) {}",
+							"pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [{ "key": "Content-Type", "value": "application/json" }],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"grant_type\": \"authorization_code\",\n  \"code\": \"{{authCode}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"code_verifier\": \"{{codeVerifier}}\"\n}"
+				},
+				"url": "{{baseUrl}}/token"
+			}
+		},
+		{
+			"name": "5 — GET /userinfo",
+			"request": {
+				"method": "GET",
+				"header": [
+					{ "key": "Authorization", "value": "Bearer {{oidcAccessToken}}" }
+				],
+				"url": "{{baseUrl}}/userinfo"
+			}
+		},
+		{
+			"name": "Optional — POST /api/v1/login (dashboard JWT)",
+			"request": {
+				"method": "POST",
+				"header": [{ "key": "Content-Type", "value": "application/json" }],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+				},
+				"url": "{{baseUrl}}/api/v1/login"
+			}
+		}
+	]
+}

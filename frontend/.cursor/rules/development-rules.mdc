@@ -1,0 +1,35 @@
+---
+description: Core development principles and code quality standards for all files
+alwaysApply: true
+---
+
+# Development Rules
+
+## Principles
+- **YAGNI**: Don't implement what you don't need yet
+- **KISS**: Simplest solution that works
+- **DRY**: Extract shared logic, don't copy-paste
+
+## File Standards
+- **Naming**: kebab-case files (`login-form.tsx`, `token-store.ts`); PascalCase for React components
+- **Size**: Split large files into focused modules (features vs pages vs components)
+- **Comments**: Only where logic isn't self-evident. No obvious comments
+
+## Code Quality
+- Handle errors explicitly — surface `ApiError` messages to users; don't swallow failures silently
+- No hardcoded secrets, API keys, or credentials
+- Validate forms with Zod schemas in `src/auth/schemas.ts` (or feature-local schemas)
+- Prefer early returns over deep nesting
+- Use TypeScript strictly — avoid `any`; prefer typed API envelopes from `src/api/types.ts`
+
+## Implementation Rules
+- Read existing code before modifying — understand patterns first
+- Update existing files; don't create "enhanced" copies
+- After modifying code, run `npm run build` or `make check` to verify
+- Don't over-engineer: no feature flags or backwards-compat shims for unused code
+- Three similar lines > premature abstraction
+
+## Pre-commit
+- Run `make lint` and `make build` before push
+- Update `src/api/types.ts` when backend API shapes change
+- Never commit `.env`, credentials, or secrets

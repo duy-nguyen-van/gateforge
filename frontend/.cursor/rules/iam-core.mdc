@@ -1,0 +1,16 @@
+---
+description: Core project facts and invariants for iam-frontend (React IAM SPA)
+alwaysApply: true
+---
+
+# iam-frontend — core
+
+- **Stack**: Vite, React 19, TypeScript, React Router, TanStack Query, React Hook Form + Zod, Tailwind CSS v4, shadcn/ui-style components.
+- **Backend**: Consumes [iam-backend](../iam-backend) — `/api/v1/*`, `/oidc/*`, root OIDC paths proxied in dev via `vite.config.ts`.
+- **Path alias**: `@/` → `src/` (see `vite.config.ts`, `tsconfig.app.json`).
+- **Security**: No real credentials in repo. Treat `.env` as local-only (gitignored). Use `.env.example` for documented vars.
+- **Quality bar**: `make lint`, `make build` (or `make check`) before push.
+- **IAM-sensitive**: Auth flows in `src/auth/`, API in `src/api/client.ts`, route guards in `src/routes/guards.tsx`. Match existing token/CSRF/cookie patterns.
+- **Structure**: Respect layer boundaries in `.cursor/rules/frontend-layering.mdc`.
+- **Workflow**: Plan → implement → test → review — see `.cursor/rules/workflow-implementation.mdc`.
+- **Agents & commands**: Subagents in `.cursor/agents/`; slash commands `iam:*` in `.cursor/commands/`.

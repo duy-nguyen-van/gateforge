@@ -1,0 +1,50 @@
+---
+description: Development workflow — plan, implement, test, review, integrate
+alwaysApply: false
+---
+
+# Implementation Workflow
+
+## Standard Cycle
+
+### 1. Plan
+- Read affected layers: `handlers` → `services` → `repositories` → `models`
+- Check `go-layering.mdc` import boundaries
+- Note IAM implications (auth, sessions, OIDC)
+
+### 2. Implement
+- Match existing patterns in the same package
+- Wire new deps in `cmd/server/main.go` (FX) and routes in `router.go`
+- Handle errors with `AppError` where the file already does
+
+### 3. Test
+- Add/update colocated `*_test.go`
+- Run narrow target first: `go test ./internal/handlers` (or services/repos)
+- Full suite: `make tests`
+
+### 4. HTTP / OpenAPI
+- `/api/v1` changes: swag annotations + `make swagger-load`
+- Root OIDC changes: update matching [docs/features/](../../docs/features/) and [docs/testing/](../../docs/testing/) docs (not in swag spec)
+- CSRF: update `internal/middlewares/csrf.go` if new paths need skip rules
+
+### 5. Migrations
+- If schema changed: new SQL in `cmd/migrations/sql/` + `make migrate-hash`
+
+### 6. Review & Integrate
+- Self-review diff; `make lint`
+- Conventional commit; PR with test plan
+
+## Bug Fix Workflow
+1. Reproduce (test or curl flow doc)
+2. Root cause — don't patch symptoms
+3. Minimal fix at correct layer
+4. Regression test
+5. `make tests`
+
+## Local Dev Commands
+```bash
+make container-up   # Postgres, Redis, etc.
+make migrate-up     # Apply Atlas migrations
+make up             # Run server (cmd/server)
+make bootstrap      # container-up + migrate-up + up
+```

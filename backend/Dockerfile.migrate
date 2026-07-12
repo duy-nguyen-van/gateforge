@@ -1,0 +1,9 @@
+# Atlas versioned migrations (same workflow as `make migrate-up`).
+# https://atlasgo.io/guides/deploying/image
+FROM arigaio/atlas:latest-alpine
+
+COPY cmd/migrations/sql /migrations
+
+# Prefer DATABASE_URL. If unset, builds the same DSN shape as the Makefile from POSTGRES_*.
+# For docker compose, set POSTGRES_HOST=postgres (see docker-compose.yml migrate service).
+ENTRYPOINT ["/bin/sh", "-c", "exec /atlas migrate apply --dir file:///migrations --url \"${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-localhost}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}?sslmode=${DATABASE_SSL_MODE:-disable}}\""]

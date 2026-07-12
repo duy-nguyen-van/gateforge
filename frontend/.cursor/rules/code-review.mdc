@@ -1,0 +1,41 @@
+---
+description: Code review checklist — activate when reviewing code or PRs
+alwaysApply: false
+---
+
+# Code Review Guide
+
+## Review Priority (check in order)
+1. **Correctness** — Auth flows, route guards, MFA/OIDC redirect edge cases
+2. **Security** — Token storage, CSRF on `/oidc/login`, credential leakage in logs/UI
+3. **Error handling** — `ApiError` surfaced safely; loading/error states in forms
+4. **State management** — Token refresh races, stale query cache, sessionStorage cleanup
+5. **Performance** — Unnecessary re-renders, missing query keys, duplicate fetches
+6. **Readability** — Layer boundaries, clear naming
+7. **Types** — `src/api/types.ts` matches backend; no unsafe casts
+8. **Docs** — README / `.env.example` when env or routes change
+
+## Route & Guard Checks
+- New routes registered in `src/routes/index.tsx`
+- Auth flows use Pattern A (feature in `AuthLayout`) — avoid unnecessary page wrappers
+- Console/settings use Pattern B (page composes features); admin queries via `features/admin/`
+- Auth-required routes behind `ProtectedRoute`; admin behind `AdminRoute`
+- Guest routes (`/login`, `/register`) behind `GuestRoute`
+- Console sidebar updated in `console-nav.ts` when adding admin pages
+
+## React-Specific Checks
+- Forms use Zod validation before submit
+- No access tokens in persistent storage
+- `credentials: 'include'` on cookie-dependent requests
+- OIDC `return_to` handled via full navigation when required
+
+## IAM-Specific Checks
+- MFA ticket cleared after verify
+- Refresh token storage respects "Remember me"
+- WebAuthn uses `@simplewebauthn/browser` patterns from existing passkey code
+- Federation URLs built via `googleFederationUrl()`, not raw strings
+
+## What NOT to Nitpick
+- Minor style already handled by ESLint
+- Naming consistent with surrounding code
+- Tailwind class ordering (unless readability suffers)

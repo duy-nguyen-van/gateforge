@@ -1,0 +1,40 @@
+---
+description: When and how to update documentation after code changes
+alwaysApply: false
+---
+
+# Documentation Standards
+
+## When to Update Docs
+- New or changed routes (`src/routes/index.tsx`)
+- New env vars (`VITE_*`)
+- Auth/OIDC/MFA/WebAuthn/federation behavior changes
+- New API integrations (admin console, settings)
+- Production deployment changes (`deploy/Caddyfile`)
+
+## What to Document
+
+### README.md (primary)
+- Setup: `make setup`, `make run`
+- Route table when adding pages
+- Env var table in `.env.example` — keep in sync
+- Backend alignment table (proxy, OIDC login URL, WebAuthn origins)
+
+### .env.example
+- All `VITE_*` vars with safe defaults and comments
+- No secrets or production credentials
+
+### API types
+- Update `src/api/types.ts` when backend DTOs change
+- Optional: `make generate-api` if openapi-typescript is configured
+
+### Backend docs (cross-repo)
+When frontend behavior depends on backend changes, note in PR and update backend docs if you own that change:
+- [backend/docs/README.md](../backend/docs/README.md) — hub
+- [backend/docs/features/](../backend/docs/features/) — feature behavior
+- [backend/docs/testing/](../backend/docs/testing/) — curl flows
+
+## Style
+- Concise and practical — include real commands (`make run`, URLs with ports)
+- Verify paths exist in this repo
+- Outdated docs are worse than no docs

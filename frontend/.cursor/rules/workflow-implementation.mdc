@@ -1,0 +1,48 @@
+---
+description: Development workflow — plan, implement, test, review, integrate
+alwaysApply: false
+---
+
+# Implementation Workflow
+
+## Standard Cycle
+
+### 1. Plan
+- Pick route pattern: **A** (auth: routes → feature) or **B** (page composes features/admin queries)
+- Read affected layers per `frontend-layering.mdc`
+- Note IAM implications (auth, tokens, OIDC redirect, MFA/WebAuthn)
+
+### 2. Implement
+- Auth screen → feature in `src/features/` + wire in `routes/index.tsx` with `AuthLayout`
+- Console/settings screen → page in `src/pages/` + admin hooks in `features/admin/` if needed
+- New routes: `src/routes/index.tsx` + guards; console nav in `console-nav.ts` if applicable
+- New API calls: `src/api/client.ts` + types in `src/api/types.ts`
+
+### 3. Test
+- Manual flow in browser with iam-backend running on `:3000`
+- Run `make lint` and `make build` (TypeScript + Vite)
+
+### 4. Backend alignment
+- Env vars: update `.env.example` and note matching backend vars in README
+- OIDC/WebAuthn: align `OIDC_LOGIN_PAGE_URL`, `WEBAUTHN_RP_ORIGINS` on backend
+- API shape changes: update `src/api/types.ts`; optional `make generate-api`
+
+### 5. Review & Integrate
+- Self-review diff; `make check`
+- Conventional commit; PR with test plan
+
+## Bug Fix Workflow
+1. Reproduce in browser (note route, network tab, console)
+2. Root cause — don't patch symptoms
+3. Minimal fix at correct layer (auth vs api vs feature vs route guard)
+4. `make lint` and `make build`
+5. Verify against iam-backend if API-related
+
+## Local Dev Commands
+```bash
+make setup      # .env + npm install
+make run        # Vite dev server :5173 (proxies API to :3000)
+make lint       # ESLint
+make build      # tsc + vite build
+make check      # lint + build
+```

@@ -1,0 +1,21 @@
+---
+description: Read IAM feature docs before changing auth, OIDC, MFA, federation, or session logic
+alwaysApply: true
+---
+
+# IAM feature documentation
+
+Before modifying **OIDC, SSO sessions, federation, WebAuthn, MFA, multi-tenant auth, or platform admin authorization**:
+
+1. Read [docs/README.md](../../docs/README.md) (hub: routes, DB tables, Redis keys).
+2. Read the relevant [docs/features/*.md](../../docs/features/) guide for the feature you are changing.
+
+After behavior changes, update in the same PR:
+
+- Matching [docs/features/*.md](../../docs/features/) and [docs/testing/*.md](../../docs/testing/) guide
+- [documentation-standards.mdc](documentation-standards.mdc) doc map if paths or scope changed
+- `make swagger-load` + commit spec files when `/api/v1` HTTP surface changed
+
+**Authorization:** use [docs/features/AUTHORIZATION.md](../../docs/features/AUTHORIZATION.md) — platform admin (`users.is_platform_admin`) and tenant membership roles (`tenant_memberships.role`).
+
+Skill: [skills/feature-knowledge/SKILL.md](../skills/feature-knowledge/SKILL.md)

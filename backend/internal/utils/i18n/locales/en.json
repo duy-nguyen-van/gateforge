@@ -1,0 +1,18 @@
+{
+  "SUCCESS": "Success",
+  "RATE_LIMIT_EXCEEDED": "Rate limit exceeded",
+  "EMAIL_SEND_ERROR": "Failed to send email",
+  "VALIDATION_ERROR": "Validation failed",
+  "NOT_FOUND": "Resource not found",
+  "UNAUTHORIZED": "Unauthorized",
+  "FORBIDDEN": "Forbidden",
+  "BAD_REQUEST": "Bad request",
+  "INTERNAL_ERROR": "An unexpected error occurred",
+  "DATABASE_ERROR": "Database operation failed",
+  "EXTERNAL_SERVICE_ERROR": "External service error",
+  "INVALID_LOGIN_CREDENTIALS": "Invalid email or password",
+  "INVALID_REFRESH_TOKEN": "Invalid or expired refresh token",
+  "ACCOUNT_NOT_ACTIVE": "Account is not active",
+  "INVALID_SELECTION_TOKEN": "Invalid or expired selection token",
+  "EMAIL_ALREADY_REGISTERED": "Email already registered"
+}

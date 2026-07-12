@@ -1,0 +1,16 @@
+[Unit]
+Description=GateForge IAM Server
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=iam
+Group=iam
+WorkingDirectory=/opt/gateforge-iam
+EnvironmentFile=/opt/gateforge-iam/.env
+ExecStart=/opt/gateforge-iam/gateforge-iam-server
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

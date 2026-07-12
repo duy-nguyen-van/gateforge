@@ -1,0 +1,9 @@
+/*    /index.html  200
+
+# Proxy API and OIDC routes to the Go backend (set origin in Cloudflare dashboard).
+/api/v1/*  http://localhost:3000/api/v1/:splat  200
+/oidc/*    http://localhost:3000/oidc/:splat    200
+/authorize http://localhost:3000/authorize      200
+/token     http://localhost:3000/token           200
+/userinfo  http://localhost:3000/userinfo        200
+/.well-known/* http://localhost:3000/.well-known/:splat 200

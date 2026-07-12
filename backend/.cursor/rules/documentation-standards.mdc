@@ -1,0 +1,48 @@
+---
+description: When and how to update documentation after code changes
+alwaysApply: false
+---
+
+# Documentation Standards
+
+## When to Update Docs
+- New or changed HTTP endpoint (routes, handlers, DTOs, status codes)
+- OIDC root routes (`/authorize`, `/token`, etc.) or `/api/v1` routes
+- OIDC/federation/MFA/WebAuthn/SSO session behavior changes
+- CSRF skip list changes in `internal/middlewares/csrf.go`
+- New env vars in `internal/config/`
+- Database schema changes (`cmd/migrations/sql/`)
+- Platform admin or tenant membership authorization changes
+
+## What to Document
+
+### OpenAPI (required for `/api/v1` HTTP changes)
+- swag annotations on handlers + `cmd/server/main.go` metadata (`@BasePath /api/v1`)
+- Regenerate: `make swagger-load`
+- Commit `docs/swagger.yaml`, `docs/swagger.json`, `docs/docs.go` together
+- Root OIDC routes are **outside** swag — update feature + testing docs instead
+
+### Feature docs (when behavior changes)
+
+Use the standard sections in [docs/features/](features/): summary, endpoints, flow, persistence, code map, config, frontend, testing link.
+
+| Feature doc | Testing doc | Update when |
+|-------------|-------------|-------------|
+| `docs/features/OIDC.md` | `docs/testing/OIDC_CURL.md` | `/authorize`, `/token`, `/userinfo`, JWKS, PKCE |
+| `docs/features/SSO_SESSION.md` | `docs/testing/SSO_CURL.md` | `iam_session`, SSO, logout |
+| `docs/features/FEDERATION.md` | `docs/testing/FEDERATION_CURL.md` | Google federation, tenant IdP admin |
+| `docs/features/PASSKEY_MFA.md` | `docs/testing/PASSKEY_MFA_CURL.md` | WebAuthn, MFA TOTP/recovery |
+| `docs/features/MULTI_TENANT.md` | — | memberships, tenant select/switch |
+| `docs/features/AUTHORIZATION.md` | — | platform admin, tenant roles |
+
+Also update [docs/README.md](README.md) hub if DB tables or Redis keys change.
+
+### Human docs
+- `README.md` — setup, `make` targets, link to `docs/README.md`
+- `CONTRIBUTING.md` — contribution expectations
+- `cmd/server/.env.example` — new required env vars (no secrets)
+
+## Style
+- Concise and practical — include real `make` / `curl` examples with correct path prefix
+- Verify paths and commands exist in this repo
+- Outdated docs are worse than no docs

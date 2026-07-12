@@ -1,0 +1,40 @@
+# Git and CI
+.git
+.github
+
+# IDE and editor
+.idea
+.vscode
+**/.cursor
+**/.DS_Store
+
+# Secrets and local env (never send to the daemon)
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/gcs-credential.json
+
+# Go build and test artifacts
+bin/
+**/coverage.out
+**/coverage.html
+**/*.out
+**/__debug_*
+backend/cmd/server/__debug_*
+
+# Backend: not needed to compile the server binary
+backend/internal/static/dist
+backend/cmd/migrations
+backend/Users
+backend/docker-compose.yml
+backend/Dockerfile
+backend/examples
+
+# Frontend: built inside Docker
+frontend/node_modules
+frontend/dist
+frontend/dist-ssr
+
+# Local deployment docs (image builds from docker/Dockerfile only)
+deployments

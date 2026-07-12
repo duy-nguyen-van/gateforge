@@ -1,0 +1,74 @@
+---
+description: Repo layout, layers, and import boundaries for github.com/gateforge-iam/gateforge-iam
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Layout and layers (matches this repo)
+
+## `cmd/` — composition only
+
+- **`cmd/server/main.go`**: Uber **FX** `Provide` / `Invoke`, constructs `http.Server`, supplies `*config.Config`, wires handlers, services, repos, `internal/auth`, cache, integrations.
+- **`cmd/server/routes/router.go`**: Echo instance, global **middleware** chain, route registration, Swagger (non-prod). No business rules beyond HTTP concerns.
+
+### Route surfaces (two namespaces)
+
+| Surface | Paths | Handlers |
+|---------|-------|----------|
+| **OIDC / OAuth2 (root)** | `/.well-known/*`, `/authorize`, `/token`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | `OIDCHandler` |
+| **App API (`/api/v1`)** | health, auth, webauthn, mfa, internal tenant IdP admin | `AuthHandler`, `WebauthnHandler`, `MFAHandler`, `HealthHandler`, `TenantIdentityAdminHandler` |
+
+- swag `@BasePath` is `/api/v1` — root OIDC routes are outside the generated OpenAPI spec.
+- New routes: register in `router.go`; choose the correct group (root vs `v1`); update CSRF skip list in `csrf.go` if needed.
+
+## `internal/` — application code
+
+> **`internal/bootstrap/`** exists but is **empty and unwired** — do not add code there; use `cmd/server` for composition.
+
+| Layer / area | Path | Role |
+|--------------|------|------|
+| **HTTP handlers** | `internal/handlers/` | Echo: bind/validate request → call service (or thin repo) → JSON/`HandleError`. Embed `BaseHandler` for `errors.ErrorHandler` helpers. |
+| **Use cases** | `internal/services/` | OIDC, session, user, federation, MFA, WebAuthn orchestration; calls **repos**, **auth**, **cache**, **integration**, **domains**, **crypto**. |
+| **Persistence** | `internal/repositories/` | GORM/DB access; returns **`internal/models`**. Constructor `Provide*` functions in same package. |
+| **DB entities** | `internal/models/` | Tables / associations; no HTTP or Echo types. |
+| **API shapes** | `internal/dtos/` | JSON request/response structs and pagination; used at handler edges. |
+| **Domain adapters** | `internal/domains/` | Bridges **models** to external concepts (e.g. WebAuthn, OIDC); may reuse small **repo** helpers (e.g. unmarshaling). |
+| **Security primitives** | `internal/auth/` | JWT, opaque tokens, OIDC signing, request **context** keys, WebAuthn/ephemeral **providers** — consumed by services and/or routes. |
+| **Crypto helpers** | `internal/crypto/` | Secret generation/formatting (e.g. MFA); keep free of HTTP. |
+| **Middleware** | `internal/middlewares/` | CORS, CSRF, auth, logging, rate limit, request context — Echo `middleware` stack. |
+| **Errors** | `internal/errors/` | `AppError`, `ErrorHandler`, recovery/error Echo middleware. |
+| **Constants** | `internal/constants/` | Error codes, OAuth/OIDC/session constants, roles. |
+| **Config** | `internal/config/` | Env-backed `Config` struct. |
+| **DB connectivity** | `internal/db/` | Postgres pool / GORM bootstrap (`PostgresDB`). |
+| **Cache** | `internal/cache/` | Redis-backed cache abstraction. |
+| **Outbound integrations** | `internal/integration/` | Email (SES), object storage (S3/GCS). |
+| **HTTP client** | `internal/httpclient/` | Shared Resty/outbound HTTP. |
+| **Request scope** | `internal/request/` | Per-request metadata helpers (correlation, etc.). |
+| **Observability** | `internal/logger/`, `internal/monitoring/` | Global **Zap** (`logger.Init` in main); Sentry, New Relic. |
+| **Pure utilities** | `internal/utils/` | Sort, date, i18n — no DB. |
+
+## `pkg/` — small shared libraries
+
+- **`pkg/correlationid/`** (and similar): import from `internal/` where needed; keep **generic** and free of app-specific DI.
+
+## `docs/` — generated and manual API docs
+
+- **`docs/swagger.yaml`**, **`docs/swagger.json`**, **`docs/docs.go`**: swag output — regenerate with `make swagger-load`, never hand-edit only YAML.
+- **Manual docs**: [docs/README.md](../../docs/README.md), [docs/features/](../../docs/features/), [docs/testing/](../../docs/testing/).
+
+## Dependency rules
+
+- **handlers → services** is the default path. **Exception**: a handler may depend on a **repository interface** for a very thin operator/internal surface (e.g. `TenantIdentityAdminHandler` + `TenantIdentityProviderRepository`) — do not expand this pattern without good reason.
+- **services** may use **repositories**, **auth**, **cache**, **integration**, **domains**, **crypto**, **db** types — not Echo `Context` for business decisions (pass `context.Context` and typed inputs).
+- **repositories** use **models** + **db**; must **not** import **handlers** or **services**.
+- **models** must **not** import **handlers** or **services**.
+
+## Errors and HTTP
+
+- Prefer propagating **`internal/errors.AppError`** (and `ErrorHandler`) over scattered `echo.NewHTTPError`.
+- **Known exception**: `TenantIdentityAdminHandler` (`tenant_identity_provider_admin.go`) returns `echo.NewHTTPError` for invalid admin key / not found — keep consistent when extending that handler.
+
+```go
+// ❌ Repository or model importing internal/services or internal/handlers
+// ✅ Handler delegates logic to service; service owns transactions and rules
+```

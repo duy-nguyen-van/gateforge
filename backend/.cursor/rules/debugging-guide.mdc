@@ -1,0 +1,62 @@
+---
+description: Systematic debugging for iam-backend (Echo, Postgres, Redis, OIDC flows)
+alwaysApply: false
+---
+
+# Debugging Guide
+
+## Methodology
+1. **Reproduce** — Reliable case (curl from flow docs below; use correct path prefix)
+2. **Isolate** — Handler vs service vs repo vs cache vs external provider
+3. **Hypothesize** — 2–3 theories from symptoms
+4. **Verify** — Zap logs (`logger.Sugar`), tests, DB/Redis state
+5. **Fix** — Minimal change at root cause
+6. **Validate** — `make tests`, manual flow if IAM-specific
+
+## Route surfaces (common confusion)
+
+| Symptom | Check |
+|---------|-------|
+| 404 on OIDC | Path may need **root** (`/authorize`) not `/api/v1/authorize` |
+| 404 on login | App API is `/api/v1/login`, not `/login` |
+| CSRF 403 on OIDC browser login | `/oidc/login` is **not** CSRF-skipped — send `X-CSRF-Token` |
+| CSRF 403 on API login | `/api/v1/login` is skipped — look elsewhere (rate limit, validation) |
+
+## Investigation Tools
+
+### Go
+- `dlv` for breakpoints
+- `go test -race ./internal/...`
+- `go tool pprof` for CPU/memory
+- `make test-specific TEST=TestName` for narrow runs
+
+### Logging
+- Global Zap: `internal/logger/` (`logger.Sugar` after `logger.Init` in main)
+- Request logs: `internal/middlewares/logging.go`
+- Correlation ID: `internal/request/context.go` + `pkg/correlationid/`
+
+### PostgreSQL
+- `make migrate-status` / `make migrate-inspect`
+- `EXPLAIN ANALYZE` for slow queries
+- `pg_stat_activity`, `pg_locks` for locks/deadlocks
+
+### Redis / Cache
+- Session (`iam_session`), MFA challenge, ephemeral WebAuthn keys in `internal/cache/`
+- TTL expiry vs stale reads
+
+### IAM Flow Docs
+| Doc | Use for |
+|-----|---------|
+| [docs/README.md](../../docs/README.md) | Hub, DB tables, Redis keys |
+| [docs/features/OIDC.md](../../docs/features/OIDC.md) | Authorize, token, userinfo |
+| [docs/features/FEDERATION.md](../../docs/features/FEDERATION.md) | Google federation |
+| [docs/features/SSO_SESSION.md](../../docs/features/SSO_SESSION.md) | SSO cookie, shared login/authorize session |
+| [docs/features/PASSKEY_MFA.md](../../docs/features/PASSKEY_MFA.md) | WebAuthn, MFA |
+| [docs/features/AUTHORIZATION.md](../../docs/features/AUTHORIZATION.md) | Platform admin, tenant roles |
+
+## Common Patterns
+- **401/403**: middleware order, JWT expiry, CSRF on `/oidc/login`, session cookie `Secure`/`SameSite` in local dev
+- **OIDC redirect mismatch**: `redirect_uri` vs registered client
+- **Session lost**: Redis TTL, `iam_session` cookie domain/path, [docs/features/SSO_SESSION.md](../../docs/features/SSO_SESSION.md)
+- **Goroutine leak**: missing context cancellation on outbound HTTP
+- **Migration drift**: `atlas.sum` out of sync — run `make migrate-hash`

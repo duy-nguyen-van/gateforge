@@ -1,0 +1,2356 @@
+basePath: /api/v1
+definitions:
+  domains.OIDCTokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      id_token:
+        type: string
+      refresh_token:
+        type: string
+      scope:
+        type: string
+      token_type:
+        type: string
+    type: object
+  dtos.AdminAddMemberRequest:
+    properties:
+      email:
+        type: string
+      role:
+        enum:
+        - member
+        - admin
+        type: string
+    required:
+    - email
+    type: object
+  dtos.AdminAuditLogResponse:
+    properties:
+      action:
+        type: string
+      actor_id:
+        type: string
+      actor_type:
+        type: string
+      correlation_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      new_value:
+        additionalProperties: {}
+        type: object
+      old_value:
+        additionalProperties: {}
+        type: object
+      request_id:
+        type: string
+      resource_id:
+        type: string
+      resource_name:
+        type: string
+      resource_type:
+        type: string
+      result:
+        type: string
+      tenant_id:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  dtos.AdminClientResponse:
+    properties:
+      client_id:
+        type: string
+      client_secret_set:
+        type: boolean
+      created_at:
+        type: string
+      grant_types:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      is_public:
+        type: boolean
+      name:
+        type: string
+      redirect_uris:
+        items:
+          type: string
+        type: array
+      scopes:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    type: object
+  dtos.AdminClientUsageResponse:
+    properties:
+      active_refresh_tokens:
+        type: integer
+      authorize_events_30d:
+        type: integer
+      client_id:
+        type: string
+      last_token_issued_at:
+        type: string
+      token_issue_events_30d:
+        type: integer
+      total_refresh_tokens:
+        type: integer
+    type: object
+  dtos.AdminCreateClientRequest:
+    properties:
+      client_id:
+        maxLength: 255
+        minLength: 1
+        type: string
+      grant_types:
+        items:
+          type: string
+        type: array
+      is_public:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      redirect_uris:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      scopes:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    required:
+    - name
+    - redirect_uris
+    - tenant_id
+    type: object
+  dtos.AdminCreateClientResponse:
+    properties:
+      client_id:
+        type: string
+      client_secret:
+        type: string
+      client_secret_set:
+        type: boolean
+      created_at:
+        type: string
+      grant_types:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      is_public:
+        type: boolean
+      name:
+        type: string
+      redirect_uris:
+        items:
+          type: string
+        type: array
+      scopes:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    type: object
+  dtos.AdminCreateTenantRequest:
+    properties:
+      domain:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  dtos.AdminIdentityProviderResponse:
+    properties:
+      configured:
+        type: boolean
+      enabled:
+        type: boolean
+      name:
+        type: string
+      oauth_client_id:
+        type: string
+      oauth_client_secret_set:
+        type: boolean
+      provider:
+        type: string
+      redirect_uri:
+        type: string
+      setup_console_url:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  dtos.AdminStatsResponse:
+    properties:
+      active_sessions:
+        type: integer
+      mfa_enabled_count:
+        type: integer
+      mfa_enabled_percent:
+        type: number
+      total_users:
+        type: integer
+    type: object
+  dtos.AdminTenantMemberResponse:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      joined_at:
+        type: string
+      last_name:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dtos.AdminTenantResponse:
+    properties:
+      created_at:
+        type: string
+      domain:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      user_count:
+        type: integer
+    type: object
+  dtos.AdminUpdateClientRequest:
+    properties:
+      client_secret:
+        type: string
+      grant_types:
+        items:
+          type: string
+        type: array
+      is_public:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      redirect_uris:
+        items:
+          type: string
+        minItems: 1
+        type: array
+      scopes:
+        items:
+          type: string
+        type: array
+    type: object
+  dtos.AdminUpdateTenantRequest:
+    properties:
+      domain:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+    type: object
+  dtos.AdminUserDetailResponse:
+    properties:
+      active_sessions:
+        type: integer
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      is_platform_admin:
+        type: boolean
+      last_name:
+        type: string
+      memberships:
+        items:
+          $ref: '#/definitions/dtos.AdminUserMembershipResponse'
+        type: array
+      mfa_enabled:
+        type: boolean
+      passkey_count:
+        type: integer
+      status:
+        type: string
+    type: object
+  dtos.AdminUserMembershipResponse:
+    properties:
+      role:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      tenant_name:
+        type: string
+    type: object
+  dtos.AdminUserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      mfa_enabled:
+        type: boolean
+      status:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  dtos.HealthResponse:
+    properties:
+      service:
+        example: github.com/gateforge-iam/gateforge-iam
+        type: string
+      status:
+        example: healthy
+        type: string
+      timestamp:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  dtos.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      remember_me:
+        description: RememberMe extends the iam_session cookie lifetime (SSO_SESSION_REMEMBER_TTL).
+          API login and POST /oidc/login both honor this.
+        type: boolean
+      return_to:
+        description: 'ReturnTo when set (OIDC browser flow): creates a session cookie
+          and redirects here with 302 — no access_token in the response body.'
+        type: string
+      tenant_id:
+        description: TenantID optional explicit tenant context.
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dtos.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      active_tenant_id:
+        type: string
+      expires_in:
+        description: access token lifetime (seconds)
+        type: integer
+      refresh_expires_in:
+        description: refresh token lifetime (seconds)
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  dtos.MFAChallengeVerifyRequest:
+    properties:
+      code:
+        example: "123456"
+        type: string
+      mfa_ticket:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - code
+    - mfa_ticket
+    type: object
+  dtos.MFARecoveryCodesResponse:
+    properties:
+      codes:
+        items:
+          type: string
+        type: array
+    type: object
+  dtos.MFATOTPSetupResponse:
+    properties:
+      otpauth_uri:
+        example: otpauth://totp/...
+        type: string
+      secret:
+        example: JBSWY3DPEHPK3PXP
+        type: string
+    type: object
+  dtos.MFATOTPVerifyRequest:
+    properties:
+      code:
+        example: "123456"
+        type: string
+    required:
+    - code
+    type: object
+  dtos.Meta:
+    description: Metadata for pagination
+    properties:
+      code:
+        example: 400
+        type: integer
+      error_code:
+        example: BAD_REQUEST
+        type: string
+      message:
+        example: Request is invalid
+        type: string
+      page:
+        example: 1
+        type: integer
+      page_size:
+        example: 20
+        type: integer
+      total:
+        example: 18
+        type: integer
+    type: object
+  dtos.OpenIDConfigurationResponse:
+    properties:
+      authorization_endpoint:
+        type: string
+      code_challenge_methods_supported:
+        items:
+          type: string
+        type: array
+      grant_types_supported:
+        items:
+          type: string
+        type: array
+      id_token_signing_alg_values_supported:
+        items:
+          type: string
+        type: array
+      issuer:
+        type: string
+      jwks_uri:
+        type: string
+      response_types_supported:
+        items:
+          type: string
+        type: array
+      scopes_supported:
+        items:
+          type: string
+        type: array
+      subject_types_supported:
+        items:
+          type: string
+        type: array
+      token_endpoint:
+        type: string
+      token_endpoint_auth_methods_supported:
+        items:
+          type: string
+        type: array
+      userinfo_endpoint:
+        type: string
+    type: object
+  dtos.PatchIdentityProviderRequest:
+    properties:
+      enabled:
+        type: boolean
+      oauth_client_id:
+        type: string
+      oauth_client_secret:
+        type: string
+    type: object
+  dtos.PublicFederationProviderResponse:
+    properties:
+      name:
+        type: string
+      provider:
+        type: string
+    type: object
+  dtos.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dtos.RegisterRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      password:
+        example: secretpassword
+        maxLength: 128
+        minLength: 8
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dtos.TenantSelectRequest:
+    properties:
+      remember_me:
+        type: boolean
+      selection_token:
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - selection_token
+    - tenant_id
+    type: object
+  dtos.TenantSummary:
+    properties:
+      domain:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  dtos.TenantSwitchRequest:
+    properties:
+      tenant_id:
+        type: string
+    required:
+    - tenant_id
+    type: object
+  dtos.UpdateProfileRequest:
+    properties:
+      first_name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+    type: object
+  dtos.UserResponse:
+    properties:
+      active_tenant_id:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      first_name:
+        type: string
+      id:
+        type: string
+      is_platform_admin:
+        type: boolean
+      last_name:
+        type: string
+      mfa_enabled:
+        type: boolean
+      tenants:
+        items:
+          $ref: '#/definitions/dtos.TenantSummary'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  dtos.WebauthnCredentialResponse:
+    properties:
+      created_at:
+        type: string
+      device_name:
+        example: Work MacBook
+        type: string
+      id:
+        example: 00000000-0000-0000-0000-000000000001
+        type: string
+    type: object
+  dtos.WebauthnLoginFinishRequest:
+    properties:
+      credential:
+        description: Credential is the browser PublicKeyCredential JSON from navigator.credentials.get().
+        type: object
+      email:
+        example: user@example.com
+        type: string
+      remember_me:
+        example: false
+        type: boolean
+      return_to:
+        example: ""
+        type: string
+      session_token:
+        example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+        type: string
+      tenant_id:
+        example: 00000000-0000-0000-0000-000000000001
+        type: string
+    required:
+    - email
+    - session_token
+    type: object
+  dtos.WebauthnLoginStartRequest:
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      tenant_id:
+        example: 00000000-0000-0000-0000-000000000001
+        type: string
+    required:
+    - email
+    type: object
+  dtos.WebauthnLoginStartResponse:
+    properties:
+      options:
+        type: object
+      session_token:
+        example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+        type: string
+    type: object
+  dtos.WebauthnRegisterFinishRequest:
+    properties:
+      credential:
+        description: Credential is the browser PublicKeyCredential JSON from navigator.credentials.create().
+        type: object
+      session_token:
+        example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+        type: string
+    required:
+    - session_token
+    type: object
+  dtos.WebauthnRegisterStartRequest:
+    properties:
+      device_name:
+        description: DeviceName optional label stored with the passkey (e.g. "Work
+          MacBook").
+        example: Personal iPhone
+        maxLength: 255
+        type: string
+    type: object
+  dtos.WebauthnRegisterStartResponse:
+    properties:
+      options:
+        type: object
+      session_token:
+        example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is a backend API for Golang Boilerplate
+  title: Golang Boilerplate API
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - application/json
+      description: Check if the service is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.HealthResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Health Check
+      tags:
+      - Health
+  /.well-known/jwks.json:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWKS JSON
+          schema:
+            type: string
+      summary: JWKS endpoint (JSON Web Key Set)
+      tags:
+      - OIDC
+  /.well-known/openid-configuration:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.OpenIDConfigurationResponse'
+      summary: OpenID Configuration endpoint
+      tags:
+      - OIDC
+  /admin/audit-logs:
+    get:
+      parameters:
+      - description: Filter by tenant UUID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by action (exact or prefix with trailing dot)
+        in: query
+        name: action
+        type: string
+      - description: Filter by result (success, failure, denied)
+        in: query
+        name: result
+        type: string
+      - description: Filter by actor id
+        in: query
+        name: actor_id
+        type: string
+      - description: ISO8601 lower bound on created_at
+        in: query
+        name: from
+        type: string
+      - description: ISO8601 upper bound on created_at
+        in: query
+        name: to
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminAuditLogResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List platform audit logs
+      tags:
+      - Admin
+  /admin/clients:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by tenant UUID
+        in: query
+        name: tenant_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminClientResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List OAuth clients (platform admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: OAuth client registration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AdminCreateClientRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminCreateClientResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create an OAuth client (platform admin)
+      tags:
+      - Admin
+  /admin/clients/{clientId}:
+    delete:
+      parameters:
+      - description: Client record UUID
+        in: path
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete an OAuth client (platform admin)
+      tags:
+      - Admin
+    get:
+      parameters:
+      - description: Client record UUID
+        in: path
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminClientResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get an OAuth client by ID (platform admin)
+      tags:
+      - Admin
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Client record UUID
+        in: path
+        name: clientId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AdminUpdateClientRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminClientResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update an OAuth client (platform admin)
+      tags:
+      - Admin
+  /admin/clients/{clientId}/usage:
+    get:
+      parameters:
+      - description: Client record UUID
+        in: path
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminClientUsageResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get OAuth client usage metrics (platform admin)
+      tags:
+      - Admin
+  /admin/login-history:
+    get:
+      parameters:
+      - description: Filter by tenant UUID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Filter by result (success, failure, denied)
+        in: query
+        name: result
+        type: string
+      - description: Filter by actor id
+        in: query
+        name: actor_id
+        type: string
+      - description: ISO8601 lower bound on created_at
+        in: query
+        name: from
+        type: string
+      - description: ISO8601 upper bound on created_at
+        in: query
+        name: to
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminAuditLogResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List login history events (platform admin)
+      tags:
+      - Admin
+  /admin/stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminStatsResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Platform admin dashboard stats
+      tags:
+      - Admin
+  /admin/tenants:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminTenantResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tenants (platform admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant name and optional domain
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AdminCreateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminTenantResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a tenant (platform admin)
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}:
+    delete:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete a tenant (platform admin)
+      tags:
+      - Admin
+    get:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminTenantResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a tenant by ID (platform admin)
+      tags:
+      - Admin
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AdminUpdateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminTenantResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a tenant (platform admin)
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/identity-providers:
+    get:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminIdentityProviderResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List identity providers for a tenant
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/identity-providers/{provider}:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Provider id (e.g. google)
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: OAuth credentials and enabled flag
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.PatchIdentityProviderRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Configure an upstream identity provider for a tenant (platform admin)
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/members:
+    get:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminTenantMemberResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List members of a tenant (platform admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: User email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AdminAddMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Add an existing user to a tenant
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/members/{userId}:
+    delete:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: User UUID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Remove a user from a tenant
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by tenant UUID
+        in: query
+        name: tenant_id
+        type: string
+      - description: Search email or name
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminUserResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List users (platform admin)
+      tags:
+      - Admin
+  /admin/users/{userId}:
+    get:
+      parameters:
+      - description: User UUID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.AdminUserDetailResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user details (platform admin)
+      tags:
+      - Admin
+  /admin/users/{userId}/disable:
+    post:
+      parameters:
+      - description: User UUID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Disable a user account (platform admin)
+      tags:
+      - Admin
+  /admin/users/{userId}/force-logout:
+    post:
+      parameters:
+      - description: User UUID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Force logout a user (platform admin)
+      tags:
+      - Admin
+  /admin/users/{userId}/reset-mfa:
+    post:
+      parameters:
+      - description: User UUID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Reset MFA (TOTP + recovery codes) for a user (platform admin)
+      tags:
+      - Admin
+  /admin/users/{userId}/reset-passkey:
+    post:
+      parameters:
+      - description: User UUID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Reset all passkeys for a user (platform admin)
+      tags:
+      - Admin
+  /authorize:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Session cookie from browser login (iam_session)
+        in: header
+        name: Cookie
+        type: string
+      - description: State parameter
+        in: query
+        name: state
+        type: string
+      - description: Response type (code)
+        in: query
+        name: response_type
+        type: string
+      - description: Client ID
+        in: query
+        name: client_id
+        type: string
+      - description: Redirect URI
+        in: query
+        name: redirect_uri
+        type: string
+      - description: Scope
+        in: query
+        name: scope
+        type: string
+      - description: Nonce
+        in: query
+        name: nonce
+        type: string
+      - description: Code challenge
+        in: query
+        name: code_challenge
+        type: string
+      - description: Code challenge method
+        in: query
+        name: code_challenge_method
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to client or login
+          schema:
+            type: string
+      summary: Authorize endpoint (authorization code + PKCE)
+      tags:
+      - OIDC
+  /federation/providers:
+    get:
+      parameters:
+      - description: Tenant UUID (defaults to DEFAULT_TENANT_ID)
+        in: query
+        name: tenant_id
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.PublicFederationProviderResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: List enabled federation sign-in methods for a tenant
+      tags:
+      - Auth
+  /health/database:
+    get:
+      consumes:
+      - application/json
+      description: Check if the database connection is healthy
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                type: object
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Database Health Check
+      tags:
+      - Health
+  /health/metrics:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed database connection metrics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                type: object
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Database Connection Metrics
+      tags:
+      - Health
+  /internal/tenants/{tenantId}/identity-providers/{provider}:
+    patch:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Provider id (e.g. google)
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Admin API key
+        in: header
+        name: X-Admin-API-Key
+        required: true
+        type: string
+      - description: OAuth credentials and enabled flag
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.PatchIdentityProviderRequest'
+      responses:
+        "204":
+          description: No Content
+      summary: Configure an upstream identity provider for a tenant
+      tags:
+      - internal
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Sets the same iam_session cookie as OIDC so /authorize recognizes
+        the browser without a second login. If the user has MFA (TOTP) enabled, `data`
+        is MFALoginChallengeResponse (mfa_ticket) instead of LoginResponse; complete
+        login with POST /mfa/challenge/verify. When the user belongs to multiple tenants
+        and no tenant context is provided, `data` is TenantSelectionResponse.
+      parameters:
+      - description: Credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'When MFA is off: LoginResponse. When MFA is on: same envelope
+            but `data` is MFALoginChallengeResponse (see top-level description).'
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Login (dashboard/API) with email and password
+      tags:
+      - Auth
+  /login/session:
+    post:
+      description: Reads the browser iam_session cookie set by federation callback
+        and returns JWT tokens for the SPA dashboard. Used by GET /login/federation/complete.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: When tenant is resolved. When multiple tenants apply, `data`
+            is TenantSelectionResponse.
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Exchange iam_session cookie for API tokens (after federated sign-in)
+      tags:
+      - Auth
+  /logout:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Log out everywhere for the current user (SSO session + all refresh
+        tokens)
+      tags:
+      - Auth
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.UserResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Current user profile
+      tags:
+      - Auth
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Profile fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.UserResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update current user profile
+      tags:
+      - Auth
+  /me/tenants:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.TenantSummary'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tenants the current user can access
+      tags:
+      - Auth
+  /mfa/challenge/verify:
+    post:
+      consumes:
+      - application/json
+      description: Consumes the `mfa_ticket` from password or passkey login when MFA
+        is required. `code` is a 6-digit TOTP, or a recovery code (non–6-digit path).
+        On success returns LoginResponse and sets `iam_session` cookie.
+      parameters:
+      - description: Ticket and code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.MFAChallengeVerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Complete MFA after password or passkey login
+      tags:
+      - MFA
+  /mfa/recovery-codes:
+    post:
+      consumes:
+      - application/json
+      description: Replaces any existing recovery codes. Requires TOTP to be enabled.
+        Plain codes are returned once; only hashes are stored.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.MFARecoveryCodesResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate MFA recovery codes
+      tags:
+      - MFA
+  /mfa/totp/setup:
+    post:
+      consumes:
+      - application/json
+      description: Generates a TOTP secret, persists it (encrypted) as pending, and
+        returns the raw secret plus otpauth URI for QR scanning. Call POST /mfa/totp/verify
+        with a valid code to enable MFA.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.MFATOTPSetupResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Start TOTP enrollment
+      tags:
+      - MFA
+  /mfa/totp/verify:
+    post:
+      consumes:
+      - application/json
+      description: Validates a 6-digit code against the pending secret and enables
+        TOTP for the user.
+      parameters:
+      - description: 6-digit authenticator code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.MFATOTPVerifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                type: object
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Confirm TOTP enrollment
+      tags:
+      - MFA
+  /oidc/federation/{provider}/callback:
+    get:
+      parameters:
+      - description: Provider id (e.g. google)
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Authorization code
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State
+        in: query
+        name: state
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Redirect to stored return_to
+          schema:
+            type: string
+      summary: Federated OAuth callback
+      tags:
+      - OIDC
+  /oidc/federation/{provider}/start:
+    get:
+      parameters:
+      - description: Provider id (e.g. google)
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: URL to return to after login (must be /authorize on this app)
+        in: query
+        name: return_to
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Redirect to identity provider
+          schema:
+            type: string
+      summary: Start federated sign-in (OIDC browser flow)
+      tags:
+      - OIDC
+  /oidc/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Credentials + return_to
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to return_to with session cookie set
+          schema:
+            type: string
+      summary: Login (OIDC browser flow) and continue /authorize
+      tags:
+      - OIDC
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Exchange refresh token for a new access token (and rotated refresh
+        token)
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.UserResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /tenants/select:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Selection token and tenant
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.TenantSelectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Complete login by selecting a tenant
+      tags:
+      - Auth
+  /tenants/switch:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Target tenant
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.TenantSwitchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Switch active tenant and re-issue tokens
+      tags:
+      - Auth
+  /token:
+    post:
+      consumes:
+      - application/json
+      - application/x-www-form-urlencoded
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domains.OIDCTokenResponse'
+      summary: Token endpoint (authorization_code grant)
+      tags:
+      - OIDC
+  /userinfo:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: Authorization Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Userinfo endpoint (Bearer access token from token endpoint, RS256)
+      tags:
+      - OIDC
+  /webauthn/credentials:
+    get:
+      description: Returns passkeys registered for the current user (device label
+        and created date only).
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.WebauthnCredentialResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List registered passkeys
+      tags:
+      - WebAuthn
+  /webauthn/login/finish:
+    post:
+      consumes:
+      - application/json
+      description: 'Verifies the assertion. On success without MFA: returns `data`
+        as LoginResponse and sets `iam_session` cookie. When MFA is enabled for the
+        user, returns MFALoginChallengeResponse in `data` instead (then call POST
+        /mfa/challenge/verify).'
+      parameters:
+      - description: Assertion response
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.WebauthnLoginFinishRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'When MFA is off: LoginResponse + iam_session. When MFA is
+            on: `data` is MFALoginChallengeResponse (see description).'
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Finish passkey login
+      tags:
+      - WebAuthn
+  /webauthn/login/start:
+    post:
+      consumes:
+      - application/json
+      description: Returns WebAuthn PublicKeyCredentialRequestOptions as `data.options`
+        and a `session_token` for login/finish. Public endpoint (rate limited).
+      parameters:
+      - description: User lookup
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.WebauthnLoginStartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.WebauthnLoginStartResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Begin passkey login
+      tags:
+      - WebAuthn
+  /webauthn/register/finish:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the attestation and stores the passkey for the current
+        user. Body includes `session_token` from register/start and the PublicKeyCredential
+        JSON from the browser.
+      parameters:
+      - description: Credential response
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.WebauthnRegisterFinishRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                type: object
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Finish passkey registration
+      tags:
+      - WebAuthn
+  /webauthn/register/start:
+    post:
+      consumes:
+      - application/json
+      description: Returns WebAuthn PublicKeyCredentialCreationOptions as `data.options`
+        and a `session_token` to send with register/finish. Requires a logged-in user
+        (Bearer access token).
+      parameters:
+      - description: Optional device label
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/dtos.WebauthnRegisterStartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.WebauthnRegisterStartResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Begin passkey registration
+      tags:
+      - WebAuthn
+schemes:
+- http
+- https
+securityDefinitions:
+  BasicAuth:
+    type: basic
+  BearerAuth:
+    description: Bearer Token Authentication. Use "Bearer {token}" as the value.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

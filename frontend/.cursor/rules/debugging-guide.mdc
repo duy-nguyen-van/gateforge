@@ -1,0 +1,52 @@
+---
+description: Systematic debugging for iam-frontend (Vite, auth, OIDC, MFA flows)
+alwaysApply: false
+---
+
+# Debugging Guide
+
+## Methodology
+1. **Reproduce** — Browser + Network tab; note route and API path
+2. **Isolate** — Route guard vs auth provider vs API client vs backend
+3. **Hypothesize** — 2–3 theories from symptoms
+4. **Verify** — Network requests, Application tab (cookies/storage), console errors
+5. **Fix** — Minimal change at root cause layer
+6. **Validate** — `make build`; manual auth flow end-to-end
+
+## Dev proxy (common confusion)
+
+| Symptom | Check |
+|---------|-------|
+| API 404 in dev | Vite proxy in `vite.config.ts` — is backend running on `VITE_API_PROXY_TARGET`? |
+| CORS / cookie issues | Use Vite dev server (`:5173`), not opening `dist/` directly against `:3000` |
+| OIDC redirect loop | Backend `OIDC_LOGIN_PAGE_URL` must point to SPA `/login` |
+| WebAuthn fails | Backend `WEBAUTHN_RP_ORIGINS` must include `http://localhost:5173` |
+| CSRF 403 on OIDC login | Call `prefetchCsrfToken()` and pass token to `oidcLogin()` |
+
+## Investigation Tools
+
+### Browser
+- Network tab: request URL, status, `Set-Cookie`, `X-CSRF-Token` response header
+- Application → Cookies: `iam_session`, `csrf_token`
+- Application → Storage: refresh token keys, `mfa_ticket`
+
+### Build
+```bash
+make lint
+make build          # catches TS errors
+npm run dev         # HMR for rapid iteration
+```
+
+### Backend cross-check
+| Frontend symptom | Backend doc / config |
+|----------------|---------------------|
+| OIDC authorize fails | [backend/docs/features/OIDC.md](../backend/docs/features/OIDC.md) |
+| SSO session missing | [backend/docs/features/SSO_SESSION.md](../backend/docs/features/SSO_SESSION.md) |
+| Google login | [backend/docs/features/FEDERATION.md](../backend/docs/features/FEDERATION.md) |
+| Passkey / MFA | [backend/docs/features/PASSKEY_MFA.md](../backend/docs/features/PASSKEY_MFA.md) |
+
+## Common Patterns
+- **401 after reload**: refresh token missing or expired — check `token-store.ts` hydration
+- **Redirect to login while "logged in"**: `getMe()` failed; access token cleared
+- **MFA stuck**: `mfa_ticket` in sessionStorage; verify `/mfa/challenge` flow
+- **Admin 403**: user lacks `is_platform_admin` — check bootstrap admin on backend

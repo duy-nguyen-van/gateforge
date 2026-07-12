@@ -1,0 +1,73 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - copyloopvar
+    - errcheck
+    - errorlint
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+    - funlen
+  settings:
+    staticcheck:
+      checks:
+        - -SA1029
+        - -SA4006
+        - -ST1003
+        - -ST1005
+        - -ST1016
+        - all
+    gosec:
+      excludes:
+        - G101
+    funlen:
+      lines: 100
+      statements: 60
+      ignore-comments: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: (.+)\.go$
+        text: by other packages, and that stutters; consider calling this
+      - path: (.+)\.go$
+        text: "var-naming:"
+      - path: (.+)\.go$
+        text: "receiver-naming:"
+      - path: (.+)\.go$
+        text: "unexported-return:"
+      - path: (.+)\.go$
+        text: "unused-parameter: parameter"
+      - path: (.+)\.go$
+        text: "context-keys-type: should not use basic type string"
+      - path: (.+)\.go$
+        text: error strings should not be capitalized
+      - linters:
+          - staticcheck
+        text: "ST1003:"
+      - path: _test\.go$
+        linters:
+          - funlen
+          - gosec
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/gateforge-iam/gateforge-iam
+  exclusions:
+    generated: disable

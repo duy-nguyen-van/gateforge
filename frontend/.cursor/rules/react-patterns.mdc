@@ -1,0 +1,53 @@
+---
+description: React and TypeScript conventions for components and hooks
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React & TypeScript Patterns
+
+## Components
+- Functional components only; named exports for features/pages
+- Colocate feature-specific subcomponents under `src/features/<name>/`
+- Layout shells: `AuthLayout`, `ConsoleLayout`, `LoginShell`, `AuthShell` in `src/components/layout/`
+- Brand/avatars: `GateForgeBrand`, `DefaultAvatar` — reuse in pages, don't duplicate markup
+
+## Route mounting (match existing pattern)
+- **Auth screens** (Pattern A): wire feature forms in `routes/index.tsx` inside `AuthLayout` — no page file
+- **Settings/console** (Pattern B): page in `src/pages/` composes features; console pages call admin query hooks directly
+
+## Forms
+- React Hook Form + `zodResolver` + schemas from `src/auth/schemas.ts` (or feature-local Zod schemas)
+- Submit handlers: set local error state from `ApiError`; use loading flags for buttons
+
+```tsx
+// ✅ Pattern from login-form.tsx
+try {
+  await login(values, returnTo)
+} catch (err) {
+  setError(err instanceof ApiError ? err.message : 'Sign in failed')
+}
+```
+
+## Auth
+- Consume auth via `useAuth()` hook — don't duplicate token logic in features
+- Protected/guest/admin routing via `ProtectedRoute`, `GuestRoute`, `AdminRoute`
+
+## Server state (admin console)
+- Define hooks in `features/admin/use-admin-queries.ts`; call them from console **pages**
+- Stable query keys via `adminQueryKeys`; mutations invalidate via `useQueryClient`
+- Shared loading/error/empty UI: `features/admin/console-state.tsx` (`ConsoleLoadingState`, etc.)
+- Display formatting: `features/admin/admin-utils.ts`
+
+## Styling
+- Tailwind CSS v4 utility classes; design tokens in `src/index.css` (`surface`, `on-surface`, etc.)
+- Use `cn()` from `@/lib/utils` for conditional classes
+- shadcn-style components in `src/components/ui/` — extend, don't fork unnecessarily
+
+## API types
+- Response shape: `ApiEnvelope<T>` with `data` + `meta`
+- Discriminated unions for login (`LoginResult` vs MFA challenge) — use type guards like `isMfaChallenge`
+
+## Env vars
+- Read via `import.meta.env.VITE_*` — document in `.env.example`
+- Feature flags: `VITE_GOOGLE_FEDERATION_ENABLED`, `VITE_DEFAULT_TENANT_ID`

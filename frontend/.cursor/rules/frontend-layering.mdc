@@ -1,0 +1,104 @@
+---
+description: Source layout and import boundaries for iam-frontend
+globs: src/**/*
+alwaysApply: false
+---
+
+# Frontend Layering
+
+## Directory roles
+
+| Layer | Path | Responsibility |
+|-------|------|----------------|
+| Entry | `src/main.tsx`, `src/App.tsx` | Providers (Query, Router, Auth); `App` renders routes only |
+| API | `src/api/` | HTTP client (`client.ts`), hand-maintained types (`types.ts`), optional `generated/` |
+| Auth | `src/auth/` | Token store, Zod schemas, context value, `AuthProvider` |
+| Components | `src/components/` | Reusable UI — see subfolders below |
+| Features | `src/features/` | Domain UI and hooks — login, register, mfa, webauthn, admin |
+| Pages | `src/pages/` | Route screens — marketing, settings, console admin |
+| Routes | `src/routes/` | Router config (`index.tsx`) + guards (`guards.tsx`) |
+| Hooks | `src/hooks/` | Thin wrappers over auth context (`use-auth.ts`) |
+| Lib | `src/lib/` | Pure utilities (`cn`, `apiUrl`) — no React |
+| Styles | `src/index.css` | Tailwind v4 + design tokens |
+
+### `src/components/` subfolders
+
+| Subfolder | Examples |
+|-----------|----------|
+| `ui/` | shadcn-style primitives (`button`, `input`, `alert`) — CVA variants in `*-variants.ts` |
+| `layout/` | `AuthLayout`, `ConsoleLayout`, shells, `console-nav.ts` |
+| `icons/` | `MaterialIcon` |
+| `brand/` | `GateForgeBrand` |
+| `avatars/` | `DefaultAvatar` + utils |
+
+### `src/features/` domains
+
+| Domain | Key files |
+|--------|-----------|
+| `login/` | `login-form.tsx`, social buttons/icons |
+| `register/` | `register-form.tsx` |
+| `mfa/` | `mfa-challenge-form.tsx`, `totp-setup.tsx` |
+| `webauthn/` | `passkey-login.tsx`, `passkey-register.tsx` |
+| `admin/` | `use-admin-queries.ts`, `console-state.tsx`, `admin-utils.ts` |
+
+## Route wiring patterns (two styles)
+
+### Pattern A — Auth flows (no page file)
+`routes` → `AuthLayout` → **feature form** directly.
+
+Used for `/login`, `/register`, `/mfa/challenge`:
+
+```tsx
+// src/routes/index.tsx
+<AuthLayout variant="revamp">
+  <LoginForm />
+</AuthLayout>
+```
+
+Forms and submit logic live in `src/features/`. Do **not** add a `login-page.tsx` unless the route needs page-level orchestration.
+
+### Pattern B — Settings & console (page file)
+`routes` → **page** → features/components/hooks.
+
+| Page type | Responsibility | Example |
+|-----------|----------------|---------|
+| **Settings** | Page header + compose feature panels | `security-page.tsx` → `TotpSetupPanel`, `PasskeyRegisterPanel` |
+| **Profile** | Read-only display from `useAuth()` | `profile-page.tsx` |
+| **Console admin** | Owns queries, local UI state, table markup; pulls shared pieces from `features/admin/` | `users-page.tsx` → `useAdminUsers`, `ConsoleLoadingState` |
+| **Marketing** | Self-contained landing UI | `home-page.tsx` |
+
+Console pages are **not thin** — they call TanStack Query hooks and hold filter/search state. Extract to `features/admin/` only when reused across multiple console pages.
+
+## Import direction
+
+```
+main/App → routes only
+routes → pages, features, components/layout, guards
+pages → features, components, hooks
+features → api, auth, components, hooks, lib, sibling features
+components → lib, other components (never pages/features)
+hooks → auth context only
+api → auth/token-store (refresh), lib
+auth → api, lib
+lib → nothing from src/
+```
+
+- **Features may import sibling features** (e.g. `login-form` → `passkey-login`)
+- **Only `routes/` imports `pages/`**
+
+## Rules
+- **New auth screen** — feature component + wire in `routes/index.tsx` with `AuthLayout` (Pattern A)
+- **New console/settings screen** — page in `src/pages/` + route entry (Pattern B)
+- **Server state** — TanStack Query hooks in `features/admin/use-admin-queries.ts`; pages call them
+- **Shared console UI** — loading/error/empty states in `features/admin/console-state.tsx`
+- **New API calls** — `src/api/client.ts` + types in `src/api/types.ts` (optional `generated/schema.ts`)
+- **New routes** — `src/routes/index.tsx`; guards in `src/routes/guards.tsx`
+- **Nav config** — sidebar links in `src/components/layout/console-nav.ts`
+
+## Anti-patterns
+- ❌ Adding `*-page.tsx` for login/register/MFA when a feature form suffices
+- ❌ Features importing pages
+- ❌ Components importing features or pages
+- ❌ Duplicating fetch logic outside `api/client.ts`
+- ❌ Storing access tokens in `localStorage`
+- ❌ TanStack Query hooks scattered in pages without going through `features/admin/` for admin data

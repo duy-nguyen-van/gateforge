@@ -1,0 +1,36 @@
+---
+description: Security practices for IAM frontend — tokens, sessions, MFA, WebAuthn, CSRF
+alwaysApply: true
+---
+
+# Security Practices
+
+## Token & Session Storage
+- Access tokens: in-memory only (`src/auth/token-store.ts`) — never `localStorage`
+- Refresh tokens: `sessionStorage` by default; `localStorage` only when user checks "Remember me"
+- MFA ticket: `sessionStorage` only — clear after successful verify
+- Never log tokens, refresh tokens, MFA tickets, TOTP secrets, or recovery codes
+
+## API Requests
+- Use `apiFetch` from `src/api/client.ts` for `/api/v1` calls — handles Bearer auth + 401 refresh retry
+- Always `credentials: 'include'` for cookie-based SSO (`iam_session`)
+- OIDC browser login (`/oidc/login`): send `X-CSRF-Token` from `prefetchCsrfToken()` — CSRF is enforced on this path
+- Federation redirects: use `googleFederationUrl()` — don't hand-build OIDC URLs with user input
+
+## Input Validation
+- Validate all forms with Zod + React Hook Form before API calls
+- Sanitize user-facing error messages — show `ApiError.message`, not raw stack traces
+- Encode path params in admin API URLs (`encodeURIComponent`)
+
+## Environment & Secrets
+- Only `VITE_*` vars are exposed to the browser — never put secrets in Vite env
+- Align with backend: `VITE_DEFAULT_TENANT_ID`, `VITE_GOOGLE_FEDERATION_ENABLED`, proxy target
+- Production: serve SPA on same origin as API (see `deploy/Caddyfile`, `README.md`)
+
+## XSS & DOM Safety
+- Avoid `dangerouslySetInnerHTML` unless absolutely necessary and sanitized
+- Don't inject user input into `window.location` without validation (OIDC `return_to` comes from backend redirect)
+
+## Error Handling
+- Never expose internal backend details in UI copy
+- Handle 401 on protected routes via guards + token refresh; redirect to `/login` when refresh fails

@@ -1,0 +1,7 @@
+interface:
+  display_name: "GateForge IAM Backend"
+  short_description: "Backend rules for GateForge IAM work"
+  default_prompt: "Use $backend to implement or review a backend IAM change."
+
+policy:
+  allow_implicit_invocation: true

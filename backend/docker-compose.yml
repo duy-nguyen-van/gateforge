@@ -1,0 +1,77 @@
+services:
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   command: ["./main"]
+  #   ports:
+  #     - "3001:3000"
+  #   env_file:
+  #     - cmd/server/.env
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   networks:
+  #     - app-network
+
+  # One-off: docker compose run --rm migrate
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    env_file:
+      - cmd/server/.env
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    env_file:
+      - cmd/server/.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    networks:
+      - app-network
+    env_file:
+      - cmd/server/.env
+    environment:
+      - ADMINER_DESIGN=pepa-linha
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DEFAULT_DB_NAME=${POSTGRES_DB:-postgres}
+      - ADMINER_DEFAULT_USERNAME=${POSTGRES_USER:-postgres}
+      - ADMINER_DEFAULT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge

@@ -1,0 +1,63 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../backend/cmd/server/.env
+    environment:
+      APP_ENV: production
+      SERVE_EMBEDDED_FRONTEND: "true"
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.migrate
+    env_file:
+      - ../backend/cmd/server/.env
+    environment:
+      POSTGRES_HOST: postgres
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    env_file:
+      - ../backend/cmd/server/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge

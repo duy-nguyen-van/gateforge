@@ -1,0 +1,52 @@
+package models
+
+import (
+	"fmt"
+	"time"
+
+	_ "ariga.io/atlas-provider-gorm/gormschema" // required for Atlas GORM schema loading)
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+// BaseModel is a base struct that includes common fields for all database models.
+// All models should embed this struct to inherit these fields.
+type BaseModel struct {
+	ID        string         `gorm:"column:id;type:uuid;primaryKey" json:"id"`
+	CreatedAt time.Time      `gorm:"column:created_at;type:timestamptz;not null;default:now()"`
+	UpdatedAt time.Time      `gorm:"column:updated_at;type:timestamptz;not null;default:now()"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;type:timestamptz;index"`
+}
+
+func NewBaseModel() BaseModel {
+	return BaseModel{
+		ID: uuid.Must(uuid.NewV7()).String(),
+	}
+}
+
+func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
+	return ensurePrimaryUUID(&b.ID)
+}
+
+// HardDeleteModel omits soft delete for high-churn tables (OAuth tokens, codes) where
+// deleted_at indexing and retention are undesirable.
+type HardDeleteModel struct {
+	ID        string    `gorm:"column:id;type:uuid;primaryKey" json:"id"`
+	CreatedAt time.Time `gorm:"column:created_at;type:timestamptz;not null;default:now()"`
+	UpdatedAt time.Time `gorm:"column:updated_at;type:timestamptz;not null;default:now()"`
+}
+
+func (h *HardDeleteModel) BeforeCreate(tx *gorm.DB) error {
+	return ensurePrimaryUUID(&h.ID)
+}
+
+func ensurePrimaryUUID(id *string) error {
+	if *id == "" {
+		*id = uuid.Must(uuid.NewV7()).String()
+		return nil
+	}
+	if _, err := uuid.Parse(*id); err != nil {
+		return fmt.Errorf("invalid uuid: %w", err)
+	}
+	return nil
+}

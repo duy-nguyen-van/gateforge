@@ -1,0 +1,45 @@
+---
+description: Security practices for IAM — OIDC, sessions, MFA, WebAuthn, CSRF
+alwaysApply: true
+---
+
+# Security Practices
+
+## Input Validation
+- Validate ALL external input at handler boundary (`c.Bind`, struct tags, `validator`)
+- Sanitize user input before logging (prevent log injection)
+- Limit request body size and query parameter length (Echo middleware)
+
+## Authentication & Authorization
+- Validate tokens/sessions on protected routes via `internal/middlewares/` (auth, CSRF where applicable)
+- OIDC flows: follow existing patterns in `internal/handlers/oidc.go`, `internal/services/oidc.go`, `internal/auth/`
+- Service layer must NOT read `echo.Context` — pass `context.Context` and typed user/session IDs
+- Federation (Google, etc.): verify state/nonce and provider tokens per existing federation services
+
+## Secrets Management
+- Never hardcode secrets — use `internal/config/` env-backed `Config`
+- Never commit `cmd/server/.env`, credentials, API keys, or private keys
+- Use different secrets per environment (dev/qa/prod)
+- MFA/WebAuthn secrets: use `internal/crypto/` helpers; never log TOTP seeds or challenge payloads
+
+## SQL Injection Prevention
+- Use GORM/parameterized queries — never concatenate user input into SQL
+- Validate dynamic identifiers if unavoidable
+
+## API Security
+- HTTPS in production; security headers via `internal/middlewares/security.go`
+- CORS: don't use `*` in production — follow `internal/middlewares/cors.go`
+- CSRF (`internal/middlewares/csrf.go`) — token via `X-CSRF-Token` header / `csrf_token` cookie
+- **CSRF skipped paths** (do not require token): `/api/v1/register`, `/login`, `/refresh`, `/logout`; `/api/v1/webauthn/*`, `/api/v1/mfa/*`; root `/token`, `/authorize`, `/userinfo`, `/.well-known/*`, `/oidc/federation/*`
+- **CSRF enforced**: `/oidc/login` (browser OIDC password form) — extend skip list only with good reason
+- Log authentication failures with source IP; mask tokens and PII in logs
+
+## Data Protection
+- TLS for all network communication
+- Mask emails, tokens, session IDs in logs
+- Handle PII according to applicable regulations
+
+## Error Handling
+- Never expose stack traces or internal errors to clients
+- Use `AppError` / `ErrorHandler` for consistent, safe responses
+- Don't leak DB schema or internal architecture in error messages

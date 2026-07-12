@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build
+.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image
 
 dev-backend:
 	cd backend && make up
@@ -27,3 +27,14 @@ build-prod: build-frontend copy-frontend
 
 docker-build:
 	DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile -t gateforge-iam:latest .
+
+# Match .github/workflows/ci.yml security job (requires: brew install trivy)
+TRIVY_FLAGS = --format table --exit-code 1 --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH
+
+security-fs:
+	trivy fs . $(TRIVY_FLAGS) --scanners vuln,secret,misconfig
+
+security-image: docker-build
+	trivy image gateforge-iam:latest $(TRIVY_FLAGS)
+
+security: security-fs security-image

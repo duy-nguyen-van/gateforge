@@ -15,7 +15,7 @@ gateforge-iam/
 
 ## Development
 
-Prerequisites: Go 1.26+, Node.js 20+, Docker (for Postgres/Redis).
+Prerequisites: Go 1.26+, Node.js 26+, Docker (for Postgres/Redis).
 
 ```bash
 # Start Postgres, Redis, run migrations
@@ -45,6 +45,48 @@ WEBAUTHN_RP_ORIGINS=http://localhost:3000
 ```
 
 Then run/debug the backend. Without `-tags embedfrontend`, assets are read from disk automatically. Re-run `make copy-frontend` after frontend changes.
+
+## Security scanning (Trivy)
+
+CI runs Trivy before the production build. Run the same checks locally before pushing.
+
+### Install Trivy
+
+macOS (Homebrew):
+
+```bash
+brew install trivy
+trivy --version
+```
+
+Linux (official install script):
+
+```bash
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+```
+
+Without a local install, use the Docker image:
+
+```bash
+docker pull aquasec/trivy:latest
+alias trivy='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD":/src aquasec/trivy'
+```
+
+### Run scans
+
+From the repo root:
+
+```bash
+make security       # filesystem + Docker image (same as CI)
+make security-fs    # repo scan only (faster)
+make security-image # build image, then scan
+```
+
+Trivy downloads its vulnerability database on first run. Refresh manually if needed:
+
+```bash
+trivy image --download-db-only
+```
 
 ## Production build (hybrid)
 

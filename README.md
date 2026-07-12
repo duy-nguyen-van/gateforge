@@ -90,6 +90,20 @@ trivy image --download-db-only
 
 ## Production build (hybrid)
 
+Production requires a persistent OIDC RSA signing key. Development auto-generates an ephemeral key when unset.
+
+Generate a 2048-bit key and copy the PEM into `backend/cmd/server/.env`:
+
+```bash
+openssl genrsa 2048
+```
+
+```
+OIDC_RSA_PRIVATE_KEY_PEM="-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----"
+```
+
 Build a single `gateforge-iam-server` binary with the frontend embedded via `go:embed`:
 
 ```bash

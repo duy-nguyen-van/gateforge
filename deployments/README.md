@@ -31,7 +31,21 @@ The server listens on `APP_HTTP_SERVER` (default `:3000`) and serves:
 
 ## Option 2: Docker Compose
 
-Copy and configure `backend/cmd/server/.env`, then:
+Copy and configure `backend/cmd/server/.env`. Production requires an OIDC RSA signing key — generate one and set `OIDC_RSA_PRIVATE_KEY_PEM`:
+
+```bash
+openssl genrsa 2048
+```
+
+Paste the PEM output into `.env`:
+
+```
+OIDC_RSA_PRIVATE_KEY_PEM="-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----"
+```
+
+Then:
 
 ```bash
 docker compose -f docker/docker-compose.prod.yml up -d --build

@@ -9,8 +9,10 @@ services:
   #   env_file:
   #     - cmd/server/.env
   #   depends_on:
-  #     - postgres
-  #     - redis
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
   #   networks:
   #     - app-network
 
@@ -24,7 +26,8 @@ services:
     environment:
       POSTGRES_HOST: postgres
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -37,6 +40,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - app-network
 
@@ -47,6 +56,12 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     networks:
       - app-network
 
@@ -66,7 +81,8 @@ services:
       - ADMINER_DEFAULT_USERNAME=${POSTGRES_USER:-postgres}
       - ADMINER_DEFAULT_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -6,6 +6,7 @@ backend/internal/static/dist/
 
 backend/cmd/migrations/.env
 backend/cmd/server/.env
+backend/cmd/server/*.pem
 backend/cmd/server/__debug_*
 backend/cmd/server/gcs-credential.json
 backend/.DS_Store

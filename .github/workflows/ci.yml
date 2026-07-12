@@ -46,6 +46,11 @@ jobs:
       - name: Test
         run: go test -v -race -coverprofile=coverage.out ./...
 
+      - name: Publish coverage summary
+        if: always() && hashFiles('backend/coverage.out') != ''
+        working-directory: backend
+        run: bash ../.github/scripts/coverage-summary.sh coverage.out
+
       - name: Upload coverage reports to Codecov
         if: always() && hashFiles('backend/coverage.out') != ''
         uses: codecov/codecov-action@v5
@@ -78,9 +83,42 @@ jobs:
       - name: Build
         run: npm run build
 
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner (filesystem)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          scanners: vuln,secret,misconfig
+
+      - name: Build Docker image
+        run: DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile -t gateforge-iam:${{ github.sha }} .
+
+      - name: Run Trivy vulnerability scanner (container image)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: gateforge-iam:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          skip-setup-trivy: true
+
   build-prod:
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, frontend, security]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
@@ -15,10 +16,14 @@ import (
 	"go.uber.org/zap"
 )
 
+var initLoggerOnce sync.Once
+
 // InitLogger sets a nop logger so packages that log during tests do not panic.
 func InitLogger() {
-	logger.Log = zap.NewNop()
-	logger.Sugar = logger.Log.Sugar()
+	initLoggerOnce.Do(func() {
+		logger.Log = zap.NewNop()
+		logger.Sugar = logger.Log.Sugar()
+	})
 }
 
 // TestConfig returns a minimal config suitable for unit tests.

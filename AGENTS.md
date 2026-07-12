@@ -18,7 +18,8 @@ Per-package agent rules live in `backend/.cursor/` and `frontend/.cursor/`. Read
 ## Development
 
 ```bash
-make bootstrap        # Postgres, Redis, migrations, backend
+make bootstrap        # Postgres, Redis, migrations, API (:3000), Admin UI (:5173)
+make dev              # alias for bootstrap
 # Or in two terminals:
 make dev-backend      # Go API on :3000
 make dev-frontend     # Vite SPA on :5173 (proxies API/OIDC to backend)

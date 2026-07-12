@@ -1,7 +1,8 @@
-# Load DB settings for migration-* and any recipe that uses DB_DSN (not gated on a repo-root .env).
+# Load POSTGRES_* from .env for DB_DSN / migrate targets. Do not include the full file —
+# multiline values (e.g. OIDC_RSA_PRIVATE_KEY_PEM) are valid in shell but break GNU make.
 ifneq (,$(wildcard cmd/server/.env))
-    include cmd/server/.env
-    export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' cmd/server/.env)
+$(foreach line,$(shell grep -E '^POSTGRES_' cmd/server/.env),$(eval $(line)))
+export POSTGRES_HOST POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB POSTGRES_SCHEMA
 endif
 
 .PHONY: lint mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage

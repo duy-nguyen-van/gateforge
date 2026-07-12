@@ -44,7 +44,7 @@ make migrate-up
 make up                    # server on :3000
 ```
 
-Or from monorepo root: `make bootstrap`.
+Or from monorepo root: `make bootstrap` (Postgres, Redis, migrations, API, and Admin UI).
 
 ### Make commands
 

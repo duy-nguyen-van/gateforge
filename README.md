@@ -18,13 +18,15 @@ gateforge-iam/
 Prerequisites: Go 1.26+, Node.js 26+, Docker (for Postgres/Redis).
 
 ```bash
-# Start Postgres, Redis, run migrations
+# Start Postgres, Redis, migrations, API (:3000), and Admin UI (:5173)
 make bootstrap
 
 # Or run backend and frontend separately in two terminals:
 make dev-backend    # :3000
 make dev-frontend   # :5173 (proxies API/OIDC to backend)
 ```
+
+`make bootstrap` (alias: `make dev`) runs the full dev stack in one terminal. Press Ctrl+C to stop the API and Admin UI; Postgres and Redis keep running in Docker until `make -C backend container-down`.
 
 Copy `backend/cmd/server/.env.example` to `backend/cmd/server/.env` and `frontend/.env.example` to `frontend/.env`.
 

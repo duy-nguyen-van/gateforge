@@ -6,13 +6,26 @@ dev-backend:
 dev-frontend:
 	cd frontend && npm run dev
 
-dev:
-	@echo "Run in two terminals:"
-	@echo "  make dev-backend   # Go API on :3000"
-	@echo "  make dev-frontend  # Vite SPA on :5173"
+dev: bootstrap
 
 bootstrap:
-	cd backend && make bootstrap
+	@bash -c '\
+	set -euo pipefail; \
+	echo "→ Starting Postgres & Redis..."; \
+	$(MAKE) -C backend container-up; \
+	echo "✓ Postgres & Redis running"; \
+	echo "→ Applying migrations..."; \
+	$(MAKE) -C backend migrate-up; \
+	echo "✓ Migrations applied"; \
+	$(MAKE) -C frontend setup; \
+	(cd frontend && npm run dev) & \
+	frontend_pid=$$!; \
+	trap "kill $$frontend_pid 2>/dev/null || true; wait $$frontend_pid 2>/dev/null || true" EXIT INT TERM; \
+	sleep 2; \
+	echo "✓ Admin UI at http://localhost:5173"; \
+	echo "✓ API ready on :3000"; \
+	echo ""; \
+	$(MAKE) -C backend up'
 
 build-frontend:
 	cd frontend && npm ci && npm run build

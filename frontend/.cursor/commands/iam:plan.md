@@ -10,7 +10,7 @@ Create a detailed implementation plan for the described feature. Do NOT implemen
 - Read affected areas per `AGENTS.md` layer table
 - Follow `.cursor/rules/frontend-layering.mdc` import boundaries
 - Search for similar features (login, admin console, security settings)
-- Check iam-backend docs if API/OIDC behavior is involved
+- Check backend docs if API/OIDC behavior is involved
 
 ### Step 3: Design Solution
 - Pick route pattern: **A** (auth: routes → `AuthLayout` → feature) or **B** (routes → page → features)

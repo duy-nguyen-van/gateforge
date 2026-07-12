@@ -5,7 +5,7 @@ description: "Review code quality with technical rigor. Use before PRs, after im
 
 # Code Review
 
-Systematic review for iam-backend (Echo, FX, OIDC, sessions, MFA/WebAuthn).
+Systematic review for backend (Echo, FX, OIDC, sessions, MFA/WebAuthn).
 
 ## Core Principle
 **Technical correctness over social comfort. Be honest, specific, suggest fixes.**

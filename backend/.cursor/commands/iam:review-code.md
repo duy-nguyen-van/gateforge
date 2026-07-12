@@ -1,4 +1,4 @@
-Review recent code changes systematically for iam-backend.
+Review recent code changes systematically for backend.
 
 ## Steps
 1. Identify changed files (`git diff` or `git diff --cached`)

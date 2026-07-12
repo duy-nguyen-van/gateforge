@@ -1,5 +1,5 @@
 ---
-description: Systematic debugging for iam-backend (Echo, Postgres, Redis, OIDC flows)
+description: Systematic debugging for backend (Echo, Postgres, Redis, OIDC flows)
 alwaysApply: false
 ---
 

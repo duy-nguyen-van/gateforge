@@ -39,9 +39,16 @@ docker compose -f docker/docker-compose.prod.yml up -d --build
 
 This builds the multi-stage image from [`docker/Dockerfile`](../docker/Dockerfile), runs migrations, and starts Postgres, Redis, and the app.
 
+### Which Dockerfile to use
+
+| Path | Purpose |
+|------|---------|
+| [`docker/Dockerfile`](../docker/Dockerfile) | **Production (recommended)** — Node build of frontend, embed SPA into Go binary, Alpine runtime. Used by `make docker-build` and `docker-compose.prod.yml`. |
+| [`backend/Dockerfile`](../backend/Dockerfile) | **API-only (legacy)** — Go API binary without embedded SPA. Use when the UI is deployed separately. |
+
 ## Option 3: Split static + API (alternative)
 
-If you prefer a reverse proxy instead of the embedded binary, see [`frontend/deploy/Caddyfile`](../frontend/deploy/Caddyfile) and [`frontend/README.md`](../frontend/README.md).
+If you prefer a reverse proxy instead of the embedded binary, see [`deployments/caddy/Caddyfile`](caddy/Caddyfile) and [`frontend/README.md`](../frontend/README.md).
 
 ## systemd template
 

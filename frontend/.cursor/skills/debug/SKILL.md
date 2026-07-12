@@ -3,7 +3,7 @@ name: debug
 description: "Debug systematically with root cause analysis before fixes. Use for bugs, build failures, unexpected behavior, auth/OIDC/MFA issues."
 ---
 
-# Debugging (iam-frontend)
+# Debugging (frontend)
 
 ## Core Principle
 **NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST**

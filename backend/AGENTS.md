@@ -1,4 +1,4 @@
-# Agent context (iam-backend)
+# Agent context (backend)
 
 Identity and access backend: **Echo**, **Uber FX**, **PostgreSQL**, **Redis**, **Atlas** migrations, **OIDC**, federation, sessions, MFA/WebAuthn. Go module: `github.com/gateforge-iam/gateforge-iam`.
 

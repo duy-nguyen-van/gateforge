@@ -5,7 +5,7 @@ model: fast
 readonly: true
 ---
 
-Senior engineer reviewing iam-backend (Echo, FX, OIDC, sessions, MFA/WebAuthn).
+Senior engineer reviewing backend (Echo, FX, OIDC, sessions, MFA/WebAuthn).
 
 **IMPORTANT**: Ensure token efficiency.
 

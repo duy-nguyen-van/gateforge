@@ -1,6 +1,6 @@
-# Agent context (iam-frontend)
+# Agent context (frontend)
 
-React + TypeScript SPA for the [iam-backend](../iam-backend) identity service: login, register, MFA, WebAuthn, OIDC browser flows, admin console.
+React + TypeScript SPA for the [backend](../backend) identity service: login, register, MFA, WebAuthn, OIDC browser flows, admin console.
 
 ## Before you ship a change
 
@@ -26,7 +26,7 @@ React + TypeScript SPA for the [iam-backend](../iam-backend) identity service: l
 | Utilities | `src/lib/utils.ts` |
 | Styles / tokens | `src/index.css` |
 | Vite config + proxy | `vite.config.ts` |
-| Deploy | `deploy/Caddyfile`, `public/_redirects` |
+| Deploy | `deployments/caddy/Caddyfile`, `public/_redirects` |
 
 **Import direction and route patterns**: see `.cursor/rules/frontend-layering.mdc`.
 
@@ -89,7 +89,7 @@ make run      # Vite :5173, proxies API to :3000
 make check    # lint + build
 ```
 
-Requires iam-backend on `http://localhost:3000` (see README env alignment table).
+Requires backend on `http://localhost:3000` (see README env alignment table).
 
 ## Cursor configuration (`.cursor/`)
 

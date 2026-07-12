@@ -5,7 +5,7 @@ model: fast
 readonly: true
 ---
 
-Senior engineer reviewing iam-frontend (React, TypeScript, OIDC, MFA/WebAuthn).
+Senior engineer reviewing frontend (React, TypeScript, OIDC, MFA/WebAuthn).
 
 **IMPORTANT**: Ensure token efficiency.
 

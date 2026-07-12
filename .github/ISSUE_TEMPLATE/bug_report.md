@@ -27,7 +27,8 @@ If applicable, add screenshots or logs to help explain your problem.
 ## Environment (please complete the following information)
 
 - OS: [e.g. macOS 15]
-- Go version: `go version`
+- Go version: `go version` (if backend-related)
+- Node version: `node -v` (if frontend-related)
 - Commit/Tag: [e.g. main@abcd123]
 
 ## Additional context

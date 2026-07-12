@@ -1,6 +1,6 @@
 # IAM Frontend
 
-React + TypeScript SPA for the [iam-backend](../iam-backend) identity service.
+React + TypeScript SPA for the [backend](../backend) identity service.
 
 ## Stack
 
@@ -13,7 +13,7 @@ React + TypeScript SPA for the [iam-backend](../iam-backend) identity service.
 ## Prerequisites
 
 - Node.js 20+
-- Running `iam-backend` API on `http://localhost:3000`
+- Running `backend` API on `http://localhost:3000`
 
 ## Setup
 
@@ -43,9 +43,9 @@ Open [http://localhost:5173](http://localhost:5173). Vite proxies `/api/v1`, `/o
 | `VITE_API_PROXY_TARGET` | Backend URL for Vite dev proxy (default `http://localhost:3000`) |
 | `VITE_DEFAULT_TENANT_ID` | Tenant UUID for WebAuthn login and federation provider lookup |
 
-Align backend env vars (`OIDC_LOGIN_PAGE_URL`, `WEBAUTHN_RP_ORIGINS`, etc.) — see `iam-backend/cmd/server/.env.example`.
+Align backend env vars (`OIDC_LOGIN_PAGE_URL`, `WEBAUTHN_RP_ORIGINS`, etc.) — see `backend/cmd/server/.env.example`.
 
-## Integration with iam-backend
+## Integration with backend
 
 Run the Go API on `:3000` and this SPA on `:5173`. Vite proxies API/OIDC paths so the browser sees one origin (cookies + SSO work).
 
@@ -91,12 +91,12 @@ See [`../deployments/README.md`](../deployments/README.md) and [`../README.md`](
 Serve the built `dist/` on the **same origin** as the Go API:
 
 - **Cloudflare Pages** — host static assets; proxy `/api/v1/*`, `/oidc/*`, `/authorize`, `/token`, `/.well-known/*` to the Go origin (see `public/_redirects` as a Netlify-style reference).
-- **Fly.io / Railway / VPS** — use `deploy/Caddyfile` to serve `dist/` and reverse-proxy API/OIDC paths to the Go backend on one domain.
+- **Fly.io / Railway / VPS** — use [`deployments/caddy/Caddyfile`](../deployments/caddy/Caddyfile) to serve `dist/` and reverse-proxy API/OIDC paths to the Go backend on one domain.
 
 ```bash
-npm run build
-# Copy dist/ to /srv/dist, set API_UPSTREAM, then:
-caddy run --config deploy/Caddyfile
+cd frontend && npm run build
+# Copy dist/ to /srv/dist, set API_UPSTREAM, then from repo root:
+caddy run --config deployments/caddy/Caddyfile
 ```
 
 ## Project layout

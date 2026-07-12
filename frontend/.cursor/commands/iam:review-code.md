@@ -1,4 +1,4 @@
-Review recent code changes systematically for iam-frontend.
+Review recent code changes systematically for frontend.
 
 ## Steps
 1. Identify changed files (`git diff` or `git diff --cached`)

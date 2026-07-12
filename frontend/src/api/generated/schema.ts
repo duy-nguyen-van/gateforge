@@ -1,5 +1,5 @@
 /**
- * API schema types for iam-backend.
+ * API schema types for backend.
  *
  * The backend publishes Swagger 2.x (`docs/swagger.yaml`). openapi-typescript
  * requires OpenAPI 3.x, so types are hand-maintained in `../types.ts` and

@@ -1,4 +1,4 @@
-Run the iam-frontend quality checks and analyze results.
+Run the frontend quality checks and analyze results.
 
 ## Steps
 1. `make lint`

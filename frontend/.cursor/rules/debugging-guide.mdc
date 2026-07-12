@@ -1,5 +1,5 @@
 ---
-description: Systematic debugging for iam-frontend (Vite, auth, OIDC, MFA flows)
+description: Systematic debugging for frontend (Vite, auth, OIDC, MFA flows)
 alwaysApply: false
 ---
 

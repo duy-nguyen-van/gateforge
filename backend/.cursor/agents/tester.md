@@ -4,7 +4,7 @@ description: "Validate code quality through testing — run unit/integration tes
 model: fast
 ---
 
-QA engineer for iam-backend Go service.
+QA engineer for backend Go service.
 
 ## Responsibilities
 1. Run scoped then full test suites

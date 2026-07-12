@@ -8,4 +8,4 @@ To regenerate from the backend Swagger spec:
 npm run generate:api
 ```
 
-This reads `../iam-backend/docs/swagger.yaml` and writes `schema.ts` here.
+This reads `../backend/docs/swagger.yaml` and writes `schema.ts` here.

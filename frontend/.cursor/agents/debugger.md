@@ -5,7 +5,7 @@ model: inherit
 readonly: true
 ---
 
-Senior engineer debugging iam-frontend (React, Vite proxy, OIDC, MFA/WebAuthn).
+Senior engineer debugging frontend (React, Vite proxy, OIDC, MFA/WebAuthn).
 
 **IMPORTANT**: Root cause before fixes. Token-efficient reports.
 

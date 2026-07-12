@@ -1,4 +1,4 @@
-Run the iam-backend test suite and analyze results.
+Run the backend test suite and analyze results.
 
 ## Steps
 1. `make lint` (or `go vet ./...` if lint unavailable)

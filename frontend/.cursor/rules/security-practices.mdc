@@ -25,7 +25,7 @@ alwaysApply: true
 ## Environment & Secrets
 - Only `VITE_*` vars are exposed to the browser — never put secrets in Vite env
 - Align with backend: `VITE_DEFAULT_TENANT_ID`, `VITE_GOOGLE_FEDERATION_ENABLED`, proxy target
-- Production: serve SPA on same origin as API (see `deploy/Caddyfile`, `README.md`)
+- Production: serve SPA on same origin as API (see `deployments/caddy/Caddyfile`, `README.md`)
 
 ## XSS & DOM Safety
 - Avoid `dangerouslySetInnerHTML` unless absolutely necessary and sanitized

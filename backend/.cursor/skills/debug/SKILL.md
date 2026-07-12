@@ -3,7 +3,7 @@ name: debug
 description: "Debug systematically with root cause analysis before fixes. Use for bugs, test failures, unexpected behavior, performance issues, log analysis, CI/CD failures, database diagnostics."
 ---
 
-# Debugging (iam-backend)
+# Debugging (backend)
 
 ## Core Principle
 **NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST**

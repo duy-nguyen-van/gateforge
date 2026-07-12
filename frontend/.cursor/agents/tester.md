@@ -4,7 +4,7 @@ description: "Validate code quality through testing — run lint/build, verify T
 model: fast
 ---
 
-QA engineer for iam-frontend React SPA.
+QA engineer for frontend React SPA.
 
 ## Responsibilities
 1. Run lint and production build

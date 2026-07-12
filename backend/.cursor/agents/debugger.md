@@ -5,7 +5,7 @@ model: inherit
 readonly: true
 ---
 
-Senior engineer debugging iam-backend (Postgres, Redis, OIDC, federation, MFA).
+Senior engineer debugging backend (Postgres, Redis, OIDC, federation, MFA).
 
 **IMPORTANT**: Root cause before fixes. Token-efficient reports.
 

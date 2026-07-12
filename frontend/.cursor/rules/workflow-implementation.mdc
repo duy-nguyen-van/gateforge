@@ -19,7 +19,7 @@ alwaysApply: false
 - New API calls: `src/api/client.ts` + types in `src/api/types.ts`
 
 ### 3. Test
-- Manual flow in browser with iam-backend running on `:3000`
+- Manual flow in browser with backend running on `:3000`
 - Run `make lint` and `make build` (TypeScript + Vite)
 
 ### 4. Backend alignment
@@ -36,7 +36,7 @@ alwaysApply: false
 2. Root cause — don't patch symptoms
 3. Minimal fix at correct layer (auth vs api vs feature vs route guard)
 4. `make lint` and `make build`
-5. Verify against iam-backend if API-related
+5. Verify against backend if API-related
 
 ## Local Dev Commands
 ```bash

@@ -1,5 +1,5 @@
 ---
-description: Go language patterns and iam-backend conventions (Echo, FX, GORM, AppError)
+description: Go language patterns and backend conventions (Echo, FX, GORM, AppError)
 globs: "**/*.go"
 alwaysApply: false
 ---

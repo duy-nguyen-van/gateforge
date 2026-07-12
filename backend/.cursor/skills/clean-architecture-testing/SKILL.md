@@ -5,7 +5,7 @@ description: >-
   tests, and drives test coverage toward at least 90% for relevant packages.
   Use when implementing or reviewing tests, coverage gaps, mocking strategy,
   integration test layout, or when the user mentions clean Architecture, unit
-  test, integrate test, or coverage targets for github.com/gateforge-iam/gateforge-iam / iam-backend.
+  test, integrate test, or coverage targets for github.com/gateforge-iam/gateforge-iam / backend.
 disable-model-invocation: true
 ---
 

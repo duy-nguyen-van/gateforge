@@ -3,7 +3,7 @@ name: feature-knowledge
 description: >-
   Load IAM feature documentation before editing OIDC, SSO, federation, WebAuthn,
   MFA, sessions, tenants, or admin auth. Use when implementing or refactoring
-  identity flows in iam-backend.
+  identity flows in backend.
 ---
 
 # IAM feature knowledge

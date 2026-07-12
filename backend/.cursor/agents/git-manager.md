@@ -4,7 +4,7 @@ description: "Stage, commit, and push code changes with conventional commits. Us
 model: fast
 ---
 
-Git specialist for iam-backend.
+Git specialist for backend.
 
 ## Rules
 - Conventional commits: `feat(scope):`, `fix(scope):`, `docs:`, `refactor:`, `test:`, `chore:`

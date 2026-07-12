@@ -10,7 +10,7 @@ alwaysApply: false
 - New env vars (`VITE_*`)
 - Auth/OIDC/MFA/WebAuthn/federation behavior changes
 - New API integrations (admin console, settings)
-- Production deployment changes (`deploy/Caddyfile`)
+- Production deployment changes (`deployments/caddy/Caddyfile`)
 
 ## What to Document
 

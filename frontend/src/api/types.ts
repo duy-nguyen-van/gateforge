@@ -5,7 +5,7 @@ import type {
   RegistrationResponseJSON,
 } from '@simplewebauthn/browser'
 
-/** API types aligned with iam-backend docs/swagger.yaml */
+/** API types aligned with backend docs/swagger.yaml */
 
 export interface ApiMeta {
   error_code?: string

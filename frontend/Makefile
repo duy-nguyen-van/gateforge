@@ -28,7 +28,7 @@ bootstrap: ## First-time setup and start the dev server
 run: ## Start Vite dev server (default http://localhost:5173)
 	$(NPM) run dev
 
-up: run ## Alias for run (matches iam-backend)
+up: run ## Alias for run (matches backend)
 
 dev: run ## Alias for run
 

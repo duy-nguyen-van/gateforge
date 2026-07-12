@@ -5,7 +5,7 @@ description: "Review code quality with technical rigor. Use before PRs, after im
 
 # Code Review
 
-Systematic review for iam-frontend (React, TypeScript, OIDC, MFA/WebAuthn).
+Systematic review for frontend (React, TypeScript, OIDC, MFA/WebAuthn).
 
 ## Core Principle
 **Technical correctness over social comfort. Be honest, specific, suggest fixes.**

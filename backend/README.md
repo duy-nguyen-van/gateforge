@@ -165,8 +165,17 @@ Manual IAM flows: [docs/testing/](docs/testing/).
 
 ## Docker
 
+**Local dependencies** (Postgres + Redis):
+
 ```bash
-make container-up    # Postgres + Redis via docker-compose.yml
+make container-up    # docker-compose.yml in this directory
 ```
 
-Production deployment: see monorepo [deployments/README.md](../deployments/README.md).
+**Production images** — two Dockerfiles exist; use the right one for your deploy model:
+
+| Dockerfile | Purpose |
+|------------|---------|
+| [`../docker/Dockerfile`](../docker/Dockerfile) | **Canonical prod** — builds frontend, embeds SPA into the Go binary, single hybrid image. Run from repo root: `make docker-build`. |
+| [`Dockerfile`](Dockerfile) | **API-only (legacy)** — Go binary without embedded SPA. Use when the UI is served separately (CDN, Caddy, etc.). |
+
+Production deployment runbooks: [deployments/README.md](../deployments/README.md).

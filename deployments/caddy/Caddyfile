@@ -1,9 +1,10 @@
 # Same-origin deployment: static SPA + Go API
 #
 # Usage (Fly.io / Railway / VPS):
-#   1. npm run build  →  dist/
-#   2. Set API_UPSTREAM to your Go backend (e.g. http://127.0.0.1:3000)
-#   3. caddy run --config deploy/Caddyfile
+#   1. cd frontend && npm run build  →  dist/
+#   2. Copy dist/ to /srv/dist
+#   3. Set API_UPSTREAM to your Go backend (e.g. http://127.0.0.1:3000)
+#   4. caddy run --config deployments/caddy/Caddyfile
 
 :{$PORT:8080} {
 	root * /srv/dist

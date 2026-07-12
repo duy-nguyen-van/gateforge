@@ -7,7 +7,7 @@ description: >-
   boundaries, HA/disaster recovery, Postgres schema strategy, performance
   budgets, observability, or when the user mentions Golang, postgres, domain
   driven design, high performance, high availability, or sustainability in an
-  architectural sense for this repository (github.com/gateforge-iam/gateforge-iam / iam-backend).
+  architectural sense for this repository (github.com/gateforge-iam/gateforge-iam / backend).
 disable-model-invocation: true
 ---
 

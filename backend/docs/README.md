@@ -1,6 +1,6 @@
 # GateForge IAM — documentation hub
 
-Feature guides, database reference, and manual testing for the iam-backend identity service.
+Feature guides, database reference, and manual testing for the backend identity service.
 
 **Before changing OIDC, SSO, federation, WebAuthn, MFA, sessions, tenants, or admin auth:** read this hub and the relevant [features/](features/) guide. After code changes, update the feature doc, matching [testing/](testing/) guide, and `docs/swagger.yaml` (for `/api/v1` routes).
 

@@ -1,5 +1,5 @@
 ---
-description: Source layout and import boundaries for iam-frontend
+description: Source layout and import boundaries for frontend
 globs: src/**/*
 alwaysApply: false
 ---

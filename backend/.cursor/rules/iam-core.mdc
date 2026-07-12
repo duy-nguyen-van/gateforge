@@ -1,9 +1,9 @@
 ---
-description: Core project facts and invariants for iam-backend (Go IAM service)
+description: Core project facts and invariants for backend (Go IAM service)
 alwaysApply: true
 ---
 
-# iam-backend — core
+# backend — core
 
 - **Module path**: `github.com/gateforge-iam/gateforge-iam` — all internal imports use this prefix.
 - **Stack**: Echo HTTP, Uber FX DI, PostgreSQL, Redis, **global Zap** logging (`internal/logger/`), Sentry/New Relic hooks where wired.

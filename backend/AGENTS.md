@@ -132,7 +132,8 @@ make bootstrap      # all three
 
 | Doc | Purpose |
 |-----|---------|
-| `README.md`, `CONTRIBUTING.md` | Setup, contribution |
+| `README.md` | Backend setup |
+| [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | Monorepo contribution |
 | [docs/README.md](docs/README.md) | **Hub** — feature index, DB/Redis reference, routes |
 | [docs/features/](docs/features/) | OIDC, SSO, federation, passkey/MFA, multi-tenant, authorization |
 | [docs/testing/](docs/testing/) | curl / Postman manual testing |

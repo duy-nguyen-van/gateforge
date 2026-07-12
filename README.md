@@ -127,3 +127,9 @@ See [`deployments/README.md`](deployments/README.md) for environment variables a
 - Backend: [`backend/README.md`](backend/README.md)
 - Frontend: [`frontend/README.md`](frontend/README.md)
 - Deploy: [`deployments/README.md`](deployments/README.md)
+
+## Contributing
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development workflow, PR expectations
+- [SECURITY.md](SECURITY.md) — vulnerability reporting
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community standards

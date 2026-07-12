@@ -150,7 +150,7 @@ Environment: `cmd/server/.env.example`. Key variables:
 - After OIDC/session/MFA behavior changes: update [docs/features/](docs/features/) and [docs/testing/](docs/testing/)
 - After schema changes: new SQL in `cmd/migrations/sql/` + `make migrate-hash`
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
 
 ## Testing
 

@@ -39,7 +39,7 @@ Also update [docs/README.md](README.md) hub if DB tables or Redis keys change.
 
 ### Human docs
 - `README.md` — setup, `make` targets, link to `docs/README.md`
-- `CONTRIBUTING.md` — contribution expectations
+- [`CONTRIBUTING.md`](../../../CONTRIBUTING.md) (repo root) — contribution expectations
 - `cmd/server/.env.example` — new required env vars (no secrets)
 
 ## Style

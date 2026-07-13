@@ -1,0 +1,14 @@
+title = "gateforge-iam gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known false positives: curl doc placeholders, migration checksums, env templates"
+paths = [
+  '''\.env\.example$''',
+  '''backend/docs/testing/.*\.md$''',
+  '''backend/docs/swagger\.(yaml|json)$''',
+  '''backend/docs/docs\.go$''',
+  '''backend/cmd/migrations/sql/atlas\.sum$''',
+]

@@ -67,7 +67,7 @@ export function AuthShell({
   brandVariant = 'sovereign',
 }: AuthShellProps) {
   return (
-    <div className="relative flex min-h-screen flex-col bg-surface font-body text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+    <div className="relative flex min-h-screen flex-col bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container">
       <div className="fixed inset-0 -z-10 bg-grid-pattern opacity-40" />
       <div className="fixed inset-0 -z-20 bg-gradient-to-tr from-surface via-surface-container-low to-surface-container-high" />
 

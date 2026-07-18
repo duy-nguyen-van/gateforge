@@ -10,6 +10,7 @@ GateForge IAM monorepo: Go API + React SPA, shipped as a single embedded binary 
 | [`frontend/`](frontend/) | React SPA — login, admin console |
 | [`docker/`](docker/) | Production multi-stage Dockerfile and compose |
 | [`deployments/`](deployments/) | Runbooks, systemd, Caddy split-deploy config |
+| [`performance/`](performance/) | k6 benches, seed tools, capacity methodology |
 | [`Makefile`](Makefile) | Dev and prod build entry points |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | CI for backend, frontend, and prod binary |
 
@@ -47,3 +48,4 @@ See [`deployments/README.md`](deployments/README.md) for systemd, Docker Compose
 | [`backend/AGENTS.md`](backend/AGENTS.md) | Backend layer map, routes, patterns |
 | [`frontend/AGENTS.md`](frontend/AGENTS.md) | Frontend routes, auth, API client |
 | [`backend/docs/README.md`](backend/docs/README.md) | IAM feature hub — OIDC, SSO, MFA, DB tables |
+| [`performance/README.md`](performance/README.md) | Performance benches — how to run and publish |

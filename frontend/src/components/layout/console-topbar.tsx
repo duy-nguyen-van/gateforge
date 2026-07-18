@@ -97,10 +97,6 @@ export function ConsoleTopbar() {
             />
           </div>
         ) : null}
-        <div className="group relative">
-          <MaterialIcon name="notifications" className="cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-circle bg-error" />
-        </div>
         <MaterialIcon name="help" className="cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" />
         <Link to="/settings/security">
           <MaterialIcon name="settings" className="cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" />

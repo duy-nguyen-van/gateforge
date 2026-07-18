@@ -48,11 +48,20 @@ func RateLimit(config config.Config) echo.MiddlewareFunc {
 	})
 }
 
-// DefaultRateLimit creates a default rate limiting middleware (20 requests per second)
-func DefaultRateLimit() echo.MiddlewareFunc {
+// DefaultRateLimit creates the global rate limiting middleware from config
+// (DEFAULT_RATE_LIMIT per RATE_LIMIT_DURATION; defaults 20/s).
+func DefaultRateLimit(cfg config.Config) echo.MiddlewareFunc {
+	limit := cfg.DefaultRateLimit
+	if limit <= 0 {
+		limit = 20
+	}
+	window := cfg.RateLimitDuration
+	if window <= 0 {
+		window = time.Second
+	}
 	return RateLimit(config.Config{
-		RateLimit:         20,
-		RateLimitDuration: time.Second,
+		RateLimit:         limit,
+		RateLimitDuration: window,
 	})
 }
 
@@ -64,18 +73,28 @@ func StrictRateLimit() echo.MiddlewareFunc {
 	})
 }
 
-// AuthRateLimit creates a rate limiting middleware for authentication endpoints
-func AuthRateLimit() echo.MiddlewareFunc {
+// AuthRateLimit creates rate limiting for authentication endpoints from config
+// (AUTH_RATE_LIMIT per minute; default 3/min).
+func AuthRateLimit(cfg config.Config) echo.MiddlewareFunc {
+	limit := cfg.AuthRateLimit
+	if limit <= 0 {
+		limit = 3
+	}
 	return RateLimit(config.Config{
-		RateLimit:         3,
+		RateLimit:         limit,
 		RateLimitDuration: time.Minute,
 	})
 }
 
-// PublicRateLimit creates a rate limiting middleware for public endpoints
-func PublicRateLimit() echo.MiddlewareFunc {
+// PublicRateLimit creates rate limiting for public endpoints from config
+// (PUBLIC_RATE_LIMIT per minute; default 100/min).
+func PublicRateLimit(cfg config.Config) echo.MiddlewareFunc {
+	limit := cfg.PublicRateLimit
+	if limit <= 0 {
+		limit = 100
+	}
 	return RateLimit(config.Config{
-		RateLimit:         100,
+		RateLimit:         limit,
 		RateLimitDuration: time.Minute,
 	})
 }

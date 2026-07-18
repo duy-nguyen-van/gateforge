@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image
+.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image performance-help performance-smoke performance-token performance-token-hold performance-passkey performance-oidc-e2e performance-rss
 
 dev-backend:
 	cd backend && make up
@@ -51,3 +51,25 @@ security-image: docker-build
 	trivy image gateforge-iam:latest $(TRIVY_FLAGS)
 
 security: security-fs security-image
+
+# --- Marketing / capacity benches (see performance/README.md) ---
+performance-help:
+	$(MAKE) -C performance help
+
+performance-smoke:
+	$(MAKE) -C performance smoke
+
+performance-token:
+	$(MAKE) -C performance token
+
+performance-token-hold:
+	$(MAKE) -C performance token-hold
+
+performance-passkey:
+	$(MAKE) -C performance passkey
+
+performance-oidc-e2e:
+	$(MAKE) -C performance oidc-e2e
+
+performance-rss:
+	$(MAKE) -C performance rss

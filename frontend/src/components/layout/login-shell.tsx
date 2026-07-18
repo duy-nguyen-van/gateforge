@@ -59,7 +59,7 @@ export function LoginDecorations() {
 
 export function LoginShell({ children }: { children: ReactNode }) {
   return (
-    <div className="dot-grid flex min-h-screen flex-col items-center justify-center bg-background p-6 font-body text-on-background">
+    <div className="dot-grid flex min-h-screen flex-col items-center justify-center bg-background p-6 text-on-surface">
       <LoginDecorations />
       <main className="flex w-full max-w-[420px] flex-col items-center">
         <LoginBrand />

@@ -6,11 +6,12 @@ Identity and access management platform with a Go API and React admin console, d
 
 ```
 gateforge-iam/
-├── backend/      Go 1.26 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
-├── frontend/     Vite + React 19 SPA
-├── docker/       Multi-stage production Dockerfile and compose
-├── deployments/  Production runbooks and systemd template
-└── Makefile      Monorepo dev and build targets
+├── backend/       Go 1.26 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
+├── frontend/      Vite + React 19 SPA
+├── docker/        Multi-stage production Dockerfile and compose
+├── deployments/   Production runbooks and systemd template
+├── performance/   k6 benches and capacity methodology
+└── Makefile       Monorepo dev and build targets
 ```
 
 ## Development
@@ -127,6 +128,7 @@ See [`deployments/README.md`](deployments/README.md) for environment variables a
 - Backend: [`backend/README.md`](backend/README.md)
 - Frontend: [`frontend/README.md`](frontend/README.md)
 - Deploy: [`deployments/README.md`](deployments/README.md)
+- Performance: [`performance/README.md`](performance/README.md) — how to run benches and publish numbers
 
 ## Contributing
 

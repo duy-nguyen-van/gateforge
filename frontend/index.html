@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link
@@ -48,7 +48,7 @@
               position: absolute;
               inset: -10%;
               border-radius: 9999px;
-              border: 1.5px solid rgba(55, 85, 195, 0.4);
+              border: 1.5px solid oklch(0.4 0.18 265 / 0.4);
               animation: boot-ring 1.6s ease-out 420ms infinite;
             "
           ></span>
@@ -89,7 +89,7 @@
         }
         50% {
           transform: scale(1.06);
-          filter: drop-shadow(0 0 12px rgba(55, 85, 195, 0.35));
+          filter: drop-shadow(0 0 12px oklch(0.4 0.18 265 / 0.35));
         }
       }
       @keyframes boot-ring {

@@ -47,7 +47,7 @@ func TestRateLimit(t *testing.T) {
 
 func TestDefaultRateLimit(t *testing.T) {
 	e := echo.New()
-	e.Use(DefaultRateLimit())
+	e.Use(DefaultRateLimit(config.Config{DefaultRateLimit: 20, RateLimitDuration: time.Second}))
 	e.GET("/default", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
@@ -73,7 +73,7 @@ func TestStrictRateLimit(t *testing.T) {
 
 func TestAuthRateLimit(t *testing.T) {
 	e := echo.New()
-	e.Use(AuthRateLimit())
+	e.Use(AuthRateLimit(config.Config{AuthRateLimit: 3}))
 	e.POST("/login", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
@@ -86,7 +86,7 @@ func TestAuthRateLimit(t *testing.T) {
 
 func TestPublicRateLimit(t *testing.T) {
 	e := echo.New()
-	e.Use(PublicRateLimit())
+	e.Use(PublicRateLimit(config.Config{PublicRateLimit: 100}))
 	e.GET("/public", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})

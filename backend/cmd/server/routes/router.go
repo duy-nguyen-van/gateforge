@@ -45,7 +45,7 @@ func Router(
 	registerOIDCRoutes(r, oidcHandler)
 
 	v1 := r.Group("api/v1")
-	registerPublicV1Routes(v1, healthHandler, authHandler, webauthnHandler, mfaHandler, tenantIdentityAdmin)
+	registerPublicV1Routes(v1, healthHandler, authHandler, webauthnHandler, mfaHandler, tenantIdentityAdmin, cfg)
 
 	authJWT := middlewares.JWTBearerAuth(tokenService)
 	adminAuth := middlewares.PlatformAdminAuth(userRepo)
@@ -117,7 +117,7 @@ func registerGlobalMiddleware(r *echo.Echo, cfg *config.Config) {
 	r.Use(middlewares.CORS())
 	r.Use(middlewares.CSRF(cfg))
 	r.Use(middlewares.ExposeCSRFToken())
-	r.Use(middlewares.DefaultRateLimit())
+	r.Use(middlewares.DefaultRateLimit(*cfg))
 	r.Use(middlewares.RequestLogging(cfg))
 }
 
@@ -139,21 +139,23 @@ func registerPublicV1Routes(
 	webauthnHandler *handlers.WebauthnHandler,
 	mfaHandler *handlers.MFAHandler,
 	tenantIdentityAdmin *handlers.TenantIdentityAdminHandler,
+	cfg *config.Config,
 ) {
+	authLimit := middlewares.AuthRateLimit(*cfg)
 	publicGroup := v1.Group("")
 	publicGroup.GET("/", healthHandler.HealthCheck)
 	publicGroup.GET("/health/database", healthHandler.DatabaseHealthCheck)
 	publicGroup.GET("/health/metrics", healthHandler.DatabaseMetrics)
 
-	publicGroup.POST("/register", authHandler.Register, middlewares.AuthRateLimit())
-	publicGroup.POST("/login", authHandler.Login, middlewares.AuthRateLimit())
-	publicGroup.POST("/login/session", authHandler.ExchangeSession, middlewares.AuthRateLimit())
+	publicGroup.POST("/register", authHandler.Register, authLimit)
+	publicGroup.POST("/login", authHandler.Login, authLimit)
+	publicGroup.POST("/login/session", authHandler.ExchangeSession, authLimit)
 	publicGroup.GET("/federation/providers", authHandler.ListFederationProviders)
 	publicGroup.POST("/refresh", authHandler.Refresh)
 
-	publicGroup.POST("/webauthn/login/start", webauthnHandler.LoginStart, middlewares.AuthRateLimit())
-	publicGroup.POST("/webauthn/login/finish", webauthnHandler.LoginFinish, middlewares.AuthRateLimit())
-	publicGroup.POST("/mfa/challenge/verify", mfaHandler.ChallengeVerify, middlewares.AuthRateLimit())
+	publicGroup.POST("/webauthn/login/start", webauthnHandler.LoginStart, authLimit)
+	publicGroup.POST("/webauthn/login/finish", webauthnHandler.LoginFinish, authLimit)
+	publicGroup.POST("/mfa/challenge/verify", mfaHandler.ChallengeVerify, authLimit)
 
 	publicGroup.PATCH("/internal/tenants/:tenantId/identity-providers/:provider", tenantIdentityAdmin.PatchIdentityProvider)
 }

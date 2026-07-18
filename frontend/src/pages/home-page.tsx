@@ -36,7 +36,6 @@ export function HomePage() {
 
       <main className="mx-auto max-w-6xl px-6 pb-20 pt-12">
         <section className="mb-20 text-center">
-          <p className="mb-4 font-label text-xs font-bold uppercase tracking-[0.3em] text-primary">GateForge IAM</p>
           <h1 className="font-headline text-5xl font-extrabold tracking-tight text-on-primary-fixed md:text-6xl">
             Identity & Access,
             <br />

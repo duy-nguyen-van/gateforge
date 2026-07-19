@@ -1,20 +1,29 @@
 # GateForge IAM
 
-Identity and access management platform with a Go API and React admin console, deployed as a single binary in production.
+![GateForge — The sovereign identity layer](assets/gateforge-logo.png)
 
-## Repository layout
+> **The sovereign identity layer** — a self-hosted OIDC/OAuth2 identity provider you fully control.
 
-```
-gateforge-iam/
-├── backend/       Go 1.26 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
-├── frontend/      Vite + React 19 SPA
-├── docker/        Multi-stage production Dockerfile and compose
-├── deployments/   Production runbooks and systemd template
-├── performance/   k6 benches and capacity methodology
-└── Makefile       Monorepo dev and build targets
-```
+GateForge IAM gives your applications one secure place for user sign-in and access control. Connect apps through open standards, offer modern authentication, and manage organizations from a web console — all shipped as a single production binary.
 
-## Development
+## Features
+
+- **OIDC / OAuth2 provider** — authorization code + PKCE, JWKS, userinfo, and browser SSO
+- **Flexible sign-in** — passwords, passkeys (WebAuthn), and Google federation
+- **Multi-factor auth** — TOTP enrollment, step-up login, and recovery codes
+- **Multi-tenant** — organizations, memberships, roles, and per-tenant identity providers
+- **Admin console** — manage users, clients, tenants, IdPs, and security activity
+- **Simple deploy** — one Go binary with the React SPA embedded, or a Docker image
+
+## Why GateForge?
+
+- **Own your identity layer** — self-host authentication and keep control of user data, credentials, and deployment.
+- **Integrate with open standards** — connect applications through OIDC/OAuth2 instead of locking into a vendor IdP.
+- **Offer secure, flexible sign-in** — passwords, passkeys, Google, and MFA without bolting on extra services.
+- **Manage multiple organizations** — separate tenants, roles, clients, and IdPs from one console.
+- **Deploy with less complexity** — API and admin UI ship together as one binary or container.
+
+## Quick start
 
 Prerequisites: Go 1.26+, Node.js 26+, Docker (for Postgres/Redis).
 
@@ -48,6 +57,18 @@ WEBAUTHN_RP_ORIGINS=http://localhost:3000
 ```
 
 Then run/debug the backend. Without `-tags embedfrontend`, assets are read from disk automatically. Re-run `make copy-frontend` after frontend changes.
+
+## Repository layout
+
+```
+gateforge-iam/
+├── backend/       Go 1.26 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
+├── frontend/      Vite + React 19 SPA
+├── docker/        Multi-stage production Dockerfile and compose
+├── deployments/   Production runbooks and systemd template
+├── performance/   k6 benches and capacity methodology
+└── Makefile       Monorepo dev and build targets
+```
 
 ## Security scanning (Trivy)
 

@@ -21,6 +21,14 @@
   "engines": {
     "node": ">=26"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/duy-nguyen-van/gateforge.git",
+    "directory": "sdk/typescript"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "Apache-2.0",
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0"

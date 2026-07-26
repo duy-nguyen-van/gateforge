@@ -62,7 +62,7 @@ Publish only from explicit tags — never from every `main` build.
 | SDK | Tag pattern | Consumer install |
 |-----|-------------|------------------|
 | Go | `sdk/go/v0.1.0` | `go get github.com/gateforge-iam/gateforge-iam/sdk/go@sdk/go/v0.1.0` |
-| TypeScript | `sdk/typescript/v0.1.0` | `npm install @gateforge/sdk@0.1.0` (requires `NPM_TOKEN` in CI) |
+| TypeScript | `sdk/typescript/v0.1.0` | `npm install @gateforge/sdk@0.1.0` (CI uses npm trusted publishing / OIDC) |
 
 Workflow: [`.github/workflows/sdk-release.yml`](../.github/workflows/sdk-release.yml).
 

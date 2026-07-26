@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
+	"github.com/gateforge-iam/gateforge-iam/internal/constants"
+	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 
 	"github.com/labstack/echo/v4"
 )
@@ -15,18 +17,18 @@ func JWTBearerAuth(ts *auth.TokenService) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Authorization header required"})
+				return metaError(c, http.StatusUnauthorized, constants.Unauthorized, "Authorization header required")
 			}
 			if !strings.HasPrefix(authHeader, "Bearer ") {
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid authorization header format"})
+				return metaError(c, http.StatusUnauthorized, constants.Unauthorized, "Invalid authorization header format")
 			}
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 			if token == "" {
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token required"})
+				return metaError(c, http.StatusUnauthorized, constants.Unauthorized, "Token required")
 			}
 			userID, tenantID, err := ts.ParseAccessToken(token)
 			if err != nil {
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid or expired token"})
+				return metaError(c, http.StatusUnauthorized, constants.Unauthorized, "Invalid or expired token")
 			}
 			c.Set(auth.EchoContextUserIDKey, userID)
 			if tenantID != "" {
@@ -35,4 +37,15 @@ func JWTBearerAuth(ts *auth.TokenService) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+func metaError(c echo.Context, status int, code, message string) error {
+	return c.JSON(status, dtos.BaseResponse[any]{
+		Meta: dtos.Meta{
+			ErrorCode: code,
+			Message:   message,
+			Code:      status,
+		},
+		Data: nil,
+	})
 }

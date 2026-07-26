@@ -36,9 +36,12 @@ func TestJWTBearerAuth(t *testing.T) {
 		e.ServeHTTP(rec, req)
 
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
-		var body map[string]string
+		var body map[string]any
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-		require.Equal(t, "Authorization header required", body["error"])
+		meta, ok := body["meta"].(map[string]any)
+		require.True(t, ok)
+		require.Equal(t, "UNAUTHORIZED", meta["error_code"])
+		require.Equal(t, "Authorization header required", meta["message"])
 	})
 
 	t.Run("invalid authorization format", func(t *testing.T) {

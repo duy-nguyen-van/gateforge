@@ -57,8 +57,9 @@ Targeted test targets: `test-handlers`, `test-services`, `test-repositories` (se
 1. Update swag annotations on handlers and `cmd/server/main.go`.
 2. Run `make -C backend swagger-load`.
 3. Commit `backend/docs/swagger.yaml`, `swagger.json`, and `docs.go` with the code change.
+4. Update the canonical SDK contract [`api/openapi.yaml`](api/openapi.yaml) (stable `operationId`s) and run `make sdk-generate`. Commit regenerated `sdk/go/openapi` and `sdk/typescript/src/generated`.
 
-**When you change OIDC root routes** (`/authorize`, `/token`, `/userinfo`, `/.well-known/*`, `/oidc/*`): update the matching guides under [`backend/docs/features/`](backend/docs/features/) and [`backend/docs/testing/`](backend/docs/testing/) — those routes are outside the generated OpenAPI spec.
+**When you change OIDC root routes** (`/authorize`, `/token`, `/userinfo`, `/.well-known/*`, `/oidc/*`): update the matching guides under [`backend/docs/features/`](backend/docs/features/) and [`backend/docs/testing/`](backend/docs/testing/), and update [`api/openapi.yaml`](api/openapi.yaml) + `make sdk-generate` when the public SDK surface changes. Swagger UI still documents `/api/v1` only.
 
 **When you change auth behavior** (OIDC, SSO sessions, federation, WebAuthn, MFA, tenants, platform admin): read [`backend/docs/README.md`](backend/docs/README.md) first, then update the relevant feature and testing docs in the same PR.
 

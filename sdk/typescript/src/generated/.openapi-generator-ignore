@@ -1,0 +1,10 @@
+.openapi-generator-ignore
+.gitignore
+.travis.yml
+git_push.sh
+.npmignore
+package.json
+tsconfig.json
+tsconfig.esm.json
+README.md
+docs/

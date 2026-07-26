@@ -1,0 +1,3086 @@
+# GateForge IAM — public SDK OpenAPI 3.0.3 contract
+# Full paths (no basePath). Excludes /api/v1/internal/* and /swagger/*.
+openapi: 3.0.3
+info:
+  title: GateForge IAM API
+  version: 0.1.0
+  description: Public HTTP API for GateForge IAM — OpenID Connect / OAuth2 endpoints
+    at the server root, plus the application JSON API under `/api/v1` (auth, MFA,
+    WebAuthn, tenants, and platform admin). Success responses for `/api/v1` use a
+    `{meta, data}` envelope. OAuth token and userinfo errors use `{error, error_description}`.
+servers:
+- url: http://localhost:3000
+  description: Local development server
+tags:
+- name: Health
+  description: Service and database health
+- name: Auth
+  description: Registration, login, refresh, logout, session exchange
+- name: OIDC
+  description: OpenID Connect discovery, authorize, token, userinfo, browser login
+- name: Federation
+  description: Upstream identity provider federation
+- name: MFA
+  description: TOTP enrollment, recovery codes, and login challenges
+- name: WebAuthn
+  description: Passkey registration and login
+- name: Users
+  description: Current user profile
+- name: Tenants
+  description: Tenant listing, selection, and switching
+- name: Admin
+  description: Platform admin console APIs
+paths:
+  "/.well-known/jwks.json":
+    get:
+      operationId: getJwks
+      tags:
+      - OIDC
+      summary: JWKS endpoint (JSON Web Key Set)
+      responses:
+        '200':
+          description: JWKS JSON
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/JWKS"
+  "/.well-known/openid-configuration":
+    get:
+      operationId: getOpenIdConfiguration
+      tags:
+      - OIDC
+      summary: OpenID Configuration endpoint
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OpenIDConfigurationResponse"
+  "/authorize":
+    get:
+      operationId: authorize
+      tags:
+      - OIDC
+      summary: Authorize endpoint (authorization code + PKCE)
+      security:
+      - CookieAuth: []
+      parameters:
+      - name: response_type
+        in: query
+        schema:
+          type: string
+        description: Response type (code)
+      - name: client_id
+        in: query
+        schema:
+          type: string
+        description: Client ID
+      - name: redirect_uri
+        in: query
+        schema:
+          type: string
+        description: Redirect URI
+      - name: scope
+        in: query
+        schema:
+          type: string
+        description: Scope
+      - name: state
+        in: query
+        schema:
+          type: string
+        description: State parameter
+      - name: nonce
+        in: query
+        schema:
+          type: string
+        description: Nonce
+      - name: code_challenge
+        in: query
+        schema:
+          type: string
+        description: PKCE code challenge
+      - name: code_challenge_method
+        in: query
+        schema:
+          type: string
+        description: PKCE method (S256)
+      responses:
+        '302':
+          description: Redirect to client with code, or to login
+          headers:
+            Location:
+              description: Redirect target
+              schema:
+                type: string
+                format: uri
+  "/oidc/login":
+    post:
+      operationId: loginOidc
+      tags:
+      - OIDC
+      summary: Login (OIDC browser flow) and continue /authorize
+      security:
+      - CSRFToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LoginRequest"
+      responses:
+        '302':
+          description: Redirect to return_to with session cookie set
+          headers:
+            Location:
+              description: Redirect target
+              schema:
+                type: string
+                format: uri
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/oidc/federation/{provider}/start":
+    get:
+      operationId: startFederationOAuth
+      tags:
+      - Federation
+      summary: Start federated sign-in (OIDC browser flow)
+      parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Provider id (e.g. google)
+      - name: return_to
+        in: query
+        required: true
+        schema:
+          type: string
+        description: URL to return to after login (must be /authorize on this app)
+      responses:
+        '302':
+          description: Redirect to identity provider
+          headers:
+            Location:
+              description: Redirect target
+              schema:
+                type: string
+                format: uri
+  "/oidc/federation/{provider}/callback":
+    get:
+      operationId: callbackFederationOAuth
+      tags:
+      - Federation
+      summary: Federated OAuth callback
+      parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Provider id (e.g. google)
+      - name: code
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Authorization code
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
+        description: State
+      - name: error
+        in: query
+        schema:
+          type: string
+        description: OAuth error code from provider
+      - name: error_description
+        in: query
+        schema:
+          type: string
+        description: OAuth error description from provider
+      responses:
+        '302':
+          description: Redirect to stored return_to
+          headers:
+            Location:
+              description: Redirect target
+              schema:
+                type: string
+                format: uri
+  "/token":
+    post:
+      operationId: createToken
+      tags:
+      - OIDC
+      summary: Token endpoint (authorization_code / refresh_token grant)
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              "$ref": "#/components/schemas/OIDCTokenRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OIDCTokenResponse"
+        '400':
+          description: Invalid request or grant
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OAuthError"
+  "/userinfo":
+    get:
+      operationId: getUserInfo
+      tags:
+      - OIDC
+      summary: Userinfo endpoint (Bearer access token from token endpoint, RS256)
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserInfoResponse"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OAuthError"
+  "/api/v1/":
+    get:
+      operationId: getHealth
+      tags:
+      - Health
+      summary: Health Check
+      description: Check if the service is running
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/HealthEnvelope"
+  "/api/v1/health/database":
+    get:
+      operationId: getDatabaseHealth
+      tags:
+      - Health
+      summary: Database Health Check
+      description: Check if the database connection is healthy
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DatabaseHealthEnvelope"
+  "/api/v1/health/metrics":
+    get:
+      operationId: getDatabaseMetrics
+      tags:
+      - Health
+      summary: Database Connection Metrics
+      description: Get detailed database connection metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DatabaseMetricsEnvelope"
+  "/api/v1/register":
+    post:
+      operationId: registerUser
+      tags:
+      - Auth
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RegisterRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserResponseEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/login":
+    post:
+      operationId: login
+      tags:
+      - Auth
+      summary: Login (dashboard/API) with email and password
+      description: Sets the same iam_session cookie as OIDC so /authorize recognizes
+        the browser without a second login. If the user has MFA (TOTP) enabled, `data`
+        is MFALoginChallengeResponse (mfa_ticket) instead of LoginResponse; complete
+        login with POST /api/v1/mfa/challenge/verify. When the user belongs to multiple
+        tenants and no tenant context is provided, `data` is TenantSelectionResponse.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/LoginRequest"
+      responses:
+        '200':
+          description: LoginResponse, MFALoginChallengeResponse, or TenantSelectionResponse
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResultEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/login/session":
+    post:
+      operationId: exchangeSession
+      tags:
+      - Auth
+      summary: Exchange iam_session cookie for API tokens (after federated sign-in)
+      description: Reads the browser iam_session cookie and returns JWT tokens for
+        the SPA dashboard.
+      security:
+      - CookieAuth: []
+      responses:
+        '200':
+          description: LoginResponse or TenantSelectionResponse
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResultEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/federation/providers":
+    get:
+      operationId: listFederationProviders
+      tags:
+      - Federation
+      summary: List enabled federation sign-in methods for a tenant
+      parameters:
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+        description: Tenant UUID (defaults to DEFAULT_TENANT_ID)
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PublicFederationProviderListEnvelope"
+  "/api/v1/refresh":
+    post:
+      operationId: refreshToken
+      tags:
+      - Auth
+      summary: Exchange refresh token for a new access token (and rotated refresh
+        token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/RefreshTokenRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResponseEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/webauthn/login/start":
+    post:
+      operationId: startWebauthnLogin
+      tags:
+      - WebAuthn
+      summary: Begin passkey login
+      description: Returns WebAuthn PublicKeyCredentialRequestOptions as `data.options`
+        and a `session_token` for login/finish. Public endpoint (rate limited).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/WebauthnLoginStartRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WebauthnLoginStartEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/webauthn/login/finish":
+    post:
+      operationId: finishWebauthnLogin
+      tags:
+      - WebAuthn
+      summary: Finish passkey login
+      description: 'Verifies the assertion. On success without MFA: returns `data`
+        as LoginResponse and sets `iam_session` cookie. When MFA is enabled for the
+        user, returns MFALoginChallengeResponse in `data` instead (then call POST
+        /api/v1/mfa/challenge/verify).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/WebauthnLoginFinishRequest"
+      responses:
+        '200':
+          description: LoginResponse, MFALoginChallengeResponse, or TenantSelectionResponse
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResultEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/mfa/challenge/verify":
+    post:
+      operationId: verifyMfaChallenge
+      tags:
+      - MFA
+      summary: Complete MFA after password or passkey login
+      description: Consumes the `mfa_ticket` from password or passkey login when MFA
+        is required. `code` is a 6-digit TOTP, or a recovery code (non–6-digit path).
+        On success returns LoginResponse and sets `iam_session` cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/MFAChallengeVerifyRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResponseEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/logout":
+    post:
+      operationId: logout
+      tags:
+      - Auth
+      summary: Log out everywhere for the current user (SSO session + all refresh
+        tokens)
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MetaOnlyEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/me":
+    get:
+      operationId: getMe
+      tags:
+      - Users
+      summary: Current user profile
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserResponseEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    patch:
+      operationId: updateMe
+      tags:
+      - Users
+      summary: Update current user profile
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/UpdateProfileRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UserResponseEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/me/tenants":
+    get:
+      operationId: listMyTenants
+      tags:
+      - Tenants
+      summary: List tenants the current user can access
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TenantSummaryListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/tenants/select":
+    post:
+      operationId: selectTenant
+      tags:
+      - Tenants
+      summary: Complete login by selecting a tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/TenantSelectRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResponseEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/tenants/switch":
+    post:
+      operationId: switchTenant
+      tags:
+      - Tenants
+      summary: Switch active tenant and re-issue tokens
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/TenantSwitchRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/LoginResponseEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/webauthn/credentials":
+    get:
+      operationId: listWebauthnCredentials
+      tags:
+      - WebAuthn
+      summary: List registered passkeys
+      description: Returns passkeys registered for the current user (device label
+        and created date only).
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WebauthnCredentialListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/webauthn/register/start":
+    post:
+      operationId: startWebauthnRegister
+      tags:
+      - WebAuthn
+      summary: Begin passkey registration
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/WebauthnRegisterStartRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/WebauthnRegisterStartEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/webauthn/register/finish":
+    post:
+      operationId: finishWebauthnRegister
+      tags:
+      - WebAuthn
+      summary: Finish passkey registration
+      description: Verifies the attestation and stores the passkey for the current
+        user.
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/WebauthnRegisterFinishRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EmptyDataEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/mfa/totp/setup":
+    post:
+      operationId: setupTotp
+      tags:
+      - MFA
+      summary: Start TOTP enrollment
+      description: Generates a TOTP secret, persists it (encrypted) as pending, and
+        returns the raw secret plus otpauth URI for QR scanning.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MFATOTPSetupEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/mfa/totp/verify":
+    post:
+      operationId: verifyTotpEnrollment
+      tags:
+      - MFA
+      summary: Confirm TOTP enrollment
+      description: Validates a 6-digit code against the pending secret and enables
+        TOTP for the user.
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/MFATOTPVerifyRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/EmptyDataEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/mfa/recovery-codes":
+    post:
+      operationId: createMfaRecoveryCodes
+      tags:
+      - MFA
+      summary: Generate MFA recovery codes
+      description: Replaces any existing recovery codes. Requires TOTP to be enabled.
+        Plain codes are returned once; only hashes are stored.
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MFARecoveryCodesEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/stats":
+    get:
+      operationId: getAdminStats
+      tags:
+      - Admin
+      summary: Platform admin dashboard stats
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminStatsEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/users":
+    get:
+      operationId: listAdminUsers
+      tags:
+      - Admin
+      summary: List users (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+        description: Filter by tenant UUID
+      - name: search
+        in: query
+        schema:
+          type: string
+        description: Search email or name
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminUserListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/users/{userId}":
+    get:
+      operationId: getAdminUser
+      tags:
+      - Admin
+      summary: Get user details (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User UUID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminUserDetailEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/users/{userId}/disable":
+    post:
+      operationId: disableAdminUser
+      tags:
+      - Admin
+      summary: Disable a user account (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/users/{userId}/force-logout":
+    post:
+      operationId: forceLogoutAdminUser
+      tags:
+      - Admin
+      summary: Force logout a user (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/users/{userId}/reset-passkey":
+    post:
+      operationId: resetAdminUserPasskeys
+      tags:
+      - Admin
+      summary: Reset all passkeys for a user (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/users/{userId}/reset-mfa":
+    post:
+      operationId: resetAdminUserMfa
+      tags:
+      - Admin
+      summary: Reset MFA (TOTP + recovery codes) for a user (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/tenants":
+    get:
+      operationId: listAdminTenants
+      tags:
+      - Admin
+      summary: List tenants (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminTenantListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: createAdminTenant
+      tags:
+      - Admin
+      summary: Create a tenant (platform admin)
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminCreateTenantRequest"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminTenantEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/tenants/{tenantId}":
+    get:
+      operationId: getAdminTenant
+      tags:
+      - Admin
+      summary: Get a tenant by ID (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminTenantEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    patch:
+      operationId: updateAdminTenant
+      tags:
+      - Admin
+      summary: Update a tenant (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminUpdateTenantRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminTenantEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: deleteAdminTenant
+      tags:
+      - Admin
+      summary: Delete a tenant (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/clients":
+    get:
+      operationId: listAdminClients
+      tags:
+      - Admin
+      summary: List OAuth clients (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+        description: Filter by tenant UUID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminClientListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: createAdminClient
+      tags:
+      - Admin
+      summary: Create an OAuth client (platform admin)
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminCreateClientRequest"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminCreateClientEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/clients/{clientId}/usage":
+    get:
+      operationId: getAdminClientUsage
+      tags:
+      - Admin
+      summary: Get OAuth client usage metrics (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Client record UUID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminClientUsageEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/clients/{clientId}":
+    get:
+      operationId: getAdminClient
+      tags:
+      - Admin
+      summary: Get an OAuth client by ID (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Client record UUID
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminClientEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    patch:
+      operationId: updateAdminClient
+      tags:
+      - Admin
+      summary: Update an OAuth client (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Client record UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminUpdateClientRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminClientEnvelope"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    delete:
+      operationId: deleteAdminClient
+      tags:
+      - Admin
+      summary: Delete an OAuth client (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: clientId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Client record UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/audit-logs":
+    get:
+      operationId: listAdminAuditLogs
+      tags:
+      - Admin
+      summary: List platform audit logs
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+        description: Filter by tenant UUID
+      - name: action
+        in: query
+        schema:
+          type: string
+        description: Filter by action (exact or prefix with trailing dot)
+      - name: result
+        in: query
+        schema:
+          type: string
+        description: Filter by result (success, failure, denied)
+      - name: actor_id
+        in: query
+        schema:
+          type: string
+        description: Filter by actor id
+      - name: from
+        in: query
+        schema:
+          type: string
+        description: ISO8601 lower bound on created_at
+      - name: to
+        in: query
+        schema:
+          type: string
+        description: ISO8601 upper bound on created_at
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminAuditLogListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/login-history":
+    get:
+      operationId: listAdminLoginHistory
+      tags:
+      - Admin
+      summary: List login history events (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+        description: Filter by tenant UUID
+      - name: result
+        in: query
+        schema:
+          type: string
+        description: Filter by result (success, failure, denied)
+      - name: actor_id
+        in: query
+        schema:
+          type: string
+        description: Filter by actor id
+      - name: from
+        in: query
+        schema:
+          type: string
+        description: ISO8601 lower bound on created_at
+      - name: to
+        in: query
+        schema:
+          type: string
+        description: ISO8601 upper bound on created_at
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminAuditLogListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/tenants/{tenantId}/identity-providers":
+    get:
+      operationId: listAdminIdentityProviders
+      tags:
+      - Admin
+      summary: List identity providers for a tenant
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminIdentityProviderListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/tenants/{tenantId}/identity-providers/{provider}":
+    patch:
+      operationId: patchAdminIdentityProvider
+      tags:
+      - Admin
+      summary: Configure an upstream identity provider for a tenant (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Provider id (e.g. google)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/PatchIdentityProviderRequest"
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/tenants/{tenantId}/members":
+    get:
+      operationId: listAdminTenantMembers
+      tags:
+      - Admin
+      summary: List members of a tenant (platform admin)
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      - name: page
+        in: query
+        schema:
+          type: integer
+        description: Page number
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Page size
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AdminTenantMemberListEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+    post:
+      operationId: addAdminTenantMember
+      tags:
+      - Admin
+      summary: Add an existing user to a tenant
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AdminAddMemberRequest"
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/admin/tenants/{tenantId}/members/{userId}":
+    delete:
+      operationId: removeAdminTenantMember
+      tags:
+      - Admin
+      summary: Remove a user from a tenant
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Tenant UUID
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: User UUID
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from login or OIDC token endpoint
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: iam_session
+      description: Browser SSO session cookie used by /authorize
+    CSRFToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: CSRF token required for POST /oidc/login
+  schemas:
+    Meta:
+      type: object
+      description: Response metadata (pagination and/or error details)
+      properties:
+        error_code:
+          type: string
+          example: BAD_REQUEST
+        message:
+          type: string
+          example: Request is invalid
+        code:
+          type: integer
+          example: 400
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 18
+    ErrorEnvelope:
+      type: object
+      description: App API error response
+      required:
+      - meta
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          nullable: true
+    OAuthError:
+      type: object
+      description: OAuth 2.0 / OIDC error body for /token and /userinfo
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          example: invalid_request
+        error_description:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+          description: Access token lifetime in seconds
+        refresh_expires_in:
+          type: integer
+          description: Refresh token lifetime in seconds
+        active_tenant_id:
+          type: string
+    MFALoginChallengeResponse:
+      type: object
+      required:
+      - mfa_required
+      - mfa_ticket
+      - expires_in
+      properties:
+        mfa_required:
+          type: boolean
+          example: true
+        mfa_ticket:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        expires_in:
+          type: integer
+          example: 600
+    TenantSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        role:
+          type: string
+    TenantSelectionResponse:
+      type: object
+      required:
+      - selection_required
+      - tenants
+      - selection_token
+      - expires_in
+      properties:
+        selection_required:
+          type: boolean
+        tenants:
+          type: array
+          items:
+            "$ref": "#/components/schemas/TenantSummary"
+        selection_token:
+          type: string
+        expires_in:
+          type: integer
+    LoginResult:
+      description: 'Discriminated by properties: `access_token` → LoginResponse; `mfa_required`
+        true → MFALoginChallengeResponse; `selection_required` true → TenantSelectionResponse'
+      oneOf:
+      - "$ref": "#/components/schemas/LoginResponse"
+      - "$ref": "#/components/schemas/MFALoginChallengeResponse"
+      - "$ref": "#/components/schemas/TenantSelectionResponse"
+    HealthEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/HealthResponse"
+    DatabaseHealthEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: object
+          additionalProperties: true
+    DatabaseMetricsEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: object
+          additionalProperties: true
+    LoginResultEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/LoginResult"
+    LoginResponseEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/LoginResponse"
+    UserResponseEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/UserResponse"
+    TenantSummaryListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/TenantSummary"
+    PublicFederationProviderListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/PublicFederationProviderResponse"
+    WebauthnCredentialListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/WebauthnCredentialResponse"
+    WebauthnLoginStartEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/WebauthnLoginStartResponse"
+    WebauthnRegisterStartEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/WebauthnRegisterStartResponse"
+    EmptyDataEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: object
+          additionalProperties: true
+    MFATOTPSetupEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/MFATOTPSetupResponse"
+    MFARecoveryCodesEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/MFARecoveryCodesResponse"
+    AdminStatsEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/AdminStatsResponse"
+    AdminUserListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminUserResponse"
+    AdminUserDetailEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/AdminUserDetailResponse"
+    AdminTenantListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminTenantResponse"
+    AdminTenantEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/AdminTenantResponse"
+    AdminTenantMemberListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminTenantMemberResponse"
+    AdminClientListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminClientResponse"
+    AdminClientEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/AdminClientResponse"
+    AdminCreateClientEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/AdminCreateClientResponse"
+    AdminClientUsageEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          "$ref": "#/components/schemas/AdminClientUsageResponse"
+    AdminAuditLogListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminAuditLogResponse"
+    AdminIdentityProviderListEnvelope:
+      type: object
+      required:
+      - meta
+      - data
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminIdentityProviderResponse"
+    MetaOnlyEnvelope:
+      type: object
+      required:
+      - meta
+      properties:
+        meta:
+          "$ref": "#/components/schemas/Meta"
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email_verified:
+          type: boolean
+        is_platform_admin:
+          type: boolean
+        mfa_enabled:
+          type: boolean
+        active_tenant_id:
+          type: string
+        tenants:
+          type: array
+          items:
+            "$ref": "#/components/schemas/TenantSummary"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          example: secretpassword
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        tenant_id:
+          type: string
+          format: uuid
+    LoginRequest:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        tenant_id:
+          type: string
+          format: uuid
+          description: Optional explicit tenant context
+        return_to:
+          type: string
+          description: 'OIDC browser flow: creates session cookie and redirects here
+            with 302'
+        remember_me:
+          type: boolean
+          description: Extends iam_session cookie lifetime (SSO_SESSION_REMEMBER_TTL)
+    RefreshTokenRequest:
+      type: object
+      required:
+      - refresh_token
+      properties:
+        refresh_token:
+          type: string
+    UpdateProfileRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+    TenantSelectRequest:
+      type: object
+      required:
+      - selection_token
+      - tenant_id
+      properties:
+        selection_token:
+          type: string
+        tenant_id:
+          type: string
+        remember_me:
+          type: boolean
+    TenantSwitchRequest:
+      type: object
+      required:
+      - tenant_id
+      properties:
+        tenant_id:
+          type: string
+    HealthResponse:
+      type: object
+      properties:
+        service:
+          type: string
+          example: github.com/gateforge-iam/gateforge-iam
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          example: '2021-01-01T00:00:00Z'
+        version:
+          type: string
+          example: 1.0.0
+    PublicFederationProviderResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        provider:
+          type: string
+    OpenIDConfigurationResponse:
+      type: object
+      properties:
+        issuer:
+          type: string
+        authorization_endpoint:
+          type: string
+        token_endpoint:
+          type: string
+        userinfo_endpoint:
+          type: string
+        jwks_uri:
+          type: string
+        response_types_supported:
+          type: array
+          items:
+            type: string
+        subject_types_supported:
+          type: array
+          items:
+            type: string
+        id_token_signing_alg_values_supported:
+          type: array
+          items:
+            type: string
+        scopes_supported:
+          type: array
+          items:
+            type: string
+        token_endpoint_auth_methods_supported:
+          type: array
+          items:
+            type: string
+        code_challenge_methods_supported:
+          type: array
+          items:
+            type: string
+        grant_types_supported:
+          type: array
+          items:
+            type: string
+    OIDCTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        id_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+        scope:
+          type: string
+    OIDCTokenRequest:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: authorization_code or refresh_token
+          example: authorization_code
+        code:
+          type: string
+          description: Authorization code (authorization_code grant)
+        redirect_uri:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        code_verifier:
+          type: string
+          description: PKCE code verifier
+        refresh_token:
+          type: string
+          description: Refresh token (refresh_token grant)
+        scope:
+          type: string
+    JWKS:
+      type: object
+      description: JSON Web Key Set
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    UserInfoResponse:
+      type: object
+      description: OIDC UserInfo claims
+      additionalProperties: true
+      properties:
+        sub:
+          type: string
+        email:
+          type: string
+        email_verified:
+          type: boolean
+        name:
+          type: string
+        given_name:
+          type: string
+        family_name:
+          type: string
+    MFAChallengeVerifyRequest:
+      type: object
+      required:
+      - code
+      - mfa_ticket
+      properties:
+        code:
+          type: string
+          example: '123456'
+        mfa_ticket:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+    MFARecoveryCodesResponse:
+      type: object
+      properties:
+        codes:
+          type: array
+          items:
+            type: string
+    MFATOTPSetupResponse:
+      type: object
+      properties:
+        otpauth_uri:
+          type: string
+          example: otpauth://totp/...
+        secret:
+          type: string
+          example: JBSWY3DPEHPK3PXP
+    MFATOTPVerifyRequest:
+      type: object
+      required:
+      - code
+      properties:
+        code:
+          type: string
+          example: '123456'
+    WebauthnCredentialResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 00000000-0000-0000-0000-000000000001
+        device_name:
+          type: string
+          example: Work MacBook
+        created_at:
+          type: string
+          format: date-time
+    WebauthnLoginStartRequest:
+      type: object
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        tenant_id:
+          type: string
+          example: 00000000-0000-0000-0000-000000000001
+    WebauthnLoginStartResponse:
+      type: object
+      properties:
+        options:
+          type: object
+          additionalProperties: true
+        session_token:
+          type: string
+          example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+    WebauthnLoginFinishRequest:
+      type: object
+      required:
+      - email
+      - session_token
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        session_token:
+          type: string
+        credential:
+          type: object
+          additionalProperties: true
+          description: PublicKeyCredential JSON from navigator.credentials.get()
+        tenant_id:
+          type: string
+        remember_me:
+          type: boolean
+          example: false
+        return_to:
+          type: string
+    WebauthnRegisterStartRequest:
+      type: object
+      properties:
+        device_name:
+          type: string
+          maxLength: 255
+          example: Personal iPhone
+          description: Optional label stored with the passkey
+    WebauthnRegisterStartResponse:
+      type: object
+      properties:
+        options:
+          type: object
+          additionalProperties: true
+        session_token:
+          type: string
+    WebauthnRegisterFinishRequest:
+      type: object
+      required:
+      - session_token
+      properties:
+        session_token:
+          type: string
+        credential:
+          type: object
+          additionalProperties: true
+          description: PublicKeyCredential JSON from navigator.credentials.create()
+    AdminStatsResponse:
+      type: object
+      properties:
+        active_sessions:
+          type: integer
+        mfa_enabled_count:
+          type: integer
+        mfa_enabled_percent:
+          type: number
+        total_users:
+          type: integer
+    AdminUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        status:
+          type: string
+        tenant_id:
+          type: string
+        mfa_enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    AdminUserMembershipResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        tenant_name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+    AdminUserDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        status:
+          type: string
+        mfa_enabled:
+          type: boolean
+        is_platform_admin:
+          type: boolean
+        passkey_count:
+          type: integer
+        active_sessions:
+          type: integer
+        memberships:
+          type: array
+          items:
+            "$ref": "#/components/schemas/AdminUserMembershipResponse"
+        created_at:
+          type: string
+          format: date-time
+    AdminTenantResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        domain:
+          type: string
+        user_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    AdminCreateTenantRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        domain:
+          type: string
+          maxLength: 255
+    AdminUpdateTenantRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        domain:
+          type: string
+          maxLength: 255
+    AdminTenantMemberResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+    AdminAddMemberRequest:
+      type: object
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+          - member
+          - admin
+    AdminClientResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        client_id:
+          type: string
+        client_secret_set:
+          type: boolean
+        name:
+          type: string
+        tenant_id:
+          type: string
+        is_public:
+          type: boolean
+        redirect_uris:
+          type: array
+          items:
+            type: string
+        grant_types:
+          type: array
+          items:
+            type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+    AdminCreateClientRequest:
+      type: object
+      required:
+      - name
+      - redirect_uris
+      - tenant_id
+      properties:
+        client_id:
+          type: string
+          minLength: 1
+          maxLength: 255
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        tenant_id:
+          type: string
+        is_public:
+          type: boolean
+        redirect_uris:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        grant_types:
+          type: array
+          items:
+            type: string
+        scopes:
+          type: array
+          items:
+            type: string
+    AdminCreateClientResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        client_secret_set:
+          type: boolean
+        name:
+          type: string
+        tenant_id:
+          type: string
+        is_public:
+          type: boolean
+        redirect_uris:
+          type: array
+          items:
+            type: string
+        grant_types:
+          type: array
+          items:
+            type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+    AdminUpdateClientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        client_secret:
+          type: string
+        is_public:
+          type: boolean
+        redirect_uris:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        grant_types:
+          type: array
+          items:
+            type: string
+        scopes:
+          type: array
+          items:
+            type: string
+    AdminClientUsageResponse:
+      type: object
+      properties:
+        client_id:
+          type: string
+        active_refresh_tokens:
+          type: integer
+        total_refresh_tokens:
+          type: integer
+        authorize_events_30d:
+          type: integer
+        token_issue_events_30d:
+          type: integer
+        last_token_issued_at:
+          type: string
+          format: date-time
+    AdminAuditLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        actor_id:
+          type: string
+        actor_type:
+          type: string
+        correlation_id:
+          type: string
+        request_id:
+          type: string
+        resource_id:
+          type: string
+        resource_name:
+          type: string
+        resource_type:
+          type: string
+        result:
+          type: string
+        tenant_id:
+          type: string
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        old_value:
+          type: object
+          additionalProperties: true
+        new_value:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+    AdminIdentityProviderResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        provider:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+        oauth_client_id:
+          type: string
+        oauth_client_secret_set:
+          type: boolean
+        redirect_uri:
+          type: string
+        setup_console_url:
+          type: string
+    PatchIdentityProviderRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        oauth_client_id:
+          type: string
+        oauth_client_secret:
+          type: string

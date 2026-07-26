@@ -1,0 +1,15 @@
+# OpenAPI Generator config for the GateForge TypeScript (fetch) client.
+# Paths are overridden by `make sdk-generate` (-i / -g / -o) for Docker mounts.
+generatorName: typescript-fetch
+inputSpec: api/openapi.yaml
+outputDir: sdk/typescript/src/generated
+additionalProperties:
+  npmName: "@gateforge/sdk"
+  npmVersion: 0.1.0
+  supportsES6: "true"
+  typescriptThreePlus: "true"
+  modelPropertyNaming: original
+  enumPropertyNaming: original
+  withoutRuntimeChecks: "false"
+  useSingleRequestParameter: "true"
+  withInterfaces: "false"

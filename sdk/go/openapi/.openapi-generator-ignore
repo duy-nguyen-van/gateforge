@@ -1,0 +1,9 @@
+.openapi-generator-ignore
+.gitignore
+.travis.yml
+git_push.sh
+.gitlab-ci.yml
+.github/
+.editorconfig
+README.md
+test/

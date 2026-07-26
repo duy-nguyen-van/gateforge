@@ -1,4 +1,7 @@
-.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image performance-help performance-smoke performance-token performance-token-hold performance-passkey performance-oidc-e2e performance-rss
+.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image performance-help performance-smoke performance-token performance-token-hold performance-passkey performance-oidc-e2e performance-rss sdk-generate sdk-check sdk-go-test sdk-ts-build sdk-ts-test
+
+OPENAPI_GENERATOR_VERSION ?= v7.19.0
+OPENAPI_GENERATOR_IMAGE ?= openapitools/openapi-generator-cli:$(OPENAPI_GENERATOR_VERSION)
 
 dev-backend:
 	cd backend && make up
@@ -73,3 +76,47 @@ performance-oidc-e2e:
 
 performance-rss:
 	$(MAKE) -C performance rss
+
+# --- Official SDKs (see sdk/README.md; requires api/openapi.yaml) ---
+sdk-generate:
+	docker run --rm -v "$(CURDIR):/local" $(OPENAPI_GENERATOR_IMAGE) generate \
+		-i /local/api/openapi.yaml \
+		-g go \
+		-c /local/sdk/config/go.yaml \
+		-o /local/sdk/go/openapi \
+		--git-user-id gateforge-iam \
+		--git-repo-id 'gateforge-iam/sdk/go' \
+		--additional-properties=packageName=openapi,packageVersion=0.1.0,withGoMod=true,enumClassPrefix=true,generateInterfaces=true,isGoSubmodule=true
+	docker run --rm -v "$(CURDIR):/local" $(OPENAPI_GENERATOR_IMAGE) generate \
+		-i /local/api/openapi.yaml \
+		-g typescript-fetch \
+		-c /local/sdk/config/typescript.yaml \
+		-o /local/sdk/typescript/src/generated \
+		--additional-properties=npmName=@gateforge/sdk,npmVersion=0.1.0,supportsES6=true,typescriptThreePlus=true,modelPropertyNaming=original,enumPropertyNaming=original,useSingleRequestParameter=true
+	@rm -rf sdk/go/openapi/test
+	@rm -f \
+		sdk/go/openapi/.travis.yml \
+		sdk/go/openapi/.gitignore \
+		sdk/go/openapi/git_push.sh \
+		sdk/typescript/src/generated/.travis.yml \
+		sdk/typescript/src/generated/.gitignore \
+		sdk/typescript/src/generated/git_push.sh \
+		sdk/typescript/src/generated/package.json \
+		sdk/typescript/src/generated/tsconfig.json \
+		sdk/typescript/src/generated/tsconfig.esm.json \
+		sdk/typescript/src/generated/.npmignore \
+		2>/dev/null || true
+	@printf '%s\n' "export * from './src/index.js'" > sdk/typescript/src/generated/index.ts
+	node sdk/typescript/scripts/patch-generated.mjs
+
+sdk-check: sdk-generate
+	@git diff --exit-code -- api/openapi.yaml sdk/go/openapi sdk/typescript/src/generated || (echo "SDK drift detected; commit regenerated files" && exit 1)
+
+sdk-go-test:
+	cd sdk/go && go test ./...
+
+sdk-ts-build:
+	cd sdk/typescript && npm ci && npm run build
+
+sdk-ts-test:
+	cd sdk/typescript && npm ci && npm test

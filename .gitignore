@@ -45,3 +45,7 @@ frontend/*.njsproj
 frontend/*.sln
 frontend/*.sw?
 
+# SDKs
+sdk/typescript/node_modules
+sdk/typescript/dist
+

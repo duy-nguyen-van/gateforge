@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router'
 
 import { ConsoleSidebar } from '@/components/layout/console-sidebar'
 import { ConsoleTopbar } from '@/components/layout/console-topbar'

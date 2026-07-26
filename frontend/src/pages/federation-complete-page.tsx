@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 
 import { exchangeSessionLogin } from '@/api/client'
 import { isTenantSelection } from '@/api/types'

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import { GateForgeBrand } from '@/components/brand/gateforge-brand'
 import { MaterialIcon } from '@/components/icons/material-icon'

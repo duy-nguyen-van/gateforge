@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink } from 'react-router'
 
 import { MaterialIcon } from '@/components/icons/material-icon'
 import { accountNavItems, consoleNavItems } from '@/components/layout/console-nav'

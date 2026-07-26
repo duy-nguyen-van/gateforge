@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { MaterialIcon } from '@/components/icons/material-icon'
 import { CreateClientDialog } from '@/features/admin/create-client-dialog'

@@ -1,5 +1,5 @@
 import { LogOutIcon, ShieldIcon, UserIcon } from 'lucide-react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router'
 
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'

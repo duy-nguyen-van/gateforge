@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import { MfaAvatarPreviewStack } from '@/components/avatars/default-avatar'
 import { MaterialIcon } from '@/components/icons/material-icon'

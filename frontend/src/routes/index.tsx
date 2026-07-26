@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router'
 
 import { AuthLayout } from '@/components/layout/auth-layout'
 import { ConsoleLayout } from '@/components/layout/console-layout'

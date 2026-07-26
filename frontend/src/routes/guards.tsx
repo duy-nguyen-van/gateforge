@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router'
 
 import { GateForgeLoading } from '@/components/brand/gateforge-loading'
 import { useAuth } from '@/hooks/use-auth'

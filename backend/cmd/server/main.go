@@ -93,9 +93,9 @@ func NewHTTPServer(lc fx.Lifecycle,
 	return srv
 }
 
-// @title Golang Boilerplate API
-// @version 1.0
-// @description This is a backend API for Golang Boilerplate
+// @title GateForge IAM API
+// @version 0.1.0
+// @description GateForge IAM application API under /api/v1. The canonical public SDK contract (including root OIDC paths) lives at api/openapi.yaml in the monorepo.
 // @BasePath /api/v1
 // @schemes http https
 // @securityDefinitions.basic  BasicAuth
@@ -104,7 +104,10 @@ func NewHTTPServer(lc fx.Lifecycle,
 // @name Authorization
 // @description Bearer Token Authentication. Use "Bearer {token}" as the value.
 func main() {
-	// Ensure Swagger spec is registered and optionally override fields at runtime
+	// Swagger UI still uses swag output for /api/v1; SDK consumers use api/openapi.yaml.
+	docs.SwaggerInfo.Title = "GateForge IAM API"
+	docs.SwaggerInfo.Version = "0.1.0"
+	docs.SwaggerInfo.Description = "GateForge IAM application API under /api/v1. Canonical SDK contract: api/openapi.yaml."
 	docs.SwaggerInfo.BasePath = "/api/v1"
 	cfg, err := config.Load()
 	if err != nil {

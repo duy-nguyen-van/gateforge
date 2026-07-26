@@ -6,13 +6,16 @@ GateForge IAM monorepo: Go API + React SPA, shipped as a single embedded binary 
 
 | Path | Responsibility |
 |------|----------------|
+| [`api/`](api/) | Canonical OpenAPI 3.0.3 contract for public SDKs |
 | [`backend/`](backend/) | Go IAM service — API, OIDC, DB, migrations |
 | [`frontend/`](frontend/) | React SPA — login, admin console |
+| [`sdk/`](sdk/) | Official Go + TypeScript client SDKs |
 | [`docker/`](docker/) | Production multi-stage Dockerfile and compose |
 | [`deployments/`](deployments/) | Runbooks, systemd, Caddy split-deploy config |
 | [`performance/`](performance/) | k6 benches, seed tools, capacity methodology |
-| [`Makefile`](Makefile) | Dev and prod build entry points |
+| [`Makefile`](Makefile) | Dev, prod, and SDK build entry points |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | CI for backend, frontend, and prod binary |
+| [`.github/workflows/sdk.yml`](.github/workflows/sdk.yml) | OpenAPI validation, generation drift, SDK tests |
 
 Per-package agent rules live in `backend/.cursor/` and `frontend/.cursor/`. Read those when working inside a single package.
 
@@ -48,4 +51,6 @@ See [`deployments/README.md`](deployments/README.md) for systemd, Docker Compose
 | [`backend/AGENTS.md`](backend/AGENTS.md) | Backend layer map, routes, patterns |
 | [`frontend/AGENTS.md`](frontend/AGENTS.md) | Frontend routes, auth, API client |
 | [`backend/docs/README.md`](backend/docs/README.md) | IAM feature hub — OIDC, SSO, MFA, DB tables |
+| [`api/README.md`](api/README.md) | Canonical OpenAPI contract for SDKs |
+| [`sdk/README.md`](sdk/README.md) | Official Go and TypeScript SDKs |
 | [`performance/README.md`](performance/README.md) | Performance benches — how to run and publish |

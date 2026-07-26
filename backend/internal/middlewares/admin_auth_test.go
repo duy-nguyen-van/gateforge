@@ -63,9 +63,12 @@ func TestPlatformAdminAuth(t *testing.T) {
 		e.ServeHTTP(rec, req)
 
 		require.Equal(t, http.StatusUnauthorized, rec.Code)
-		var body map[string]string
+		var body map[string]any
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-		require.Equal(t, "User not authenticated", body["error"])
+		meta, ok := body["meta"].(map[string]any)
+		require.True(t, ok)
+		require.Equal(t, "UNAUTHORIZED", meta["error_code"])
+		require.Equal(t, "User not authenticated", meta["message"])
 	})
 
 	t.Run("repo error returns 403", func(t *testing.T) {

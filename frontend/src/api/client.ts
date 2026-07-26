@@ -5,6 +5,8 @@ import type {
   RegistrationResponseJSON,
 } from '@simplewebauthn/browser'
 
+import { ResponseError } from '@gateforge/sdk'
+
 import { apiUrl } from '@/lib/utils'
 import {
   ApiError,
@@ -52,6 +54,7 @@ import {
   type AdminAddMemberRequest,
   type PaginationParams,
 } from '@/api/types'
+import { gateforge } from '@/api/sdk'
 import { getAccessToken, refreshTokens } from '@/auth/token-store'
 
 export type RequestOptions = {
@@ -126,6 +129,18 @@ async function parseErrorResponse(response: Response): Promise<ApiError> {
     // ignore parse errors
   }
   return new ApiError(message, response.status, errorCode)
+}
+
+/** Map SDK / generated-client errors to the SPA's ApiError shape. */
+async function fromSdk<T>(call: () => Promise<unknown>): Promise<ApiEnvelope<T>> {
+  try {
+    return (await call()) as ApiEnvelope<T>
+  } catch (err) {
+    if (err instanceof ResponseError) {
+      throw await parseErrorResponse(err.response)
+    }
+    throw err
+  }
 }
 
 export async function apiFetchNoContent(
@@ -209,7 +224,7 @@ export async function logoutUser() {
 }
 
 export async function getMe() {
-  return apiFetch<UserResponse>('/api/v1/me', { method: 'GET' }, { auth: true })
+  return fromSdk<UserResponse>(() => gateforge.users.getMe())
 }
 
 export async function updateProfile(body: UpdateProfileRequest) {
@@ -364,57 +379,23 @@ function buildPaginationQuery(params: PaginationParams): string {
   return qs ? `?${qs}` : ''
 }
 
-function buildLoginHistoryQuery(params: AdminLoginHistoryListParams): string {
-  const search = new URLSearchParams()
-  if (params.page !== undefined) search.set('page', String(params.page))
-  if (params.page_size !== undefined) search.set('page_size', String(params.page_size))
-  if (params.tenant_id) search.set('tenant_id', params.tenant_id)
-  if (params.result) search.set('result', params.result)
-  if (params.actor_id) search.set('actor_id', params.actor_id)
-  const qs = search.toString()
-  return qs ? `?${qs}` : ''
-}
-
-function buildAuditLogQuery(params: AdminAuditLogListParams): string {
-  const search = new URLSearchParams()
-  if (params.page !== undefined) search.set('page', String(params.page))
-  if (params.page_size !== undefined) search.set('page_size', String(params.page_size))
-  if (params.tenant_id) search.set('tenant_id', params.tenant_id)
-  if (params.action) search.set('action', params.action)
-  if (params.result) search.set('result', params.result)
-  if (params.actor_id) search.set('actor_id', params.actor_id)
-  const qs = search.toString()
-  return qs ? `?${qs}` : ''
-}
-
-function buildQuery(params: AdminListParams): string {
-  const search = new URLSearchParams()
-  if (params.page !== undefined) search.set('page', String(params.page))
-  if (params.page_size !== undefined) search.set('page_size', String(params.page_size))
-  if (params.tenant_id) search.set('tenant_id', params.tenant_id)
-  if (params.search) search.set('search', params.search)
-  const qs = search.toString()
-  return qs ? `?${qs}` : ''
-}
-
 export async function getAdminStats() {
-  return apiFetch<AdminStatsResponse>('/api/v1/admin/stats', { method: 'GET' }, { auth: true })
+  return fromSdk<AdminStatsResponse>(() => gateforge.admin.getAdminStats())
 }
 
 export async function listAdminUsers(params: AdminListParams = {}) {
-  return apiFetch<AdminUserResponse[]>(
-    `/api/v1/admin/users${buildQuery(params)}`,
-    { method: 'GET' },
-    { auth: true },
+  return fromSdk<AdminUserResponse[]>(() =>
+    gateforge.admin.listAdminUsers({
+      page: params.page,
+      pageSize: params.page_size,
+      tenantId: params.tenant_id,
+      search: params.search,
+    }),
   )
 }
 
 export async function getAdminUser(userId: string) {
-  return apiFetch<AdminUserDetailResponse>(
-    `/api/v1/admin/users/${encodeURIComponent(userId)}`,
-    { method: 'GET' },
-    { auth: true },
-  )
+  return fromSdk<AdminUserDetailResponse>(() => gateforge.admin.getAdminUser({ userId }))
 }
 
 export async function disableAdminUser(userId: string) {
@@ -450,19 +431,16 @@ export async function resetAdminUserMFA(userId: string) {
 }
 
 export async function listAdminTenants(params: AdminListParams = {}) {
-  return apiFetch<AdminTenantResponse[]>(
-    `/api/v1/admin/tenants${buildQuery(params)}`,
-    { method: 'GET' },
-    { auth: true },
+  return fromSdk<AdminTenantResponse[]>(() =>
+    gateforge.admin.listAdminTenants({
+      page: params.page,
+      pageSize: params.page_size,
+    }),
   )
 }
 
 export async function getAdminTenant(tenantId: string) {
-  return apiFetch<AdminTenantResponse>(
-    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}`,
-    { method: 'GET' },
-    { auth: true },
-  )
+  return fromSdk<AdminTenantResponse>(() => gateforge.admin.getAdminTenant({ tenantId }))
 }
 
 export async function createAdminTenant(body: AdminCreateTenantRequest) {
@@ -498,19 +476,17 @@ export async function listTenantMembers(tenantId: string, params: PaginationPara
 }
 
 export async function listAdminClients(params: AdminListParams = {}) {
-  return apiFetch<AdminClientResponse[]>(
-    `/api/v1/admin/clients${buildQuery(params)}`,
-    { method: 'GET' },
-    { auth: true },
+  return fromSdk<AdminClientResponse[]>(() =>
+    gateforge.admin.listAdminClients({
+      page: params.page,
+      pageSize: params.page_size,
+      tenantId: params.tenant_id,
+    }),
   )
 }
 
 export async function getAdminClient(clientId: string) {
-  return apiFetch<AdminClientResponse>(
-    `/api/v1/admin/clients/${encodeURIComponent(clientId)}`,
-    { method: 'GET' },
-    { auth: true },
-  )
+  return fromSdk<AdminClientResponse>(() => gateforge.admin.getAdminClient({ clientId }))
 }
 
 export async function createAdminClient(body: AdminCreateClientRequest) {
@@ -538,26 +514,33 @@ export async function deleteAdminClient(clientId: string) {
 }
 
 export async function getAdminClientUsage(clientId: string) {
-  return apiFetch<AdminClientUsageResponse>(
-    `/api/v1/admin/clients/${encodeURIComponent(clientId)}/usage`,
-    { method: 'GET' },
-    { auth: true },
+  return fromSdk<AdminClientUsageResponse>(() =>
+    gateforge.admin.getAdminClientUsage({ clientId }),
   )
 }
 
 export async function listAdminAuditLogs(params: AdminAuditLogListParams = {}) {
-  return apiFetch<AdminAuditLogResponse[]>(
-    `/api/v1/admin/audit-logs${buildAuditLogQuery(params)}`,
-    { method: 'GET' },
-    { auth: true },
+  return fromSdk<AdminAuditLogResponse[]>(() =>
+    gateforge.admin.listAdminAuditLogs({
+      page: params.page,
+      pageSize: params.page_size,
+      tenantId: params.tenant_id,
+      action: params.action,
+      result: params.result,
+      actorId: params.actor_id,
+    }),
   )
 }
 
 export async function listAdminLoginHistory(params: AdminLoginHistoryListParams = {}) {
-  return apiFetch<AdminAuditLogResponse[]>(
-    `/api/v1/admin/login-history${buildLoginHistoryQuery(params)}`,
-    { method: 'GET' },
-    { auth: true },
+  return fromSdk<AdminAuditLogResponse[]>(() =>
+    gateforge.admin.listAdminLoginHistory({
+      page: params.page,
+      pageSize: params.page_size,
+      tenantId: params.tenant_id,
+      result: params.result,
+      actorId: params.actor_id,
+    }),
   )
 }
 

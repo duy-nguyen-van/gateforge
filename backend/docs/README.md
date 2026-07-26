@@ -17,7 +17,9 @@ Feature guides, database reference, and manual testing for the backend identity 
 
 Postman: [postman/IAM_OIDC.postman_collection.json](postman/IAM_OIDC.postman_collection.json)
 
-OpenAPI (`/api/v1` only): [swagger.yaml](swagger.yaml) or `/swagger` (non-prod, basic auth).
+OpenAPI (`/api/v1` only for Swagger UI): [swagger.yaml](swagger.yaml) or `/swagger` (non-prod, basic auth).
+
+**Canonical public SDK contract** (root OIDC + `/api/v1`, excludes internal admin-key routes): [`../../api/openapi.yaml`](../../api/openapi.yaml). Regenerate clients with `make sdk-generate` from the monorepo root. See [`../../sdk/README.md`](../../sdk/README.md).
 
 ## Route surfaces
 

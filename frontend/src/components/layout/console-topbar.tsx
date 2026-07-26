@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router'
 
 import { switchTenant } from '@/api/client'
 import { setTokens } from '@/auth/token-store'

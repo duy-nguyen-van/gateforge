@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { selectTenant } from '@/api/client'
 import type { TenantSummary } from '@/api/types'

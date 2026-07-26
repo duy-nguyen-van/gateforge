@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router'
 
 import { federationStartUrl, federationCompleteReturnTo, listFederationProviders } from '@/api/client'
 import { ApiError } from '@/api/types'

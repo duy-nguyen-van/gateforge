@@ -62,13 +62,125 @@ Then run/debug the backend. Without `-tags embedfrontend`, assets are read from 
 
 ```
 gateforge-iam/
+├── api/           Canonical OpenAPI 3.0.3 contract (SDK source of truth)
 ├── backend/       Go 1.26 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
 ├── frontend/      Vite + React 19 SPA
+├── sdk/           Official Go + TypeScript client SDKs
 ├── docker/        Multi-stage production Dockerfile and compose
 ├── deployments/   Production runbooks and systemd template
 ├── performance/   k6 benches and capacity methodology
-└── Makefile       Monorepo dev and build targets
+└── Makefile       Monorepo dev, build, and SDK targets
 ```
+
+## Use the SDKs
+
+Official clients wrap the GateForge **HTTP API** so other backends and apps can integrate without hand-writing requests. They talk to your GateForge server (`https://iam.example.com`), not to the admin SPA.
+
+| Language | Package | Typical consumer |
+|----------|---------|------------------|
+| Go | `github.com/gateforge-iam/gateforge-iam/sdk/go` | Backend services, CLIs, workers |
+| TypeScript | `@gateforge/sdk` | Node services or browser apps |
+
+Contract source: [`api/openapi.yaml`](api/openapi.yaml). Full docs: [`sdk/README.md`](sdk/README.md), [`sdk/go/README.md`](sdk/go/README.md), [`sdk/typescript/README.md`](sdk/typescript/README.md).
+
+### Go
+
+```bash
+go get github.com/gateforge-iam/gateforge-iam/sdk/go@sdk/go/v0.1.0
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	gateforge "github.com/gateforge-iam/gateforge-iam/sdk/go"
+	"github.com/gateforge-iam/gateforge-iam/sdk/go/openapi"
+)
+
+func main() {
+	ctx := context.Background()
+	client := gateforge.NewClient("https://iam.example.com",
+		gateforge.WithTokenProvider(func(context.Context) (string, error) {
+			return "ACCESS_TOKEN", nil // supply a JWT from login / OIDC
+		}),
+	)
+
+	me, _, err := client.GetMe(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(me.GetData().GetEmail())
+
+	// Login (password) via generated API:
+	_, _, err = client.Login(ctx, openapi.LoginRequest{
+		Email:    "user@example.com",
+		Password: "secret",
+	})
+}
+```
+
+OIDC authorization-code + PKCE (server-side helpers):
+
+```go
+pkce, _ := gateforge.PKCEGenerate()
+authorizeURL, _ := gateforge.BuildAuthorizeURL("https://iam.example.com", gateforge.AuthorizeParams{
+	ClientID:      "my-app",
+	RedirectURI:   "https://app.example.com/callback",
+	Scope:         "openid profile",
+	CodeChallenge: pkce.Challenge,
+})
+// After redirect back with ?code=...
+tok, _, err := client.ExchangeAuthorizationCode(ctx, "my-app", "https://app.example.com/callback", code, pkce.Verifier, "")
+```
+
+### TypeScript
+
+```bash
+npm install @gateforge/sdk
+```
+
+```ts
+import { GateForgeClient, MemoryTokenStore } from '@gateforge/sdk'
+
+const tokens = new MemoryTokenStore()
+const client = new GateForgeClient({
+  baseUrl: 'https://iam.example.com',
+  getAccessToken: () => tokens.getAccessToken(),
+  refreshAccessToken: async () => {
+    const refresh = tokens.getRefreshToken()
+    if (!refresh) return null
+    const res = await client.auth.refreshToken({
+      refreshTokenRequest: { refresh_token: refresh },
+    })
+    tokens.setTokens(res.data!)
+    return res.data?.access_token
+  },
+})
+
+const login = await client.auth.login({
+  loginRequest: { email: 'user@example.com', password: 'secret' },
+})
+tokens.setTokens(login.data!)
+
+const me = await client.users.getMe()
+console.log(me.data?.email)
+```
+
+Browser OIDC PKCE helpers (`createPKCE`, `buildAuthorizeUrl`, `parseCallbackParams`) and passkey helpers (`registerPasskey`, `loginWithPasskey`) are documented in [`sdk/typescript/README.md`](sdk/typescript/README.md).
+
+### Develop SDKs in this repo
+
+```bash
+make sdk-generate   # regenerate from api/openapi.yaml (Docker required)
+make sdk-go-test
+make sdk-ts-build
+```
+
+Release from version tags only: `sdk/go/v0.x.y` and `sdk/typescript/v0.x.y`.
 
 ## Security scanning (Trivy)
 
@@ -146,6 +258,7 @@ See [`deployments/README.md`](deployments/README.md) for environment variables a
 ## Documentation
 
 - IAM feature hub: [`backend/docs/README.md`](backend/docs/README.md) — OIDC, SSO, MFA, federation, DB tables, curl testing
+- SDKs: [`sdk/README.md`](sdk/README.md) — Go and TypeScript clients for external integrations
 - Backend: [`backend/README.md`](backend/README.md)
 - Frontend: [`frontend/README.md`](frontend/README.md)
 - Deploy: [`deployments/README.md`](deployments/README.md)

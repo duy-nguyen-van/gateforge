@@ -1,0 +1,33 @@
+{
+  "name": "@gateforge/sdk",
+  "version": "0.1.0",
+  "description": "Official GateForge IAM TypeScript SDK",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "patch-generated": "node scripts/patch-generated.mjs"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "tsx": "^4.20.0",
+    "typescript": "~6.0.3"
+  }
+}

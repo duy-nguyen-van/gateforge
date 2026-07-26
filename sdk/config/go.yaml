@@ -1,0 +1,15 @@
+# OpenAPI Generator config for the GateForge Go client.
+# Paths are overridden by `make sdk-generate` (-i / -g / -o) for Docker mounts.
+generatorName: go
+inputSpec: api/openapi.yaml
+outputDir: sdk/go/openapi
+additionalProperties:
+  packageName: openapi
+  moduleName: github.com/gateforge-iam/gateforge-iam/sdk/go/openapi
+  packageVersion: 0.1.0
+  enumClassPrefix: true
+  structPrefix: false
+  withGoMod: "true"
+  disallowAdditionalPropertiesIfNotPresent: "false"
+  generateInterfaces: "true"
+  isGoSubmodule: "true"

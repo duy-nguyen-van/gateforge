@@ -1,7 +1,7 @@
 import { startAuthentication } from '@simplewebauthn/browser'
 import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { webauthnLoginFinish, webauthnLoginStart } from '@/api/client'
 import { isMfaChallenge, isTenantSelection } from '@/api/types'

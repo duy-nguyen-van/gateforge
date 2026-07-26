@@ -1,6 +1,6 @@
 module github.com/gateforge-iam/gateforge-iam/performance
 
-go 1.24.0
+go 1.26.5
 
 require (
 	github.com/descope/virtualwebauthn v1.0.3

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
+	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
 	"github.com/labstack/echo/v4"
@@ -15,15 +16,15 @@ func PlatformAdminAuth(users repositories.UserRepository) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			userID, ok := c.Get(auth.EchoContextUserIDKey).(string)
 			if !ok || userID == "" {
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "User not authenticated"})
+				return metaError(c, http.StatusUnauthorized, constants.Unauthorized, "User not authenticated")
 			}
 
 			user, err := users.GetOneByID(c.Request().Context(), userID)
 			if err != nil {
-				return c.JSON(http.StatusForbidden, map[string]string{"error": "Admin access required"})
+				return metaError(c, http.StatusForbidden, constants.Forbidden, "Admin access required")
 			}
 			if !user.IsPlatformAdmin {
-				return c.JSON(http.StatusForbidden, map[string]string{"error": "Admin access required"})
+				return metaError(c, http.StatusForbidden, constants.Forbidden, "Admin access required")
 			}
 			return next(c)
 		}

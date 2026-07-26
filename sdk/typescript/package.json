@@ -19,15 +19,15 @@
     "patch-generated": "node scripts/patch-generated.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   },
   "license": "Apache-2.0",
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.12.3",
     "tsx": "^4.20.0",
-    "typescript": "~5.9.0"
+    "typescript": "~6.0.3"
   }
 }

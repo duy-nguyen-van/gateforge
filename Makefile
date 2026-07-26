@@ -47,7 +47,8 @@ docker-build:
 	DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile -t gateforge-iam:latest .
 
 # Match .github/workflows/ci.yml security job (requires: brew install trivy)
-TRIVY_FLAGS = --format table --exit-code 1 --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH
+# Uses repo-root trivy.yaml (skip-files for local gitignored secrets).
+TRIVY_FLAGS = --format table --exit-code 1 --ignore-unfixed --vuln-type os,library --severity CRITICAL,HIGH --config trivy.yaml
 
 security-fs:
 	trivy fs . $(TRIVY_FLAGS) --scanners vuln,secret,misconfig
@@ -108,6 +109,10 @@ sdk-generate:
 		sdk/typescript/src/generated/tsconfig.esm.json \
 		sdk/typescript/src/generated/.npmignore \
 		2>/dev/null || true
+	# OpenAPI Generator leaves stale transitive checksums (e.g. ancient x/net) that
+	# Trivy treats as installed; tidy drops unused entries from the generated module.
+	cd sdk/go/openapi && go mod edit -go=1.26.5 && go mod tidy
+	cd sdk/go && go mod tidy
 	@printf '%s\n' "export * from './src/index.js'" > sdk/typescript/src/generated/index.ts
 	node sdk/typescript/scripts/patch-generated.mjs
 

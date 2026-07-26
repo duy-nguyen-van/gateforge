@@ -7,6 +7,7 @@ dev-backend:
 	cd backend && make up
 
 dev-frontend:
+	$(MAKE) sdk-ts-build
 	cd frontend && npm run dev
 
 dev: bootstrap
@@ -31,6 +32,7 @@ bootstrap:
 	$(MAKE) -C backend up'
 
 build-frontend:
+	$(MAKE) sdk-ts-build
 	cd frontend && npm ci && npm run build
 
 copy-frontend:

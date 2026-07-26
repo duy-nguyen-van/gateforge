@@ -1,7 +1,16 @@
 # syntax=docker/dockerfile:1
 
-# Stage 1: frontend
+# Stage 1: frontend (+ local @gateforge/sdk)
 FROM node:26-alpine3.24 AS frontend-builder
+
+WORKDIR /app
+
+COPY sdk/typescript/package.json sdk/typescript/package-lock.json ./sdk/typescript/
+RUN --mount=type=cache,target=/root/.npm \
+    cd sdk/typescript && npm ci
+
+COPY sdk/typescript/ ./sdk/typescript/
+RUN cd sdk/typescript && npm run build
 
 WORKDIR /app/frontend
 

@@ -22,10 +22,13 @@ From the **monorepo root** (requires Docker):
 make sdk-generate
 ```
 
-That regenerates `sdk/typescript/src/generated/` from `api/openapi.yaml` and patches the fetch client for NodeNext. Then rebuild the SDK package:
+That regenerates `sdk/typescript/src/generated/` from `api/openapi.yaml` and patches the fetch client for NodeNext. Then rebuild the SDK package (`sdk/typescript/dist` is gitignored):
 
 ```bash
-cd sdk/typescript && npm run build
+make sdk-ts-build
+# or: cd sdk/typescript && npm ci && npm run build
 ```
+
+`make setup` / `make dev-frontend` / `make build-frontend` run `sdk-ts-build` automatically. If Vite fails with `Failed to resolve import "@gateforge/sdk"`, build the SDK once and restart the dev server.
 
 The SPA’s `npm run generate:api` script only documents this flow; it does not generate into `frontend/src/api/generated/`.

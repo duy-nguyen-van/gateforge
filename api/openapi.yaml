@@ -2694,7 +2694,7 @@ components:
           additionalProperties: true
         session_token:
           type: string
-          example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+          example: 550e8400-e29b-41d4-a716-446655440000
     WebauthnLoginFinishRequest:
       type: object
       required:

@@ -2540,7 +2540,7 @@ components:
     WebauthnLoginStartEnvelope:
       example:
         data:
-          session_token: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+          session_token: 550e8400-e29b-41d4-a716-446655440000
           options:
             key: ""
         meta:
@@ -3509,7 +3509,7 @@ components:
       type: object
     WebauthnLoginStartResponse:
       example:
-        session_token: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+        session_token: 550e8400-e29b-41d4-a716-446655440000
         options:
           key: ""
       properties:
@@ -3517,7 +3517,7 @@ components:
           additionalProperties: true
           type: object
         session_token:
-          example: 9b2c4e8a-1d3f-4a5b-8c7e-0f1a2b3c4d5e
+          example: 550e8400-e29b-41d4-a716-446655440000
           type: string
       type: object
     WebauthnLoginFinishRequest:

@@ -12,14 +12,14 @@ export function GateForgeLoading({
 }: Readonly<GateForgeLoadingProps>) {
   return (
     <div
-      className={cn('flex min-h-screen items-center justify-center bg-transparent', className)}
+      className={cn('flex min-h-screen items-center justify-center bg-background', className)}
       role="status"
       aria-live="polite"
       aria-label={label}
     >
-      <div className="gateforge-loader relative h-14 w-14">
+      <div className="gateforge-loader relative h-24 w-24">
         <span className="gateforge-loader-ring" aria-hidden />
-        <div className="gateforge-loader-mark relative z-10 h-full w-full">
+        <div className="gateforge-loader-mark relative z-10 h-full w-full p-[18%]">
           <GateForgeIconMark />
         </div>
       </div>

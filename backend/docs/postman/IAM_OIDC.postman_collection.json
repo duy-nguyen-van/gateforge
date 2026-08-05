@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "IAM — OIDC (authorize + PKCE + session)",
-		"description": "Authorization code + PKCE with iam_session cookie via POST /oidc/login.\n\n**Setup:** Edit collection variables (`baseUrl`, `clientId`, `redirectUriEncoded`, `codeVerifier`, `codeChallenge`, `state`, `email`, `password`). Generate PKCE locally (see docs/testing/OIDC_CURL.md) and paste `codeVerifier` / `codeChallenge`.\n\n**Order:** Run *0 — Discovery (warmup + CSRF)* first so Postman stores `csrf_token` and saves `csrfToken` from `X-CSRF-Token`. Then *1 → 2 → 3 → 4*. After *3*, copy `code` from the redirect `Location` into `authCode`. Run *5* then *6*.\n\n**Session:** Request *2* disables **follow redirects** so `Set-Cookie: iam_session=...` stays on the 302 response; the **Tests** script copies it to collection variable `iam_session`. Request *3* sends `Cookie: iam_session={{iam_session}}` so the session is visible and always applied.\n\n`redirectUriEncoded` must be URL-encoded (e.g. `http://127.0.0.1:9999/callback` → `http%3A%2F%2F127.0.0.1%3A9999%2Fcallback`).",
+		"description": "Authorization code + PKCE with iam_session cookie via POST /oidc/login.\n\n**Setup:** Edit collection variables (`baseUrl`, `clientId`, `clientSecret`, `redirectUriEncoded`, `codeVerifier`, `codeChallenge`, `state`, `email`, `password`). Generate PKCE locally (see docs/testing/OIDC_CURL.md) and paste `codeVerifier` / `codeChallenge`.\n\n**Order:** Run *0 — Discovery (warmup + CSRF)* first so Postman stores `csrf_token` and saves `csrfToken` from `X-CSRF-Token`. Then *1 → 2 → 3 → 4*. After *3*, copy `code` from the redirect `Location` into `authCode`. Run *5* then *6* (introspect needs confidential `clientSecret`).\n\n**Session:** Request *2* disables **follow redirects** so `Set-Cookie: iam_session=...` stays on the 302 response; the **Tests** script copies it to collection variable `iam_session`. Request *3* sends `Cookie: iam_session={{iam_session}}` so the session is visible and always applied.\n\n`redirectUriEncoded` must be URL-encoded (e.g. `http://127.0.0.1:9999/callback` → `http%3A%2F%2F127.0.0.1%3A9999%2Fcallback`).",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -15,6 +15,8 @@
 		{ "key": "password", "value": "your-password" },
 		{ "key": "authCode", "value": "PASTE_CODE_FROM_LOCATION_AFTER_STEP_3" },
 		{ "key": "oidcAccessToken", "value": "" },
+		{ "key": "oidcRefreshToken", "value": "" },
+		{ "key": "clientSecret", "value": "your-client-secret" },
 		{ "key": "csrfToken", "value": "" },
 		{ "key": "iam_session", "value": "" }
 	],
@@ -115,6 +117,7 @@
 							"try {",
 							"  const j = pm.response.json();",
 							"  if (j.access_token) pm.collectionVariables.set('oidcAccessToken', j.access_token);",
+							"  if (j.refresh_token) pm.collectionVariables.set('oidcRefreshToken', j.refresh_token);",
 							"} catch (e) {}",
 							"pm.test('Status 200', function () { pm.response.to.have.status(200); });"
 						],
@@ -140,6 +143,30 @@
 					{ "key": "Authorization", "value": "Bearer {{oidcAccessToken}}" }
 				],
 				"url": "{{baseUrl}}/userinfo"
+			}
+		},
+		{
+			"name": "6 — POST /introspect (access token)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+				],
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{ "key": "username", "value": "{{clientId}}", "type": "string" },
+						{ "key": "password", "value": "{{clientSecret}}", "type": "string" }
+					]
+				},
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{ "key": "token", "value": "{{oidcAccessToken}}", "type": "text" },
+						{ "key": "token_type_hint", "value": "access_token", "type": "text" }
+					]
+				},
+				"url": "{{baseUrl}}/introspect"
 			}
 		},
 		{

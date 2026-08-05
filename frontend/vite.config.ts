@@ -19,6 +19,7 @@ export default defineConfig({
       '/oidc': { target: apiTarget, changeOrigin: true },
       '/authorize': { target: apiTarget, changeOrigin: true },
       '/token': { target: apiTarget, changeOrigin: true },
+      '/introspect': { target: apiTarget, changeOrigin: true },
       '/userinfo': { target: apiTarget, changeOrigin: true },
       '/.well-known': { target: apiTarget, changeOrigin: true },
     },

@@ -21,6 +21,7 @@ import type {
   OAuthError,
   OIDCTokenResponse,
   OpenIDConfigurationResponse,
+  TokenIntrospectionResponse,
   UserInfoResponse,
 } from '../models/index.js';
 
@@ -44,6 +45,13 @@ export interface CreateTokenRequest {
     codeVerifier?: string;
     refreshToken?: string;
     scope?: string;
+}
+
+export interface IntrospectTokenRequest {
+    token: string;
+    tokenTypeHint?: IntrospectTokenTokenTypeHintEnum;
+    clientId?: string;
+    clientSecret?: string;
 }
 
 export interface LoginOidcRequest {
@@ -142,6 +150,25 @@ export interface OIDCApiInterface {
      * Userinfo endpoint (Bearer access token from token endpoint, RS256)
      */
     getUserInfo(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserInfoResponse>;
+
+    /**
+     * Introspect an OIDC access token (RS256 JWT) or opaque refresh token. Requires confidential client authentication via HTTP Basic or client_secret_post. Public clients are rejected. Any authenticated confidential client may introspect tokens (resource-server pattern). 
+     * @summary Token introspection endpoint (RFC 7662)
+     * @param {string} token The access or refresh token to introspect
+     * @param {string} [tokenTypeHint] Optional hint — access_token or refresh_token
+     * @param {string} [clientId] Confidential client id (when not using HTTP Basic)
+     * @param {string} [clientSecret] Confidential client secret (when not using HTTP Basic)
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof OIDCApiInterface
+     */
+    introspectTokenRaw(requestParameters: IntrospectTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenIntrospectionResponse>>;
+
+    /**
+     * Introspect an OIDC access token (RS256 JWT) or opaque refresh token. Requires confidential client authentication via HTTP Basic or client_secret_post. Public clients are rejected. Any authenticated confidential client may introspect tokens (resource-server pattern). 
+     * Token introspection endpoint (RFC 7662)
+     */
+    introspectToken(requestParameters: IntrospectTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenIntrospectionResponse>;
 
     /**
      * 
@@ -397,6 +424,75 @@ export class OIDCApi extends runtime.BaseAPI implements OIDCApiInterface {
     }
 
     /**
+     * Introspect an OIDC access token (RS256 JWT) or opaque refresh token. Requires confidential client authentication via HTTP Basic or client_secret_post. Public clients are rejected. Any authenticated confidential client may introspect tokens (resource-server pattern). 
+     * Token introspection endpoint (RFC 7662)
+     */
+    async introspectTokenRaw(requestParameters: IntrospectTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<TokenIntrospectionResponse>> {
+        if (requestParameters['token'] == null) {
+            throw new runtime.RequiredError(
+                'token',
+                'Required parameter "token" was null or undefined when calling introspectToken().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const consumes: runtime.Consume[] = [
+            { contentType: 'application/x-www-form-urlencoded' },
+        ];
+        // @ts-ignore: canConsumeForm may be unused
+        const canConsumeForm = runtime.canConsumeForm(consumes);
+
+        let formParams: { append(param: string, value: any): any };
+        let useForm = false;
+        if (useForm) {
+            formParams = new FormData();
+        } else {
+            formParams = new URLSearchParams();
+        }
+
+        if (requestParameters['token'] != null) {
+            formParams.append('token', requestParameters['token'] as any);
+        }
+
+        if (requestParameters['tokenTypeHint'] != null) {
+            formParams.append('token_type_hint', requestParameters['tokenTypeHint'] as any);
+        }
+
+        if (requestParameters['clientId'] != null) {
+            formParams.append('client_id', requestParameters['clientId'] as any);
+        }
+
+        if (requestParameters['clientSecret'] != null) {
+            formParams.append('client_secret', requestParameters['clientSecret'] as any);
+        }
+
+
+        let urlPath = `/introspect`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: formParams,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response);
+    }
+
+    /**
+     * Introspect an OIDC access token (RS256 JWT) or opaque refresh token. Requires confidential client authentication via HTTP Basic or client_secret_post. Public clients are rejected. Any authenticated confidential client may introspect tokens (resource-server pattern). 
+     * Token introspection endpoint (RFC 7662)
+     */
+    async introspectToken(requestParameters: IntrospectTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<TokenIntrospectionResponse> {
+        const response = await this.introspectTokenRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Login (OIDC browser flow) and continue /authorize
      */
     async loginOidcRaw(requestParameters: LoginOidcRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -439,3 +535,12 @@ export class OIDCApi extends runtime.BaseAPI implements OIDCApiInterface {
     }
 
 }
+
+/**
+ * @export
+ */
+export const IntrospectTokenTokenTypeHintEnum = {
+    access_token: 'access_token',
+    refresh_token: 'refresh_token'
+} as const;
+export type IntrospectTokenTokenTypeHintEnum = typeof IntrospectTokenTokenTypeHintEnum[keyof typeof IntrospectTokenTokenTypeHintEnum];

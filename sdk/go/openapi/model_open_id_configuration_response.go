@@ -23,6 +23,7 @@ type OpenIDConfigurationResponse struct {
 	AuthorizationEndpoint *string `json:"authorization_endpoint,omitempty"`
 	TokenEndpoint *string `json:"token_endpoint,omitempty"`
 	UserinfoEndpoint *string `json:"userinfo_endpoint,omitempty"`
+	IntrospectionEndpoint *string `json:"introspection_endpoint,omitempty"`
 	JwksUri *string `json:"jwks_uri,omitempty"`
 	ResponseTypesSupported []string `json:"response_types_supported,omitempty"`
 	SubjectTypesSupported []string `json:"subject_types_supported,omitempty"`
@@ -179,6 +180,38 @@ func (o *OpenIDConfigurationResponse) HasUserinfoEndpoint() bool {
 // SetUserinfoEndpoint gets a reference to the given string and assigns it to the UserinfoEndpoint field.
 func (o *OpenIDConfigurationResponse) SetUserinfoEndpoint(v string) {
 	o.UserinfoEndpoint = &v
+}
+
+// GetIntrospectionEndpoint returns the IntrospectionEndpoint field value if set, zero value otherwise.
+func (o *OpenIDConfigurationResponse) GetIntrospectionEndpoint() string {
+	if o == nil || IsNil(o.IntrospectionEndpoint) {
+		var ret string
+		return ret
+	}
+	return *o.IntrospectionEndpoint
+}
+
+// GetIntrospectionEndpointOk returns a tuple with the IntrospectionEndpoint field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *OpenIDConfigurationResponse) GetIntrospectionEndpointOk() (*string, bool) {
+	if o == nil || IsNil(o.IntrospectionEndpoint) {
+		return nil, false
+	}
+	return o.IntrospectionEndpoint, true
+}
+
+// HasIntrospectionEndpoint returns a boolean if a field has been set.
+func (o *OpenIDConfigurationResponse) HasIntrospectionEndpoint() bool {
+	if o != nil && !IsNil(o.IntrospectionEndpoint) {
+		return true
+	}
+
+	return false
+}
+
+// SetIntrospectionEndpoint gets a reference to the given string and assigns it to the IntrospectionEndpoint field.
+func (o *OpenIDConfigurationResponse) SetIntrospectionEndpoint(v string) {
+	o.IntrospectionEndpoint = &v
 }
 
 // GetJwksUri returns the JwksUri field value if set, zero value otherwise.
@@ -459,6 +492,9 @@ func (o OpenIDConfigurationResponse) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.UserinfoEndpoint) {
 		toSerialize["userinfo_endpoint"] = o.UserinfoEndpoint
 	}
+	if !IsNil(o.IntrospectionEndpoint) {
+		toSerialize["introspection_endpoint"] = o.IntrospectionEndpoint
+	}
 	if !IsNil(o.JwksUri) {
 		toSerialize["jwks_uri"] = o.JwksUri
 	}
@@ -509,6 +545,7 @@ func (o *OpenIDConfigurationResponse) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "authorization_endpoint")
 		delete(additionalProperties, "token_endpoint")
 		delete(additionalProperties, "userinfo_endpoint")
+		delete(additionalProperties, "introspection_endpoint")
 		delete(additionalProperties, "jwks_uri")
 		delete(additionalProperties, "response_types_supported")
 		delete(additionalProperties, "subject_types_supported")

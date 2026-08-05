@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 
+import { GateForgeLoading } from '@/components/brand/gateforge-loading'
 import { useAuth } from '@/hooks/use-auth'
 
 export function LogoutPage() {
@@ -17,9 +18,5 @@ export function LogoutPage() {
     })()
   }, [logout, navigate])
 
-  return (
-    <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-      Signing out…
-    </div>
-  )
+  return <GateForgeLoading label="Signing out…" />
 }

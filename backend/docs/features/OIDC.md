@@ -13,9 +13,24 @@ GateForge IAM acts as an **OpenID Provider (IdP)**. Relying parties use the stan
 | GET | `/authorize` | Browser `iam_session` (or redirect to login) |
 | POST | `/oidc/login` | Public (CSRF required) |
 | POST | `/token` | Public (client auth for confidential clients) |
+| POST | `/introspect` | Confidential client (`client_secret_basic` / `client_secret_post`) |
 | GET | `/userinfo` | Bearer (OIDC RS256 access token) |
 
 Dashboard/API login (`POST /api/v1/login`) is an alternate path to obtain `iam_session` before `/authorize` — see [SSO_SESSION.md](SSO_SESSION.md).
+
+### Token introspection (RFC 7662)
+
+`POST /introspect` lets a **confidential** OAuth client (typically a resource server) check whether an OIDC access or refresh token is active.
+
+| Token kind | How validated | Active response fields |
+|------------|---------------|------------------------|
+| Access (RS256 JWT) | Signature + issuer + expiry | `active`, `scope`, `client_id`, `sub`, `exp`, `iat`, `iss`, `aud`, `token_type=access_token` |
+| Refresh (opaque) | SHA-256 hash lookup in `refresh_tokens` | `active`, `client_id`, `sub`, `exp`, `token_type=refresh_token` |
+
+- Public clients and bad credentials → `401 invalid_client`.
+- Unknown / expired / revoked tokens → `200` with `{ "active": false }` only.
+- Access tokens are **not** stored server-side; they remain valid until JWT expiry (no server-side revoke).
+- Optional `token_type_hint`: `access_token` or `refresh_token`.
 
 ## Request flow
 
@@ -68,10 +83,10 @@ sequenceDiagram
 
 | Table | Operations |
 |-------|------------|
-| `clients` | Read: validate `client_id`, redirect URIs, tenant |
+| `clients` | Read: validate `client_id`, redirect URIs, tenant; confidential auth for `/introspect` |
 | `authorization_codes` | Write on authorize; read + consume on token exchange |
-| `access_tokens` | Write opaque token hash on token response |
-| `refresh_tokens` | Write on token response |
+| `access_tokens` | Legacy schema (unused — OIDC access tokens are RS256 JWTs) |
+| `refresh_tokens` | Write on token response; read on `/introspect` for opaque refresh tokens |
 | `consents` | Read/write scope grants |
 | `tenant_memberships` | Read: user must belong to client's tenant |
 | `users` | Read: subject for tokens and userinfo |

@@ -13,6 +13,7 @@ This document shows how to exercise the IdP flow with **curl**. The API is assum
 | Login (session, OIDC) | POST | `/oidc/login` |
 | Login (dashboard/API) | POST | `/api/v1/login` |
 | Token | POST | `/token` |
+| Introspect | POST | `/introspect` |
 | UserInfo | GET | `/userinfo` |
 
 **Session cookie:** `iam_session` (HTTP-only), set when login succeeds.
@@ -169,6 +170,29 @@ OIDC_ACCESS_TOKEN="paste-access_token-from-token-response"
 curl -sS "$BASE/userinfo" \
   -H "Authorization: Bearer $OIDC_ACCESS_TOKEN" | jq .
 ```
+
+### 6) Introspect (confidential client)
+
+Requires a confidential OAuth client (`client_secret`). Any authenticated confidential client may introspect.
+
+```bash
+CLIENT_SECRET="your-client-secret"
+OIDC_ACCESS_TOKEN="paste-access-token-from-token-response"
+# Or: REFRESH_TOKEN="paste-refresh-token-from-token-response"
+
+curl -sS -X POST "$BASE/introspect" \
+  -u "$CLIENT_ID:$CLIENT_SECRET" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "token=$OIDC_ACCESS_TOKEN&token_type_hint=access_token" | jq .
+
+# Refresh token example:
+# curl -sS -X POST "$BASE/introspect" \
+#   -u "$CLIENT_ID:$CLIENT_SECRET" \
+#   -H "Content-Type: application/x-www-form-urlencoded" \
+#   -d "token=$REFRESH_TOKEN&token_type_hint=refresh_token" | jq .
+```
+
+Expect **`200`** with `"active": true` (and claims) for a valid token, or `"active": false` for unknown/expired/revoked.
 
 ---
 

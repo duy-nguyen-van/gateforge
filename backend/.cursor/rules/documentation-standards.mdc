@@ -28,7 +28,7 @@ Use the standard sections in [docs/features/](features/): summary, endpoints, fl
 
 | Feature doc | Testing doc | Update when |
 |-------------|-------------|-------------|
-| `docs/features/OIDC.md` | `docs/testing/OIDC_CURL.md` | `/authorize`, `/token`, `/userinfo`, JWKS, PKCE |
+| `docs/features/OIDC.md` | `docs/testing/OIDC_CURL.md` | `/authorize`, `/token`, `/introspect`, `/userinfo`, JWKS, PKCE |
 | `docs/features/SSO_SESSION.md` | `docs/testing/SSO_CURL.md` | `iam_session`, SSO, logout |
 | `docs/features/FEDERATION.md` | `docs/testing/FEDERATION_CURL.md` | Google federation, tenant IdP admin |
 | `docs/features/PASSKEY_MFA.md` | `docs/testing/PASSKEY_MFA_CURL.md` | WebAuthn, MFA TOTP/recovery |

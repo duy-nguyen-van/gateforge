@@ -247,6 +247,42 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/OAuthError"
+  "/introspect":
+    post:
+      operationId: introspectToken
+      tags:
+      - OIDC
+      summary: Token introspection endpoint (RFC 7662)
+      description: |
+        Introspect an OIDC access token (RS256 JWT) or opaque refresh token.
+        Requires confidential client authentication via HTTP Basic or
+        client_secret_post. Public clients are rejected. Any authenticated
+        confidential client may introspect tokens (resource-server pattern).
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              "$ref": "#/components/schemas/TokenIntrospectionRequest"
+      responses:
+        '200':
+          description: Introspection result (active true or false)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/TokenIntrospectionResponse"
+        '400':
+          description: Missing token or invalid request
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OAuthError"
+        '401':
+          description: Client authentication failed or public client
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OAuthError"
   "/userinfo":
     get:
       operationId: getUserInfo
@@ -2531,6 +2567,8 @@ components:
           type: string
         userinfo_endpoint:
           type: string
+        introspection_endpoint:
+          type: string
         jwks_uri:
           type: string
         response_types_supported:
@@ -2561,6 +2599,61 @@ components:
           type: array
           items:
             type: string
+    TokenIntrospectionRequest:
+      type: object
+      required:
+      - token
+      properties:
+        token:
+          type: string
+          description: The access or refresh token to introspect
+        token_type_hint:
+          type: string
+          description: Optional hint — access_token or refresh_token
+          enum:
+          - access_token
+          - refresh_token
+        client_id:
+          type: string
+          description: Confidential client id (when not using HTTP Basic)
+        client_secret:
+          type: string
+          description: Confidential client secret (when not using HTTP Basic)
+          format: password
+    TokenIntrospectionResponse:
+      type: object
+      required:
+      - active
+      properties:
+        active:
+          type: boolean
+          description: Whether the token is currently active
+        scope:
+          type: string
+        client_id:
+          type: string
+        username:
+          type: string
+        token_type:
+          type: string
+          description: access_token or refresh_token when active
+        exp:
+          type: integer
+          format: int64
+        iat:
+          type: integer
+          format: int64
+        nbf:
+          type: integer
+          format: int64
+        sub:
+          type: string
+        aud:
+          type: string
+        iss:
+          type: string
+        jti:
+          type: string
     OIDCTokenResponse:
       type: object
       properties:

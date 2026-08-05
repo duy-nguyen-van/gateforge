@@ -79,6 +79,7 @@ docs/TenantSummary.md
 docs/TenantSummaryListEnvelope.md
 docs/TenantSwitchRequest.md
 docs/TenantsAPI.md
+docs/TokenIntrospectionResponse.md
 docs/UpdateProfileRequest.md
 docs/UserInfoResponse.md
 docs/UserResponse.md
@@ -159,6 +160,7 @@ model_tenant_selection_response.go
 model_tenant_summary.go
 model_tenant_summary_list_envelope.go
 model_tenant_switch_request.go
+model_token_introspection_response.go
 model_update_profile_request.go
 model_user_info_response.go
 model_user_response.go

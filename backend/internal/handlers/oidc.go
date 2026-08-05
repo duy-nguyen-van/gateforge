@@ -470,6 +470,7 @@ func (h *OIDCHandler) OpenIDConfiguration(c echo.Context) error {
 		AuthorizationEndpoint:             base + "/authorize",
 		TokenEndpoint:                     base + "/token",
 		UserinfoEndpoint:                  base + "/userinfo",
+		IntrospectionEndpoint:             base + "/introspect",
 		JWKSURI:                           base + "/.well-known/jwks.json",
 		ResponseTypesSupported:            []string{"code"},
 		SubjectTypesSupported:             []string{"public"},
@@ -480,4 +481,66 @@ func (h *OIDCHandler) OpenIDConfiguration(c echo.Context) error {
 		GrantTypesSupported:               []string{"authorization_code"},
 	}
 	return c.JSON(http.StatusOK, response)
+}
+
+// Introspect handles POST /introspect (RFC 7662). Requires confidential client authentication.
+// @Summary Token introspection endpoint (RFC 7662)
+// @Tags OIDC
+// @Accept json
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Success 200 {object} dtos.TokenIntrospectionResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /introspect [post]
+func (h *OIDCHandler) Introspect(c echo.Context) error {
+	var form url.Values
+	ct := c.Request().Header.Get("Content-Type")
+	if strings.HasPrefix(ct, "application/json") {
+		var body struct {
+			Token         string `json:"token"`
+			TokenTypeHint string `json:"token_type_hint"`
+			ClientID      string `json:"client_id"`
+			ClientSecret  string `json:"client_secret"`
+		}
+		if err := c.Bind(&body); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": constants.OAuthInvalidRequest, "error_description": "invalid JSON body"})
+		}
+		form = url.Values{}
+		form.Set("token", body.Token)
+		form.Set("token_type_hint", body.TokenTypeHint)
+		form.Set("client_id", body.ClientID)
+		form.Set("client_secret", body.ClientSecret)
+	} else {
+		if err := c.Request().ParseForm(); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": constants.OAuthInvalidRequest, "error_description": "invalid form body"})
+		}
+		form = c.Request().Form
+	}
+
+	clientID, clientSecret := "", ""
+	usedBasic := false
+	if u, p, ok := c.Request().BasicAuth(); ok {
+		clientID, clientSecret = u, p
+		usedBasic = true
+	}
+	if clientID == "" {
+		clientID = form.Get("client_id")
+	}
+	if clientSecret == "" {
+		clientSecret = form.Get("client_secret")
+	}
+
+	out, terr := h.oidcService.Introspect(c.Request().Context(), clientID, clientSecret, form.Get("token"), form.Get("token_type_hint"))
+	if terr != nil {
+		status := http.StatusBadRequest
+		if terr.Code == constants.OAuthInvalidClient {
+			status = http.StatusUnauthorized
+			if usedBasic {
+				c.Response().Header().Set("WWW-Authenticate", `Basic realm="introspect"`)
+			}
+		}
+		return c.JSON(status, map[string]string{"error": terr.Code, "error_description": terr.Error()})
+	}
+	return c.JSON(http.StatusOK, out)
 }

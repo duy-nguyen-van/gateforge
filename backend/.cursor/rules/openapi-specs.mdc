@@ -10,7 +10,7 @@ This service documents **`/api/v1`** HTTP APIs with **swag**-generated OpenAPI a
 - **`docs/swagger.yaml`** and **`docs/swagger.json`** — reviewable spec
 - **`docs/docs.go`** — generated Go doc package imported by `cmd/server`
 
-**Root OIDC routes** (`/authorize`, `/token`, `/userinfo`, `/.well-known/*`, `/oidc/*`) are registered in `router.go` but **outside** swag `@BasePath` — document them in [docs/features/](../../docs/features/) and [docs/testing/](../../docs/testing/) when changed.
+**Root OIDC routes** (`/authorize`, `/token`, `/introspect`, `/userinfo`, `/.well-known/*`, `/oidc/*`) are registered in `router.go` but **outside** swag `@BasePath` — document them in [docs/features/](../../docs/features/) and [docs/testing/](../../docs/testing/) when changed.
 
 ## Required whenever you change the HTTP surface
 

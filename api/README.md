@@ -10,7 +10,7 @@ Canonical **OpenAPI 3.0.3** description of the public GateForge IAM HTTP surface
 
 Included:
 
-- Root OIDC / OAuth2 routes (`/.well-known/*`, `/authorize`, `/token`, `/userinfo`, `/oidc/*`)
+- Root OIDC / OAuth2 routes (`/.well-known/*`, `/authorize`, `/token`, `/introspect`, `/userinfo`, `/oidc/*`)
 - Application API under `/api/v1` (auth, MFA, WebAuthn, tenants, platform admin)
 
 Excluded from the public contract:

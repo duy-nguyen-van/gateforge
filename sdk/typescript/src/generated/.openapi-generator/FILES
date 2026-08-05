@@ -71,6 +71,7 @@ src/models/TenantSelectionResponse.ts
 src/models/TenantSummary.ts
 src/models/TenantSummaryListEnvelope.ts
 src/models/TenantSwitchRequest.ts
+src/models/TokenIntrospectionResponse.ts
 src/models/UpdateProfileRequest.ts
 src/models/UserInfoResponse.ts
 src/models/UserResponse.ts

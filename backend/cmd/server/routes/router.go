@@ -129,6 +129,7 @@ func registerOIDCRoutes(r *echo.Echo, oidcHandler *handlers.OIDCHandler) {
 	r.GET("/oidc/federation/:provider/start", oidcHandler.FederationOAuthStart)
 	r.GET("/oidc/federation/:provider/callback", oidcHandler.FederationOAuthCallback)
 	r.POST("/token", oidcHandler.Token)
+	r.POST("/introspect", oidcHandler.Introspect)
 	r.GET("/userinfo", oidcHandler.UserInfo)
 }
 

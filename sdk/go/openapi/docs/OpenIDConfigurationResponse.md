@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **AuthorizationEndpoint** | Pointer to **string** |  | [optional] 
 **TokenEndpoint** | Pointer to **string** |  | [optional] 
 **UserinfoEndpoint** | Pointer to **string** |  | [optional] 
+**IntrospectionEndpoint** | Pointer to **string** |  | [optional] 
 **JwksUri** | Pointer to **string** |  | [optional] 
 **ResponseTypesSupported** | Pointer to **[]string** |  | [optional] 
 **SubjectTypesSupported** | Pointer to **[]string** |  | [optional] 
@@ -135,6 +136,31 @@ SetUserinfoEndpoint sets UserinfoEndpoint field to given value.
 `func (o *OpenIDConfigurationResponse) HasUserinfoEndpoint() bool`
 
 HasUserinfoEndpoint returns a boolean if a field has been set.
+
+### GetIntrospectionEndpoint
+
+`func (o *OpenIDConfigurationResponse) GetIntrospectionEndpoint() string`
+
+GetIntrospectionEndpoint returns the IntrospectionEndpoint field if non-nil, zero value otherwise.
+
+### GetIntrospectionEndpointOk
+
+`func (o *OpenIDConfigurationResponse) GetIntrospectionEndpointOk() (*string, bool)`
+
+GetIntrospectionEndpointOk returns a tuple with the IntrospectionEndpoint field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetIntrospectionEndpoint
+
+`func (o *OpenIDConfigurationResponse) SetIntrospectionEndpoint(v string)`
+
+SetIntrospectionEndpoint sets IntrospectionEndpoint field to given value.
+
+### HasIntrospectionEndpoint
+
+`func (o *OpenIDConfigurationResponse) HasIntrospectionEndpoint() bool`
+
+HasIntrospectionEndpoint returns a boolean if a field has been set.
 
 ### GetJwksUri
 

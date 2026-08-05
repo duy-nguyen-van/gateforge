@@ -20,6 +20,7 @@ var requiredPublicRoutes = []struct {
 	{"get", "/oidc/federation/{provider}/start"},
 	{"get", "/oidc/federation/{provider}/callback"},
 	{"post", "/token"},
+	{"post", "/introspect"},
 	{"get", "/userinfo"},
 	{"get", "/api/v1/"},
 	{"get", "/api/v1/health/database"},
@@ -105,7 +106,7 @@ func TestOpenAPICoversPublicRoutes(t *testing.T) {
 	if strings.Contains(spec, `/api/v1/internal/tenants`) {
 		t.Error("internal admin-key route must not appear in public OpenAPI")
 	}
-	for _, id := range []string{"getMe", "createToken", "login", "getAdminStats", "getJwks"} {
+	for _, id := range []string{"getMe", "createToken", "introspectToken", "login", "getAdminStats", "getJwks"} {
 		if !strings.Contains(spec, "operationId: "+id) {
 			t.Errorf("expected operationId %s", id)
 		}

@@ -15,7 +15,7 @@ alwaysApply: false
 
 | Surface | Paths | Handlers |
 |---------|-------|----------|
-| **OIDC / OAuth2 (root)** | `/.well-known/*`, `/authorize`, `/token`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | `OIDCHandler` |
+| **OIDC / OAuth2 (root)** | `/.well-known/*`, `/authorize`, `/token`, `/introspect`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | `OIDCHandler` |
 | **App API (`/api/v1`)** | health, auth, webauthn, mfa, internal tenant IdP admin | `AuthHandler`, `WebauthnHandler`, `MFAHandler`, `HealthHandler`, `TenantIdentityAdminHandler` |
 
 - swag `@BasePath` is `/api/v1` — root OIDC routes are outside the generated OpenAPI spec.

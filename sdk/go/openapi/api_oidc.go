@@ -81,6 +81,24 @@ type OIDCAPI interface {
 	GetUserInfoExecute(r ApiGetUserInfoRequest) (*UserInfoResponse, *http.Response, error)
 
 	/*
+	IntrospectToken Token introspection endpoint (RFC 7662)
+
+	Introspect an OIDC access token (RS256 JWT) or opaque refresh token.
+Requires confidential client authentication via HTTP Basic or
+client_secret_post. Public clients are rejected. Any authenticated
+confidential client may introspect tokens (resource-server pattern).
+
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiIntrospectTokenRequest
+	*/
+	IntrospectToken(ctx context.Context) ApiIntrospectTokenRequest
+
+	// IntrospectTokenExecute executes the request
+	//  @return TokenIntrospectionResponse
+	IntrospectTokenExecute(r ApiIntrospectTokenRequest) (*TokenIntrospectionResponse, *http.Response, error)
+
+	/*
 	LoginOidc Login (OIDC browser flow) and continue /authorize
 
 	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
@@ -719,6 +737,171 @@ func (a *OIDCAPIService) GetUserInfoExecute(r ApiGetUserInfoRequest) (*UserInfoR
 		newErr := &GenericOpenAPIError{
 			body:  localVarBody,
 			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 401 {
+			var v OAuthError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiIntrospectTokenRequest struct {
+	ctx context.Context
+	ApiService OIDCAPI
+	token *string
+	tokenTypeHint *string
+	clientId *string
+	clientSecret *string
+}
+
+// The access or refresh token to introspect
+func (r ApiIntrospectTokenRequest) Token(token string) ApiIntrospectTokenRequest {
+	r.token = &token
+	return r
+}
+
+// Optional hint — access_token or refresh_token
+func (r ApiIntrospectTokenRequest) TokenTypeHint(tokenTypeHint string) ApiIntrospectTokenRequest {
+	r.tokenTypeHint = &tokenTypeHint
+	return r
+}
+
+// Confidential client id (when not using HTTP Basic)
+func (r ApiIntrospectTokenRequest) ClientId(clientId string) ApiIntrospectTokenRequest {
+	r.clientId = &clientId
+	return r
+}
+
+// Confidential client secret (when not using HTTP Basic)
+func (r ApiIntrospectTokenRequest) ClientSecret(clientSecret string) ApiIntrospectTokenRequest {
+	r.clientSecret = &clientSecret
+	return r
+}
+
+func (r ApiIntrospectTokenRequest) Execute() (*TokenIntrospectionResponse, *http.Response, error) {
+	return r.ApiService.IntrospectTokenExecute(r)
+}
+
+/*
+IntrospectToken Token introspection endpoint (RFC 7662)
+
+Introspect an OIDC access token (RS256 JWT) or opaque refresh token.
+Requires confidential client authentication via HTTP Basic or
+client_secret_post. Public clients are rejected. Any authenticated
+confidential client may introspect tokens (resource-server pattern).
+
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiIntrospectTokenRequest
+*/
+func (a *OIDCAPIService) IntrospectToken(ctx context.Context) ApiIntrospectTokenRequest {
+	return ApiIntrospectTokenRequest{
+		ApiService: a,
+		ctx: ctx,
+	}
+}
+
+// Execute executes the request
+//  @return TokenIntrospectionResponse
+func (a *OIDCAPIService) IntrospectTokenExecute(r ApiIntrospectTokenRequest) (*TokenIntrospectionResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *TokenIntrospectionResponse
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OIDCAPIService.IntrospectToken")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/introspect"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.token == nil {
+		return localVarReturnValue, nil, reportError("token is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/x-www-form-urlencoded"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	parameterAddToHeaderOrQuery(localVarFormParams, "token", r.token, "", "")
+	if r.tokenTypeHint != nil {
+		parameterAddToHeaderOrQuery(localVarFormParams, "token_type_hint", r.tokenTypeHint, "", "")
+	}
+	if r.clientId != nil {
+		parameterAddToHeaderOrQuery(localVarFormParams, "client_id", r.clientId, "", "")
+	}
+	if r.clientSecret != nil {
+		parameterAddToHeaderOrQuery(localVarFormParams, "client_secret", r.clientSecret, "", "")
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v OAuthError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 401 {
 			var v OAuthError

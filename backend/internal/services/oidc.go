@@ -25,6 +25,8 @@ type OIDCService interface {
 	Authorize(ctx context.Context, userID string, q *dtos.AuthorizeQuery) (successRedirect string, err *domains.OAuthRedirectError)
 	AuthorizationCodeToken(ctx context.Context, tenantID, clientID, clientSecret string, form url.Values) (*domains.OIDCTokenResponse, *domains.OAuthTokenError)
 	UserInfo(ctx context.Context, accessToken string) (map[string]any, *domains.OAuthTokenError)
+	// Introspect validates an OIDC access or refresh token (RFC 7662). Requires confidential client auth.
+	Introspect(ctx context.Context, clientID, clientSecret, token, tokenTypeHint string) (*dtos.TokenIntrospectionResponse, *domains.OAuthTokenError)
 	OpenIDIssuer() string
 }
 
@@ -558,4 +560,122 @@ func (s *oidcService) UserInfo(ctx context.Context, accessToken string) (map[str
 		out["family_name"] = u.LastName
 	}
 	return out, nil
+}
+
+// Introspect implements RFC 7662 token introspection for OIDC access and refresh tokens.
+// Only confidential clients may call this endpoint.
+func (s *oidcService) Introspect(ctx context.Context, clientID, clientSecret, token, tokenTypeHint string) (*dtos.TokenIntrospectionResponse, *domains.OAuthTokenError) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidRequest, Description: "token is required"}
+	}
+	if err := s.authenticateConfidentialClient(ctx, clientID, clientSecret); err != nil {
+		return nil, err
+	}
+
+	hint := strings.ToLower(strings.TrimSpace(tokenTypeHint))
+	switch hint {
+	case "access_token":
+		if resp := s.introspectAccessToken(token); resp != nil {
+			return resp, nil
+		}
+		if resp := s.introspectRefreshToken(ctx, token); resp != nil {
+			return resp, nil
+		}
+	case "refresh_token":
+		if resp := s.introspectRefreshToken(ctx, token); resp != nil {
+			return resp, nil
+		}
+		if resp := s.introspectAccessToken(token); resp != nil {
+			return resp, nil
+		}
+	default:
+		if looksLikeJWT(token) {
+			if resp := s.introspectAccessToken(token); resp != nil {
+				return resp, nil
+			}
+			if resp := s.introspectRefreshToken(ctx, token); resp != nil {
+				return resp, nil
+			}
+		} else {
+			if resp := s.introspectRefreshToken(ctx, token); resp != nil {
+				return resp, nil
+			}
+			if resp := s.introspectAccessToken(token); resp != nil {
+				return resp, nil
+			}
+		}
+	}
+	return &dtos.TokenIntrospectionResponse{Active: false}, nil
+}
+
+func (s *oidcService) authenticateConfidentialClient(ctx context.Context, clientID, clientSecret string) *domains.OAuthTokenError {
+	clientID = strings.TrimSpace(clientID)
+	if clientID == "" {
+		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "client authentication required"}
+	}
+	client, err := s.clients.GetByClientID(ctx, clientID)
+	if err != nil {
+		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
+	}
+	publicClient := client.IsPublic || strings.TrimSpace(client.ClientSecret) == ""
+	if publicClient {
+		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "confidential client required"}
+	}
+	if clientSecret != client.ClientSecret {
+		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
+	}
+	return nil
+}
+
+func (s *oidcService) introspectAccessToken(token string) *dtos.TokenIntrospectionResponse {
+	claims, err := s.oidc.ParseAccessTokenOIDC(token)
+	if err != nil {
+		return nil
+	}
+	resp := &dtos.TokenIntrospectionResponse{
+		Active:    true,
+		Scope:     claims.Scope,
+		ClientID:  claims.ClientID,
+		TokenType: "access_token",
+		Sub:       claims.Subject,
+		Iss:       claims.Issuer,
+	}
+	if claims.ExpiresAt != nil {
+		resp.Exp = claims.ExpiresAt.Unix()
+	}
+	if claims.IssuedAt != nil {
+		resp.Iat = claims.IssuedAt.Unix()
+	}
+	if len(claims.Audience) > 0 {
+		resp.Aud = claims.Audience[0]
+	}
+	if claims.ID != "" {
+		resp.JTI = claims.ID
+	}
+	return resp
+}
+
+func (s *oidcService) introspectRefreshToken(ctx context.Context, token string) *dtos.TokenIntrospectionResponse {
+	hash := auth.HashOpaqueToken(token)
+	rt, err := s.refreshTokens.FindValidByTokenHash(ctx, hash)
+	if err != nil {
+		return nil
+	}
+	now := time.Now().UTC()
+	if rt.Revoked || !rt.ExpiresAt.After(now) {
+		return nil
+	}
+	return &dtos.TokenIntrospectionResponse{
+		Active:    true,
+		ClientID:  rt.OAuthClientID,
+		TokenType: "refresh_token",
+		Sub:       rt.UserID,
+		Exp:       rt.ExpiresAt.Unix(),
+	}
+}
+
+func looksLikeJWT(token string) bool {
+	parts := strings.Split(token, ".")
+	return len(parts) == 3 && parts[0] != "" && parts[1] != "" && parts[2] != ""
 }

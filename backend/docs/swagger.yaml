@@ -463,6 +463,8 @@ definitions:
         items:
           type: string
         type: array
+      introspection_endpoint:
+        type: string
       issuer:
         type: string
       jwks_uri:
@@ -562,6 +564,33 @@ definitions:
         type: string
     required:
     - tenant_id
+    type: object
+  dtos.TokenIntrospectionResponse:
+    properties:
+      active:
+        type: boolean
+      aud:
+        type: string
+      client_id:
+        type: string
+      exp:
+        type: integer
+      iat:
+        type: integer
+      iss:
+        type: string
+      jti:
+        type: string
+      nbf:
+        type: integer
+      scope:
+        type: string
+      sub:
+        type: string
+      token_type:
+        type: string
+      username:
+        type: string
     type: object
   dtos.UpdateProfileRequest:
     properties:
@@ -684,9 +713,10 @@ definitions:
     type: object
 info:
   contact: {}
-  description: This is a backend API for Golang Boilerplate
-  title: Golang Boilerplate API
-  version: "1.0"
+  description: GateForge IAM application API under /api/v1. The canonical public SDK
+    contract (including root OIDC paths) lives at api/openapi.yaml in the monorepo.
+  title: GateForge IAM API
+  version: 0.1.0
 paths:
   /:
     get:
@@ -1587,6 +1617,33 @@ paths:
       summary: Configure an upstream identity provider for a tenant
       tags:
       - internal
+  /introspect:
+    post:
+      consumes:
+      - application/json
+      - application/x-www-form-urlencoded
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dtos.TokenIntrospectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Token introspection endpoint (RFC 7662)
+      tags:
+      - OIDC
   /login:
     post:
       consumes:

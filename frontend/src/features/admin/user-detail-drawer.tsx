@@ -14,13 +14,18 @@ import {
   useResetAdminUserPasskeys,
 } from '@/features/admin/use-admin-queries'
 import { useAuth } from '@/hooks/use-auth'
-import { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { useState, type AnimationEvent } from 'react'
 
 type ConfirmAction = 'disable' | 'force-logout' | 'reset-passkey' | 'reset-mfa' | null
 
 interface UserDetailDrawerProps {
   userId: string | null
   onClose: () => void
+}
+
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 export function UserDetailDrawer({ userId, onClose }: UserDetailDrawerProps) {
@@ -31,6 +36,14 @@ export function UserDetailDrawer({ userId, onClose }: UserDetailDrawerProps) {
   const resetPasskeys = useResetAdminUserPasskeys()
   const resetMFA = useResetAdminUserMFA()
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [isClosing, setIsClosing] = useState(false)
+  const [viewUserId, setViewUserId] = useState(userId)
+
+  if (userId !== viewUserId) {
+    setViewUserId(userId)
+    setIsClosing(false)
+    setConfirmAction(null)
+  }
 
   if (!userId) {
     return null
@@ -48,6 +61,20 @@ export function UserDetailDrawer({ userId, onClose }: UserDetailDrawerProps) {
       : mutationError
         ? 'Action failed.'
         : null
+
+  function beginClose() {
+    if (isClosing) return
+    if (prefersReducedMotion()) {
+      onClose()
+      return
+    }
+    setIsClosing(true)
+  }
+
+  function handleDrawerAnimationEnd(event: AnimationEvent<HTMLElement>) {
+    if (!isClosing || event.animationName !== 'console-drawer-out') return
+    onClose()
+  }
 
   async function runConfirmedAction() {
     if (!userId || !confirmAction) return
@@ -73,12 +100,28 @@ export function UserDetailDrawer({ userId, onClose }: UserDetailDrawerProps) {
 
   return (
     <ConsolePortal>
-    <aside className="console-drawer-panel fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-outline-variant/20">
+      <div
+        className={cn('console-modal-scrim fixed inset-0 z-50', isClosing && 'is-leaving')}
+        onClick={beginClose}
+        aria-hidden="true"
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-detail-title"
+        className={cn(
+          'console-drawer-panel fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-outline-variant/20',
+          isClosing && 'is-leaving',
+        )}
+        onAnimationEnd={handleDrawerAnimationEnd}
+      >
         <div className="flex items-center justify-between border-b border-surface-container px-6 py-4">
-          <h2 className="font-headline text-lg font-bold text-on-surface">User details</h2>
+          <h2 id="user-detail-title" className="font-headline text-lg font-bold text-on-surface">
+            User details
+          </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={beginClose}
             className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
             aria-label="Close"
           >

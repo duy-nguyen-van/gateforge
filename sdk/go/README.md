@@ -63,6 +63,13 @@ authorizeURL, err := gateforge.BuildAuthorizeURL("https://iam.example.com", gate
 })
 // After the browser returns ?code=...
 tok, _, err := client.ExchangeAuthorizationCode(ctx, "my-app", "https://app.example.com/callback", code, pkce.Verifier, "")
+
+// Resource server: introspect access or refresh tokens (confidential client required).
+active, _, err := client.IntrospectToken(ctx, "rs-client", "rs-secret", tok.GetAccessToken(), "access_token")
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println(active.GetActive(), active.GetSub())
 ```
 
 WebAuthn ceremonies require a browser authenticator — the Go SDK exposes generated start/finish request types only.

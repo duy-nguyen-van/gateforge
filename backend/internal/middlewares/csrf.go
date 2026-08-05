@@ -29,7 +29,7 @@ func CSRF(cfg *config.Config) echo.MiddlewareFunc {
 				return true
 			}
 			// OIDC/OAuth2 token and discovery endpoints (form POST / JSON GET).
-			if p == "/token" || p == "/authorize" || p == "/userinfo" || strings.HasPrefix(p, "/.well-known/") {
+			if p == "/token" || p == "/introspect" || p == "/authorize" || p == "/userinfo" || strings.HasPrefix(p, "/.well-known/") {
 				return true
 			}
 			if strings.HasPrefix(p, "/oidc/federation/") {

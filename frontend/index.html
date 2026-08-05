@@ -12,10 +12,41 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+    <!-- display=block: hide ligature text until the icon font loads (avoids FOUT of names like "person") -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
       rel="stylesheet"
     />
+    <script>
+      // Reveal icons once Material Symbols is available (timeout so a CDN miss never hides them forever)
+      ;(function () {
+        var ready = false
+        function reveal() {
+          if (ready) return
+          ready = true
+          document.documentElement.classList.add('material-symbols-ready')
+        }
+        function waitForIcons() {
+          if (!document.fonts || !document.fonts.load) {
+            reveal()
+            return
+          }
+          document.fonts
+            .load('24px "Material Symbols Outlined"')
+            .then(function (faces) {
+              if (faces.length > 0) {
+                reveal()
+                return
+              }
+              // Stylesheet may still be in flight — retry briefly
+              setTimeout(waitForIcons, 50)
+            })
+            .catch(reveal)
+        }
+        waitForIcons()
+        setTimeout(reveal, 2500)
+      })()
+    </script>
   </head>
   <body>
     <div id="root">
@@ -29,15 +60,15 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          background: transparent;
+          background: oklch(0.985 0.003 247);
         "
       >
         <div
           class="boot-splash-mark"
           style="
             position: relative;
-            width: 56px;
-            height: 56px;
+            width: 96px;
+            height: 96px;
             animation: boot-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
           "
         >
@@ -46,25 +77,29 @@
             aria-hidden="true"
             style="
               position: absolute;
-              inset: -10%;
+              inset: 0;
               border-radius: 9999px;
-              border: 1.5px solid oklch(0.4 0.18 265 / 0.4);
-              animation: boot-ring 1.6s ease-out 420ms infinite;
+              border: 1.5px solid color-mix(in oklab, oklch(0.72 0.03 250) 70%, transparent);
+              box-shadow:
+                0 1px 2px color-mix(in oklab, oklch(0.45 0.04 265) 8%, transparent),
+                0 8px 24px color-mix(in oklab, oklch(0.45 0.04 265) 10%, transparent);
             "
           ></span>
           <img
             src="/gateforge-icon.webp"
             alt=""
-            width="56"
-            height="56"
+            width="96"
+            height="96"
             decoding="async"
             style="
               position: relative;
               z-index: 1;
-              width: 56px;
-              height: 56px;
+              box-sizing: border-box;
+              width: 96px;
+              height: 96px;
+              padding: 18%;
               object-fit: contain;
-              animation: boot-breathe 1.6s ease-in-out 420ms infinite;
+              animation: boot-breathe 2.2s ease-in-out 420ms infinite;
             "
           />
         </div>
@@ -74,7 +109,7 @@
       @keyframes boot-enter {
         from {
           opacity: 0;
-          transform: scale(0.72);
+          transform: scale(0.92);
         }
         to {
           opacity: 1;
@@ -84,29 +119,17 @@
       @keyframes boot-breathe {
         0%,
         100% {
+          opacity: 1;
           transform: scale(1);
-          filter: drop-shadow(0 0 0 transparent);
         }
         50% {
-          transform: scale(1.06);
-          filter: drop-shadow(0 0 12px oklch(0.4 0.18 265 / 0.35));
-        }
-      }
-      @keyframes boot-ring {
-        0% {
-          opacity: 0.55;
-          transform: scale(0.85);
-        }
-        70%,
-        100% {
-          opacity: 0;
-          transform: scale(1.45);
+          opacity: 0.88;
+          transform: scale(1.03);
         }
       }
       @media (prefers-reduced-motion: reduce) {
         .boot-splash-mark,
-        .boot-splash img,
-        .boot-splash-ring {
+        .boot-splash img {
           animation: none !important;
         }
       }

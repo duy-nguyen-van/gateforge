@@ -1454,6 +1454,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/introspect": {
+            "post": {
+                "consumes": [
+                    "application/json",
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OIDC"
+                ],
+                "summary": "Token introspection endpoint (RFC 7662)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.TokenIntrospectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Sets the same iam_session cookie as OIDC so /authorize recognizes the browser without a second login. If the user has MFA (TOTP) enabled, ` + "`" + `data` + "`" + ` is MFALoginChallengeResponse (mfa_ticket) instead of LoginResponse; complete login with POST /mfa/challenge/verify. When the user belongs to multiple tenants and no tenant context is provided, ` + "`" + `data` + "`" + ` is TenantSelectionResponse.",
@@ -3299,6 +3340,9 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "introspection_endpoint": {
+                    "type": "string"
+                },
                 "issuer": {
                     "type": "string"
                 },
@@ -3445,6 +3489,47 @@ const docTemplate = `{
             ],
             "properties": {
                 "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.TokenIntrospectionResponse": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "aud": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "exp": {
+                    "type": "integer"
+                },
+                "iat": {
+                    "type": "integer"
+                },
+                "iss": {
+                    "type": "string"
+                },
+                "jti": {
+                    "type": "string"
+                },
+                "nbf": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "sub": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }
@@ -3636,12 +3721,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "0.1.0",
 	Host:             "",
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
-	Title:            "Golang Boilerplate API",
-	Description:      "This is a backend API for Golang Boilerplate",
+	Title:            "GateForge IAM API",
+	Description:      "GateForge IAM application API under /api/v1. The canonical public SDK contract (including root OIDC paths) lives at api/openapi.yaml in the monorepo.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

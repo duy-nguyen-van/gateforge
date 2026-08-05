@@ -281,13 +281,15 @@ func (s *stubAuthFederationService) ListAvailableProviders(_ context.Context, _ 
 }
 
 type stubOIDCService struct {
-	authorizeLoc string
-	authorizeErr *domains.OAuthRedirectError
-	tokenResp    *domains.OIDCTokenResponse
-	tokenErr     *domains.OAuthTokenError
-	userInfo     map[string]any
-	userInfoErr  *domains.OAuthTokenError
-	issuer       string
+	authorizeLoc   string
+	authorizeErr   *domains.OAuthRedirectError
+	tokenResp      *domains.OIDCTokenResponse
+	tokenErr       *domains.OAuthTokenError
+	userInfo       map[string]any
+	userInfoErr    *domains.OAuthTokenError
+	introspectResp *dtos.TokenIntrospectionResponse
+	introspectErr  *domains.OAuthTokenError
+	issuer         string
 }
 
 func (s *stubOIDCService) Authorize(_ context.Context, _ string, _ *dtos.AuthorizeQuery) (string, *domains.OAuthRedirectError) {
@@ -316,6 +318,15 @@ func (s *stubOIDCService) UserInfo(_ context.Context, _ string) (map[string]any,
 		return s.userInfo, nil
 	}
 	return map[string]any{"sub": testUserID, "email": "user@example.com"}, nil
+}
+func (s *stubOIDCService) Introspect(_ context.Context, _, _, _, _ string) (*dtos.TokenIntrospectionResponse, *domains.OAuthTokenError) {
+	if s.introspectErr != nil {
+		return nil, s.introspectErr
+	}
+	if s.introspectResp != nil {
+		return s.introspectResp, nil
+	}
+	return &dtos.TokenIntrospectionResponse{Active: true, TokenType: "access_token", Sub: testUserID}, nil
 }
 func (s *stubOIDCService) OpenIDIssuer() string {
 	if s.issuer != "" {

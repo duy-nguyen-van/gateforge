@@ -35,7 +35,7 @@ Registered in `cmd/server/routes/router.go`:
 
 | Namespace | Paths | Notes |
 |-----------|-------|-------|
-| **OIDC (root)** | `/.well-known/jwks.json`, `/.well-known/openid-configuration`, `/authorize`, `/token`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/start\|callback` | Browser SSO via `iam_session` cookie; see [docs/features/SSO_SESSION.md](../../docs/features/SSO_SESSION.md) |
+| **OIDC (root)** | `/.well-known/jwks.json`, `/.well-known/openid-configuration`, `/authorize`, `/token`, `/introspect`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/start\|callback` | Browser SSO via `iam_session` cookie; see [docs/features/SSO_SESSION.md](../../docs/features/SSO_SESSION.md) |
 | **App API** | `/api/v1/*` — health, register/login/refresh, webauthn, mfa, `/internal/tenants/...` | swag `@BasePath`; JWT on protected routes |
 | **Docs** | `/swagger/*` | Non-prod only, basic auth |
 

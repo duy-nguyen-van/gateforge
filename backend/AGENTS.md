@@ -47,7 +47,7 @@ Routes are registered in `cmd/server/routes/router.go`. **Two URL namespaces** â
 
 | Surface | Base path | Examples | Auth |
 |---------|-----------|----------|------|
-| **OIDC / OAuth2** | `/` (root) | `/.well-known/jwks.json`, `/.well-known/openid-configuration`, `/authorize`, `/token`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | Browser session cookie (`iam_session`) for authorize; Bearer for userinfo |
+| **OIDC / OAuth2** | `/` (root) | `/.well-known/jwks.json`, `/.well-known/openid-configuration`, `/authorize`, `/token`, `/introspect`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | Browser session cookie (`iam_session`) for authorize; confidential client for introspect; Bearer for userinfo |
 | **App API** | `/api/v1` | `/register`, `/login`, `/refresh`, `/me`, `/logout`, `/webauthn/*`, `/mfa/*` | Public, JWT (`JWTBearerAuth`), or `X-Admin-API-Key` (internal tenant IdP) |
 | **Ops / docs** | `/` | `/swagger/*` (non-prod, basic auth) | Basic auth |
 

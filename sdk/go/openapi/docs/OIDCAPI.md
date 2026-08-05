@@ -9,6 +9,7 @@ Method | HTTP request | Description
 [**GetJwks**](OIDCAPI.md#GetJwks) | **Get** /.well-known/jwks.json | JWKS endpoint (JSON Web Key Set)
 [**GetOpenIdConfiguration**](OIDCAPI.md#GetOpenIdConfiguration) | **Get** /.well-known/openid-configuration | OpenID Configuration endpoint
 [**GetUserInfo**](OIDCAPI.md#GetUserInfo) | **Get** /userinfo | Userinfo endpoint (Bearer access token from token endpoint, RS256)
+[**IntrospectToken**](OIDCAPI.md#IntrospectToken) | **Post** /introspect | Token introspection endpoint (RFC 7662)
 [**LoginOidc**](OIDCAPI.md#LoginOidc) | **Post** /oidc/login | Login (OIDC browser flow) and continue /authorize
 
 
@@ -337,6 +338,78 @@ Other parameters are passed through a pointer to a apiGetUserInfoRequest struct 
 ### HTTP request headers
 
 - **Content-Type**: Not defined
+- **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)
+[[Back to Model list]](../README.md#documentation-for-models)
+[[Back to README]](../README.md)
+
+
+## IntrospectToken
+
+> TokenIntrospectionResponse IntrospectToken(ctx).Token(token).TokenTypeHint(tokenTypeHint).ClientId(clientId).ClientSecret(clientSecret).Execute()
+
+Token introspection endpoint (RFC 7662)
+
+
+
+### Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	openapiclient "github.com/gateforge-iam/gateforge-iam/sdk/go/openapi"
+)
+
+func main() {
+	token := "token_example" // string | The access or refresh token to introspect
+	tokenTypeHint := "tokenTypeHint_example" // string | Optional hint — access_token or refresh_token (optional)
+	clientId := "clientId_example" // string | Confidential client id (when not using HTTP Basic) (optional)
+	clientSecret := "clientSecret_example" // string | Confidential client secret (when not using HTTP Basic) (optional)
+
+	configuration := openapiclient.NewConfiguration()
+	apiClient := openapiclient.NewAPIClient(configuration)
+	resp, r, err := apiClient.OIDCAPI.IntrospectToken(context.Background()).Token(token).TokenTypeHint(tokenTypeHint).ClientId(clientId).ClientSecret(clientSecret).Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error when calling `OIDCAPI.IntrospectToken``: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
+	}
+	// response from `IntrospectToken`: TokenIntrospectionResponse
+	fmt.Fprintf(os.Stdout, "Response from `OIDCAPI.IntrospectToken`: %v\n", resp)
+}
+```
+
+### Path Parameters
+
+
+
+### Other Parameters
+
+Other parameters are passed through a pointer to a apiIntrospectTokenRequest struct via the builder pattern
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **token** | **string** | The access or refresh token to introspect | 
+ **tokenTypeHint** | **string** | Optional hint — access_token or refresh_token | 
+ **clientId** | **string** | Confidential client id (when not using HTTP Basic) | 
+ **clientSecret** | **string** | Confidential client secret (when not using HTTP Basic) | 
+
+### Return type
+
+[**TokenIntrospectionResponse**](TokenIntrospectionResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: application/x-www-form-urlencoded
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints)

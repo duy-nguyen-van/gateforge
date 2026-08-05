@@ -169,3 +169,34 @@ func TestClient_ExchangeAuthorizationCode(t *testing.T) {
 		t.Fatalf("token = %+v", tok)
 	}
 }
+
+func TestClient_IntrospectToken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/introspect" || r.Method != http.MethodPost {
+			t.Fatalf("%s %s", r.Method, r.URL.Path)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		if r.Form.Get("token") != "access-jwt" || r.Form.Get("token_type_hint") != "access_token" {
+			t.Fatalf("form = %v", r.Form)
+		}
+		if r.Form.Get("client_id") != "rs-client" || r.Form.Get("client_secret") != "rs-secret" {
+			t.Fatalf("client auth form = %v", r.Form)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"active": true, "token_type": "access_token", "sub": "user-1", "client_id": "app",
+		})
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL, WithHTTPClient(srv.Client()))
+	out, _, err := c.IntrospectToken(context.Background(), "rs-client", "rs-secret", "access-jwt", "access_token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !out.GetActive() || out.GetSub() != "user-1" || out.GetTokenType() != "access_token" {
+		t.Fatalf("introspect = %+v", out)
+	}
+}

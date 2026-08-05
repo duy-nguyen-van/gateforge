@@ -189,6 +189,15 @@ func (c *Client) RefreshOIDCToken(ctx context.Context, clientID, refreshToken, c
 	return c.CreateToken(ctx, form)
 }
 
+// IntrospectToken calls POST /introspect (RFC 7662). Requires confidential client credentials.
+func (c *Client) IntrospectToken(ctx context.Context, clientID, clientSecret, token, tokenTypeHint string) (*openapi.TokenIntrospectionResponse, *http.Response, error) {
+	req := c.api.OIDCAPI.IntrospectToken(ctx).Token(token).ClientId(clientID).ClientSecret(clientSecret)
+	if tokenTypeHint != "" {
+		req = req.TokenTypeHint(tokenTypeHint)
+	}
+	return req.Execute()
+}
+
 // GetUserInfo calls GET /userinfo with an OIDC access token.
 func (c *Client) GetUserInfo(ctx context.Context, accessToken string) (*openapi.UserInfoResponse, *http.Response, error) {
 	ctx = context.WithValue(ctx, openapi.ContextAccessToken, accessToken)

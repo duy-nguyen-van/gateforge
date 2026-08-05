@@ -49,6 +49,7 @@ GATEFORGE_BASE_URL=http://localhost:3000 go test -tags=integration ./sdk/go
 |---------|--------|----------------|
 | Bearer JWT | `WithTokenProvider` | `getAccessToken` / `refreshAccessToken` |
 | OIDC code + PKCE | `PKCEGenerate`, `BuildAuthorizeURL`, `ExchangeAuthorizationCode` | `createPKCE`, `buildAuthorizeUrl`, `parseCallbackParams` |
+| Token introspection (RFC 7662) | `IntrospectToken` (confidential client) | `client.oidc.introspectToken` (confidential client) |
 | Browser cookies / CSRF | App-owned | `credentials: 'include'`, `prefetchCsrfToken` |
 | WebAuthn ceremonies | Raw start/finish types only | `registerPasskey` / `loginWithPasskey` via `@simplewebauthn/browser` |
 | Token storage | App-owned | Default memory store; persistence must be explicit |

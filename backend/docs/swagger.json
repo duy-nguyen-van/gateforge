@@ -5,10 +5,10 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "This is a backend API for Golang Boilerplate",
-        "title": "Golang Boilerplate API",
+        "description": "GateForge IAM application API under /api/v1. The canonical public SDK contract (including root OIDC paths) lives at api/openapi.yaml in the monorepo.",
+        "title": "GateForge IAM API",
         "contact": {},
-        "version": "1.0"
+        "version": "0.1.0"
     },
     "basePath": "/api/v1",
     "paths": {
@@ -1447,6 +1447,47 @@
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/introspect": {
+            "post": {
+                "consumes": [
+                    "application/json",
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "OIDC"
+                ],
+                "summary": "Token introspection endpoint (RFC 7662)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dtos.TokenIntrospectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
                     }
                 }
             }
@@ -3296,6 +3337,9 @@
                         "type": "string"
                     }
                 },
+                "introspection_endpoint": {
+                    "type": "string"
+                },
                 "issuer": {
                     "type": "string"
                 },
@@ -3442,6 +3486,47 @@
             ],
             "properties": {
                 "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.TokenIntrospectionResponse": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "aud": {
+                    "type": "string"
+                },
+                "client_id": {
+                    "type": "string"
+                },
+                "exp": {
+                    "type": "integer"
+                },
+                "iat": {
+                    "type": "integer"
+                },
+                "iss": {
+                    "type": "string"
+                },
+                "jti": {
+                    "type": "string"
+                },
+                "nbf": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "sub": {
+                    "type": "string"
+                },
+                "token_type": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

@@ -1554,6 +1554,12 @@ export interface OpenIDConfigurationResponse {
      * @type {string}
      * @memberof OpenIDConfigurationResponse
      */
+    introspection_endpoint?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof OpenIDConfigurationResponse
+     */
     jwks_uri?: string;
     /**
      * 
@@ -1829,6 +1835,85 @@ export interface TenantSwitchRequest {
      * @memberof TenantSwitchRequest
      */
     tenant_id: string;
+}
+/**
+ * 
+ * @export
+ * @interface TokenIntrospectionResponse
+ */
+export interface TokenIntrospectionResponse {
+    /**
+     * Whether the token is currently active
+     * @type {boolean}
+     * @memberof TokenIntrospectionResponse
+     */
+    active: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    scope?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    client_id?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    username?: string;
+    /**
+     * access_token or refresh_token when active
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    token_type?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof TokenIntrospectionResponse
+     */
+    exp?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TokenIntrospectionResponse
+     */
+    iat?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof TokenIntrospectionResponse
+     */
+    nbf?: number;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    sub?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    aud?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    iss?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof TokenIntrospectionResponse
+     */
+    jti?: string;
 }
 /**
  * 

@@ -82,6 +82,27 @@ const token = await client.oidc.createToken({
 })
 ```
 
+## Token introspection (RFC 7662)
+
+Server-side / confidential clients only — never ship `client_secret` in a browser bundle.
+
+```ts
+import { GateForgeClient } from '@gateforge/sdk'
+
+const client = new GateForgeClient({ baseUrl: 'https://iam.example.com' })
+
+const result = await client.oidc.introspectToken({
+  token: accessToken,
+  tokenTypeHint: 'access_token',
+  clientId: 'rs-client',
+  clientSecret: 'rs-secret',
+})
+
+if (result.active) {
+  console.log(result.sub, result.scope, result.token_type)
+}
+```
+
 For browser `POST /oidc/login`, prefetch CSRF and pass it via the generated client's `apiKey` (or a `headers` default):
 
 ```ts

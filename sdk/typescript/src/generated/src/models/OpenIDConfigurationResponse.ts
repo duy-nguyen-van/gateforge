@@ -47,6 +47,12 @@ export interface OpenIDConfigurationResponse {
      * @type {string}
      * @memberof OpenIDConfigurationResponse
      */
+    introspection_endpoint?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof OpenIDConfigurationResponse
+     */
     jwks_uri?: string;
     /**
      * 
@@ -113,6 +119,7 @@ export function OpenIDConfigurationResponseFromJSONTyped(json: any, ignoreDiscri
         'authorization_endpoint': json['authorization_endpoint'] == null ? undefined : json['authorization_endpoint'],
         'token_endpoint': json['token_endpoint'] == null ? undefined : json['token_endpoint'],
         'userinfo_endpoint': json['userinfo_endpoint'] == null ? undefined : json['userinfo_endpoint'],
+        'introspection_endpoint': json['introspection_endpoint'] == null ? undefined : json['introspection_endpoint'],
         'jwks_uri': json['jwks_uri'] == null ? undefined : json['jwks_uri'],
         'response_types_supported': json['response_types_supported'] == null ? undefined : json['response_types_supported'],
         'subject_types_supported': json['subject_types_supported'] == null ? undefined : json['subject_types_supported'],
@@ -139,6 +146,7 @@ export function OpenIDConfigurationResponseToJSONTyped(value?: OpenIDConfigurati
         'authorization_endpoint': value['authorization_endpoint'],
         'token_endpoint': value['token_endpoint'],
         'userinfo_endpoint': value['userinfo_endpoint'],
+        'introspection_endpoint': value['introspection_endpoint'],
         'jwks_uri': value['jwks_uri'],
         'response_types_supported': value['response_types_supported'],
         'subject_types_supported': value['subject_types_supported'],

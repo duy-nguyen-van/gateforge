@@ -10,6 +10,7 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
+	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
@@ -321,6 +322,73 @@ func TestOIDCHandler_OpenIDConfiguration(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), `"issuer":"http://localhost:8080"`)
 	require.Contains(t, rec.Body.String(), "/authorize")
+	require.Contains(t, rec.Body.String(), `"introspection_endpoint":"http://localhost:8080/introspect"`)
+}
+
+func TestOIDCHandler_Introspect_jsonSuccess(t *testing.T) {
+	h := newOIDCHandler(t, &stubOIDCService{
+		introspectResp: &dtos.TokenIntrospectionResponse{Active: true, TokenType: "access_token", Sub: testUserID},
+	}, nil, nil)
+	body := `{"token":"at-1","token_type_hint":"access_token","client_id":"rs","client_secret":"sec"}`
+	c, rec := newJSONContext(http.MethodPost, "/introspect", body)
+
+	err := h.Introspect(c)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"active":true`)
+	require.Contains(t, rec.Body.String(), testUserID)
+}
+
+func TestOIDCHandler_Introspect_formBasicAuth(t *testing.T) {
+	h := newOIDCHandler(t, &stubOIDCService{
+		introspectResp: &dtos.TokenIntrospectionResponse{Active: false},
+	}, nil, nil)
+	e := echo.New()
+	form := url.Values{}
+	form.Set("token", "opaque-refresh")
+	form.Set("token_type_hint", "refresh_token")
+	req := httptest.NewRequest(http.MethodPost, "/introspect", strings.NewReader(form.Encode()))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.SetBasicAuth("rs-client", "rs-secret")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.Introspect(c)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), `"active":false`)
+}
+
+func TestOIDCHandler_Introspect_invalidClient(t *testing.T) {
+	h := newOIDCHandler(t, &stubOIDCService{
+		introspectErr: &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"},
+	}, nil, nil)
+	e := echo.New()
+	form := url.Values{}
+	form.Set("token", "at-1")
+	req := httptest.NewRequest(http.MethodPost, "/introspect", strings.NewReader(form.Encode()))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.SetBasicAuth("rs-client", "wrong")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := h.Introspect(c)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+	require.Contains(t, rec.Header().Get("WWW-Authenticate"), "Basic")
+	require.Contains(t, rec.Body.String(), constants.OAuthInvalidClient)
+}
+
+func TestOIDCHandler_Introspect_missingToken(t *testing.T) {
+	h := newOIDCHandler(t, &stubOIDCService{
+		introspectErr: &domains.OAuthTokenError{Code: constants.OAuthInvalidRequest, Description: "token is required"},
+	}, nil, nil)
+	c, rec := newJSONContext(http.MethodPost, "/introspect", `{"client_id":"rs","client_secret":"sec"}`)
+
+	err := h.Introspect(c)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	require.Contains(t, rec.Body.String(), constants.OAuthInvalidRequest)
 }
 
 func TestOIDCHandler_resolveTenantFromReturnTo(t *testing.T) {

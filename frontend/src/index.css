@@ -203,6 +203,11 @@
     animation: console-scrim-in 0.4s ease-out both;
   }
 
+  .console-modal-scrim.is-leaving {
+    animation: console-scrim-out 0.4s ease-out both;
+    pointer-events: none;
+  }
+
   .console-modal-panel {
     background-color: var(--surface-container-lowest);
     box-shadow:
@@ -211,10 +216,20 @@
     animation: console-modal-in 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
   }
 
+  .console-modal-panel.is-leaving {
+    animation: console-modal-out 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    pointer-events: none;
+  }
+
   .console-drawer-panel {
     background-color: var(--surface-container-lowest);
     box-shadow: -12px 0 40px -8px oklch(0.2 0.04 265 / 0.14);
     animation: console-drawer-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  }
+
+  .console-drawer-panel.is-leaving {
+    animation: console-drawer-out 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    pointer-events: none;
   }
 
   .content-soft-in {
@@ -248,6 +263,18 @@
   }
 }
 
+@keyframes console-modal-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.996);
+  }
+}
+
 @keyframes console-scrim-in {
   from {
     opacity: 0;
@@ -255,6 +282,16 @@
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes console-scrim-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
   }
 }
 
@@ -295,10 +332,22 @@
   }
 }
 
+@keyframes console-drawer-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
 @keyframes gateforge-loader-enter {
   from {
     opacity: 0;
-    transform: scale(0.72);
+    transform: scale(0.92);
   }
 
   to {
@@ -310,26 +359,13 @@
 @keyframes gateforge-loader-breathe {
   0%,
   100% {
+    opacity: 1;
     transform: scale(1);
-    filter: drop-shadow(0 0 0 transparent);
   }
 
   50% {
-    transform: scale(1.06);
-    filter: drop-shadow(0 0 12px color-mix(in oklab, var(--primary) 35%, transparent));
-  }
-}
-
-@keyframes gateforge-loader-ring {
-  0% {
-    opacity: 0.55;
-    transform: scale(0.85);
-  }
-
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(1.45);
+    opacity: 0.88;
+    transform: scale(1.03);
   }
 }
 
@@ -338,28 +374,32 @@
 }
 
 .gateforge-loader-mark {
-  animation: gateforge-loader-breathe 1.6s ease-in-out 420ms infinite;
+  animation: gateforge-loader-breathe 2.2s ease-in-out 420ms infinite;
 }
 
 .gateforge-loader-ring {
   pointer-events: none;
   position: absolute;
-  inset: -10%;
+  inset: 0;
   border-radius: 9999px;
-  border: 1.5px solid color-mix(in oklab, var(--primary) 40%, transparent);
-  animation: gateforge-loader-ring 1.6s ease-out 420ms infinite;
+  border: 1.5px solid color-mix(in oklab, oklch(0.72 0.03 250) 70%, transparent);
+  box-shadow:
+    0 1px 2px color-mix(in oklab, oklch(0.45 0.04 265) 8%, transparent),
+    0 8px 24px color-mix(in oklab, oklch(0.45 0.04 265) 10%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .console-page-enter,
   .console-modal-scrim,
+  .console-modal-scrim.is-leaving,
   .console-modal-panel,
+  .console-modal-panel.is-leaving,
   .console-drawer-panel,
+  .console-drawer-panel.is-leaving,
   .content-soft-in,
   .alert-soft-life,
   .gateforge-loader,
-  .gateforge-loader-mark,
-  .gateforge-loader-ring {
+  .gateforge-loader-mark {
     animation: none;
   }
 
@@ -370,10 +410,26 @@
 }
 
 .material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   display: inline-block;
   line-height: 1;
   vertical-align: middle;
+  /* Hide ligature names (person, group, …) until the icon font is ready */
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+html.material-symbols-ready .material-symbols-outlined {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .material-symbols-outlined {
+    transition: none;
+  }
 }
 
 .material-symbols-outlined.filled {

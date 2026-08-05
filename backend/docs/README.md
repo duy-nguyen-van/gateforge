@@ -27,7 +27,7 @@ Registered in `cmd/server/routes/router.go`. Two URL namespaces:
 
 | Surface | Base | Examples | Auth |
 |---------|------|----------|------|
-| **OIDC / OAuth2** | `/` (root) | `/.well-known/openid-configuration`, `/authorize`, `/token`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | Browser `iam_session` for authorize; Bearer for userinfo |
+| **OIDC / OAuth2** | `/` (root) | `/.well-known/openid-configuration`, `/authorize`, `/token`, `/introspect`, `/userinfo`, `/oidc/login`, `/oidc/federation/:provider/*` | Browser `iam_session` for authorize; confidential client for introspect; Bearer for userinfo |
 | **App API** | `/api/v1` | `/register`, `/login`, `/refresh`, `/logout`, `/me`, `/webauthn/*`, `/mfa/*`, `/tenants/*`, `/admin/*` | Public, JWT Bearer, or `X-Admin-API-Key` (internal IdP toggle) |
 
 Root OIDC routes are **outside** swag `@BasePath` — document them in [features/](features/), not only in OpenAPI.

@@ -1,6 +1,6 @@
 import { ApiError } from '@/api/types'
 import { MaterialIcon } from '@/components/icons/material-icon'
-import { ConsolePortal } from '@/components/layout/console-portal'
+import { ConsoleDialog } from '@/components/layout/console-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useDeleteAdminClient } from '@/features/admin/use-admin-queries'
@@ -22,18 +22,14 @@ export function DeleteClientDialog({
 }: DeleteClientDialogProps) {
   const deleteClient = useDeleteAdminClient()
 
-  async function handleConfirm() {
+  async function handleConfirm(close: () => void) {
     try {
       await deleteClient.mutateAsync(clientId)
-      onOpenChange(false)
+      close()
       onDeleted?.()
     } catch {
       // error shown via mutation state below
     }
-  }
-
-  if (!open) {
-    return null
   }
 
   const errorMessage =
@@ -44,54 +40,54 @@ export function DeleteClientDialog({
         : null
 
   return (
-    <ConsolePortal>
-    <div className="console-modal-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-client-title"
-        className="console-modal-panel w-full max-w-md rounded-xl p-6"
-      >
-        <div className="mb-4 flex items-start justify-between">
-          <h2 id="delete-client-title" className="font-headline text-xl font-bold text-on-surface">
-            Delete client
-          </h2>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
-            aria-label="Close"
-          >
-            <MaterialIcon name="close" />
-          </button>
-        </div>
+    <ConsoleDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      labelledBy="delete-client-title"
+      panelClassName="w-full max-w-md"
+    >
+      {({ close }) => (
+        <>
+          <div className="mb-4 flex items-start justify-between">
+            <h2 id="delete-client-title" className="font-headline text-xl font-bold text-on-surface">
+              Delete client
+            </h2>
+            <button
+              type="button"
+              onClick={close}
+              className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
+              aria-label="Close"
+            >
+              <MaterialIcon name="close" />
+            </button>
+          </div>
 
-        {errorMessage ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
+          {errorMessage ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          ) : null}
 
-        <p className="text-sm text-on-surface-variant">
-          Permanently delete <span className="font-semibold text-on-surface">{clientName || clientId}</span>?
-          Active OAuth sessions and tokens for this client will stop working.
-        </p>
+          <p className="text-sm text-on-surface-variant">
+            Permanently delete <span className="font-semibold text-on-surface">{clientName || clientId}</span>?
+            Active OAuth sessions and tokens for this client will stop working.
+          </p>
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={deleteClient.isPending}
-            onClick={() => void handleConfirm()}
-          >
-            {deleteClient.isPending ? 'Deleting…' : 'Delete client'}
-          </Button>
-        </div>
-      </div>
-    </div>
-    </ConsolePortal>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteClient.isPending}
+              onClick={() => void handleConfirm(close)}
+            >
+              {deleteClient.isPending ? 'Deleting…' : 'Delete client'}
+            </Button>
+          </div>
+        </>
+      )}
+    </ConsoleDialog>
   )
 }

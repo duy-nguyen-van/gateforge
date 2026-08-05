@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { AdminTenantResponse } from '@/api/types'
 import { ApiError } from '@/api/types'
 import { MaterialIcon } from '@/components/icons/material-icon'
-import { ConsolePortal } from '@/components/layout/console-portal'
+import { ConsoleDialog } from '@/components/layout/console-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -86,40 +86,39 @@ function EditTenantForm({
 }
 
 export function EditTenantDialog({ open, tenant, onOpenChange }: EditTenantDialogProps) {
-  if (!open || !tenant) {
-    return null
-  }
-
-  function handleClose() {
-    onOpenChange(false)
+  const [activeTenant, setActiveTenant] = useState(tenant)
+  if (tenant && tenant.id !== activeTenant?.id) {
+    setActiveTenant(tenant)
   }
 
   return (
-    <ConsolePortal>
-    <div className="console-modal-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="edit-tenant-title"
-        className="console-modal-panel w-full max-w-md rounded-xl p-6"
-      >
-        <div className="mb-6 flex items-start justify-between">
-          <h2 id="edit-tenant-title" className="font-headline text-xl font-bold text-on-surface">
-            Edit tenant
-          </h2>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
-            aria-label="Close"
-          >
-            <MaterialIcon name="close" />
-          </button>
-        </div>
+    <ConsoleDialog
+      open={open && Boolean(activeTenant)}
+      onOpenChange={onOpenChange}
+      labelledBy="edit-tenant-title"
+      panelClassName="w-full max-w-md"
+    >
+      {({ close }) =>
+        activeTenant ? (
+          <>
+            <div className="mb-6 flex items-start justify-between">
+              <h2 id="edit-tenant-title" className="font-headline text-xl font-bold text-on-surface">
+                Edit tenant
+              </h2>
+              <button
+                type="button"
+                onClick={close}
+                className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
+                aria-label="Close"
+              >
+                <MaterialIcon name="close" />
+              </button>
+            </div>
 
-        <EditTenantForm key={tenant.id} tenant={tenant} onClose={handleClose} />
-      </div>
-    </div>
-    </ConsolePortal>
+            <EditTenantForm key={activeTenant.id} tenant={activeTenant} onClose={close} />
+          </>
+        ) : null
+      }
+    </ConsoleDialog>
   )
 }

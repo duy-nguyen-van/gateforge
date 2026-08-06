@@ -1,11 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2Icon } from 'lucide-react'
+import { Loader2Icon, UserPlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router'
 
 import { ApiError } from '@/api/types'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { useAuth } from '@/hooks/use-auth'
 import { registerSchema, type RegisterFormValues } from '@/auth/schemas'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -110,7 +109,7 @@ export function RegisterForm() {
             disabled={isSubmitting}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 font-headline font-bold text-on-primary shadow-lg shadow-primary/20 transition-all hover:bg-primary-dim disabled:opacity-60"
           >
-            {isSubmitting ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <MaterialIcon name="person_add" filled />}
+            {isSubmitting ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <UserPlusIcon className="h-4 w-4" aria-hidden />}
             Create Account
           </button>
         </form>

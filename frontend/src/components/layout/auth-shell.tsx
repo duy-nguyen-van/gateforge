@@ -1,3 +1,4 @@
+import { FileCheckIcon, LockIcon, ShieldCheckIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { GateForgeBrand } from '@/components/brand/gateforge-brand'
@@ -34,17 +35,17 @@ export function AuthTrustBadges() {
   return (
     <div className="flex items-center justify-center gap-6 opacity-60 grayscale transition-all hover:grayscale-0 hover:opacity-100">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm">verified_user</span>
+        <ShieldCheckIcon className="h-3.5 w-3.5" aria-hidden />
         <span className="font-label text-[10px] font-bold uppercase tracking-widest">SOC2 Type II</span>
       </div>
       <div className="h-3 w-px bg-outline-variant" />
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm">policy</span>
+        <FileCheckIcon className="h-3.5 w-3.5" aria-hidden />
         <span className="font-label text-[10px] font-bold uppercase tracking-widest">GDPR Compliant</span>
       </div>
       <div className="h-3 w-px bg-outline-variant" />
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm">lock</span>
+        <LockIcon className="h-3.5 w-3.5" aria-hidden />
         <span className="font-label text-[10px] font-bold uppercase tracking-widest">ISO 27001</span>
       </div>
     </div>

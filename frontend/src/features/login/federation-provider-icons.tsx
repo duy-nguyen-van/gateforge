@@ -1,6 +1,5 @@
 import type { ComponentType } from 'react'
-
-import { MaterialIcon } from '@/components/icons/material-icon'
+import { FingerprintIcon } from 'lucide-react'
 
 import { GoogleIcon } from './social-provider-icons'
 
@@ -18,5 +17,5 @@ export function FederationProviderIcon({ provider, className }: FederationProvid
   if (Icon) {
     return <Icon className={className} />
   }
-  return <MaterialIcon name="fingerprint" className={className ?? 'text-primary text-2xl'} />
+  return <FingerprintIcon className={className ?? 'h-6 w-6 text-primary'} aria-hidden />
 }

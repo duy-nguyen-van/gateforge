@@ -1,7 +1,7 @@
+import { ChevronRightIcon, MonitorSmartphoneIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { CreateClientDialog } from '@/features/admin/create-client-dialog'
 import { ConsolePagination } from '@/features/admin/console-pagination'
 import {
@@ -32,7 +32,7 @@ export function ClientsPage() {
           onClick={() => setCreateOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
         >
-          <MaterialIcon name="add" className="text-sm" />
+          <PlusIcon className="h-4 w-4" aria-hidden />
           Register Client
         </button>
       </header>
@@ -57,8 +57,8 @@ export function ClientsPage() {
             >
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container">
-                    <MaterialIcon name="devices" className="text-primary text-2xl" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container text-primary">
+                    <MonitorSmartphoneIcon className="h-6 w-6" aria-hidden />
                   </div>
                   <div>
                     <h3 className="font-headline text-lg font-bold">{c.name || c.client_id}</h3>
@@ -78,7 +78,7 @@ export function ClientsPage() {
                     </div>
                   </div>
                 </div>
-                <MaterialIcon name="chevron_right" className="text-on-surface-variant" />
+                <ChevronRightIcon className="h-5 w-5 text-on-surface-variant" aria-hidden />
               </div>
             </button>
           ))}

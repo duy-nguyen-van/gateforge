@@ -1,5 +1,5 @@
 import { startAuthentication } from '@simplewebauthn/browser'
-import { Loader2Icon } from 'lucide-react'
+import { FingerprintIcon, KeyRoundIcon, Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
@@ -8,7 +8,6 @@ import { isMfaChallenge, isTenantSelection } from '@/api/types'
 import { formatWebAuthnError, unwrapWebAuthnOptions } from '@/lib/webauthn-error'
 import { useAuth } from '@/hooks/use-auth'
 import { setTokens } from '@/auth/token-store'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
@@ -117,8 +116,10 @@ export function PasskeyLoginButton({
       >
         {isLoading ? (
           <Loader2Icon className="h-4 w-4 animate-spin" />
+        ) : variant === 'revamp' ? (
+          <KeyRoundIcon className="h-5 w-5" aria-hidden />
         ) : (
-          <MaterialIcon name={variant === 'revamp' ? 'passkey' : 'fingerprint'} filled={variant !== 'secondary'} />
+          <FingerprintIcon className="h-5 w-5" aria-hidden />
         )}
         <span className={variant === 'revamp' ? undefined : 'font-headline tracking-wide'}>Sign in with Passkey</span>
       </button>

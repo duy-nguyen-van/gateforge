@@ -27,9 +27,10 @@ alwaysApply: false
 |-----------|----------|
 | `ui/` | shadcn-style primitives (`button`, `input`, `alert`) — CVA variants in `*-variants.ts` |
 | `layout/` | `AuthLayout`, `ConsoleLayout`, shells, `console-nav.ts` |
-| `icons/` | `MaterialIcon` |
 | `brand/` | `GateForgeBrand` |
 | `avatars/` | `DefaultAvatar` + utils |
+
+Icons: named imports from `lucide-react` (`XxxIcon`), sized with `h-* w-*` (aligned with gateforge-landing-page).
 
 ### `src/features/` domains
 

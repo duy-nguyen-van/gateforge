@@ -1,5 +1,6 @@
+import { XIcon } from 'lucide-react'
+
 import { ApiError } from '@/api/types'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { ConsoleDialog } from '@/components/layout/console-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -57,7 +58,7 @@ export function RemoveMemberDialog({
               className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
               aria-label="Close"
             >
-              <MaterialIcon name="close" />
+              <XIcon className="h-5 w-5" aria-hidden />
             </button>
           </div>
 

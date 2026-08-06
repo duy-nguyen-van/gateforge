@@ -1,6 +1,7 @@
+import { XIcon } from 'lucide-react'
+
 import { ApiError } from '@/api/types'
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { ConsolePortal } from '@/components/layout/console-portal'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -125,7 +126,7 @@ export function UserDetailDrawer({ userId, onClose }: UserDetailDrawerProps) {
             className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container"
             aria-label="Close"
           >
-            <MaterialIcon name="close" />
+            <XIcon className="h-5 w-5" aria-hidden />
           </button>
         </div>
 

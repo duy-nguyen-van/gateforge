@@ -1,4 +1,5 @@
-import { MaterialIcon } from '@/components/icons/material-icon'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+
 import { paginationRange } from '@/features/admin/admin-utils'
 
 interface ConsolePaginationProps {
@@ -40,7 +41,7 @@ export function ConsolePagination({ page, pageSize, total, onPageChange }: Conso
           className="rounded-lg p-1.5 transition-colors hover:bg-surface-container disabled:opacity-30"
           aria-label="Previous page"
         >
-          <MaterialIcon name="chevron_left" className="text-lg" />
+          <ChevronLeftIcon className="h-5 w-5" aria-hidden />
         </button>
         <button
           type="button"
@@ -49,7 +50,7 @@ export function ConsolePagination({ page, pageSize, total, onPageChange }: Conso
           className="rounded-lg p-1.5 transition-colors hover:bg-surface-container disabled:opacity-30"
           aria-label="Next page"
         >
-          <MaterialIcon name="chevron_right" className="text-lg" />
+          <ChevronRightIcon className="h-5 w-5" aria-hidden />
         </button>
       </div>
     </div>

@@ -1,7 +1,7 @@
+import { ArrowLeftIcon, PencilIcon, Trash2Icon, UserMinusIcon, UserPlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { AddMemberDialog } from '@/features/admin/add-member-dialog'
 import { displayUserName } from '@/features/admin/admin-utils'
 import { ConsolePagination } from '@/features/admin/console-pagination'
@@ -58,7 +58,7 @@ export function TenantDetailPage() {
           to="/console/tenants"
           className="inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-primary"
         >
-          <MaterialIcon name="arrow_back" className="text-base" />
+          <ArrowLeftIcon className="h-4 w-4" aria-hidden />
           Tenants
         </Link>
       </div>
@@ -81,7 +81,7 @@ export function TenantDetailPage() {
             onClick={() => setAddMemberOpen(true)}
             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
           >
-            <MaterialIcon name="person_add" className="text-sm" />
+            <UserPlusIcon className="h-4 w-4" aria-hidden />
             Add member
           </button>
           <button
@@ -89,7 +89,7 @@ export function TenantDetailPage() {
             onClick={() => setEditOpen(true)}
             className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-bold text-on-surface ghost-border transition-opacity hover:opacity-90"
           >
-            <MaterialIcon name="edit" className="text-sm" />
+            <PencilIcon className="h-4 w-4" aria-hidden />
             Edit
           </button>
           {!isDefaultTenant ? (
@@ -98,7 +98,7 @@ export function TenantDetailPage() {
               onClick={() => setDeleteOpen(true)}
               className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-error ghost-border transition-opacity hover:bg-error/10"
             >
-              <MaterialIcon name="delete" className="text-sm" />
+              <Trash2Icon className="h-4 w-4" aria-hidden />
               Delete
             </button>
           ) : null}
@@ -154,7 +154,7 @@ export function TenantDetailPage() {
                         onClick={() => setRemoveTarget({ userId: m.user_id, email: m.email })}
                         className="text-on-surface-variant hover:text-error"
                       >
-                        <MaterialIcon name="person_remove" />
+                        <UserMinusIcon className="h-5 w-5" aria-hidden />
                       </button>
                     </td>
                   </tr>

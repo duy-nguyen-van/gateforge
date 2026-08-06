@@ -1,3 +1,10 @@
+import {
+  Building2Icon,
+  ChevronDownIcon,
+  CircleHelpIcon,
+  Loader2Icon,
+  SettingsIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
 
@@ -5,7 +12,6 @@ import { switchTenant } from '@/api/client'
 import { setTokens } from '@/auth/token-store'
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
 import { GateForgeBrand } from '@/components/brand/gateforge-brand'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 
@@ -65,9 +71,9 @@ export function ConsoleTopbar() {
       <div className="flex items-center gap-4">
         {tenants.length > 1 ? (
           <div className="relative">
-            <MaterialIcon
-              name="domain"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-on-surface-variant"
+            <Building2Icon
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant"
+              aria-hidden
             />
             <select
               className={cn(
@@ -88,18 +94,22 @@ export function ConsoleTopbar() {
                 </option>
               ))}
             </select>
-            <MaterialIcon
-              name={switchingTenant ? 'progress_activity' : 'expand_more'}
-              className={cn(
-                'pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant',
-                switchingTenant && 'animate-spin',
-              )}
-            />
+            {switchingTenant ? (
+              <Loader2Icon
+                className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-on-surface-variant"
+                aria-hidden
+              />
+            ) : (
+              <ChevronDownIcon
+                className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant"
+                aria-hidden
+              />
+            )}
           </div>
         ) : null}
-        <MaterialIcon name="help" className="cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" />
-        <Link to="/settings/security">
-          <MaterialIcon name="settings" className="cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" />
+        <CircleHelpIcon className="h-9 w-9 cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-hidden />
+        <Link to="/settings/security" aria-label="Security settings">
+          <SettingsIcon className="h-9 w-9 cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-hidden />
         </Link>
         <Link to="/settings/profile">
           <DefaultAvatar

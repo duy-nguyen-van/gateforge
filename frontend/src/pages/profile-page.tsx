@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { PencilIcon } from 'lucide-react'
 
 import { updateProfile } from '@/api/client'
 import { ApiError } from '@/api/types'
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -134,7 +134,7 @@ export function ProfilePage() {
               onClick={startEdit}
               className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-bold text-on-surface ghost-border transition-opacity hover:opacity-90"
             >
-              <MaterialIcon name="edit" className="text-sm" />
+              <PencilIcon className="h-4 w-4" aria-hidden />
               Edit
             </button>
           )}

@@ -51,12 +51,10 @@
             aria-hidden="true"
             style="
               position: absolute;
-              inset: 0;
+              inset: -10%;
               border-radius: 9999px;
-              border: 1.5px solid color-mix(in oklab, oklch(0.72 0.03 250) 70%, transparent);
-              box-shadow:
-                0 1px 2px color-mix(in oklab, oklch(0.45 0.04 265) 8%, transparent),
-                0 8px 24px color-mix(in oklab, oklch(0.45 0.04 265) 10%, transparent);
+              border: 1.5px solid color-mix(in oklab, oklch(0.4 0.18 265) 40%, transparent);
+              animation: boot-ring 1.6s ease-out 420ms infinite;
             "
           ></span>
           <img
@@ -73,7 +71,7 @@
               height: 96px;
               padding: 18%;
               object-fit: contain;
-              animation: boot-breathe 2.2s ease-in-out 420ms infinite;
+              animation: boot-breathe 1.6s ease-in-out 420ms infinite;
             "
           />
         </div>
@@ -83,7 +81,7 @@
       @keyframes boot-enter {
         from {
           opacity: 0;
-          transform: scale(0.92);
+          transform: scale(0.72);
         }
         to {
           opacity: 1;
@@ -93,17 +91,29 @@
       @keyframes boot-breathe {
         0%,
         100% {
-          opacity: 1;
           transform: scale(1);
+          filter: drop-shadow(0 0 0 transparent);
         }
         50% {
-          opacity: 0.88;
-          transform: scale(1.03);
+          transform: scale(1.06);
+          filter: drop-shadow(0 0 12px oklch(0.4 0.18 265 / 0.35));
+        }
+      }
+      @keyframes boot-ring {
+        0% {
+          opacity: 0.55;
+          transform: scale(0.85);
+        }
+        70%,
+        100% {
+          opacity: 0;
+          transform: scale(1.45);
         }
       }
       @media (prefers-reduced-motion: reduce) {
         .boot-splash-mark,
-        .boot-splash img {
+        .boot-splash img,
+        .boot-splash-ring {
           animation: none !important;
         }
       }

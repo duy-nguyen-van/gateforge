@@ -1,7 +1,7 @@
+import { ArrowLeftIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { ClientUsagePanel } from '@/features/admin/client-usage-panel'
 import { ConsoleErrorState, ConsoleLoadingState } from '@/features/admin/console-state'
 import { DeleteClientDialog } from '@/features/admin/delete-client-dialog'
@@ -44,7 +44,7 @@ export function ClientDetailPage() {
           to="/console/clients"
           className="inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-primary"
         >
-          <MaterialIcon name="arrow_back" className="text-base" />
+          <ArrowLeftIcon className="h-4 w-4" aria-hidden />
           Clients
         </Link>
       </div>
@@ -84,7 +84,7 @@ export function ClientDetailPage() {
             onClick={() => setEditOpen(true)}
             className="flex items-center gap-2 rounded-xl border border-outline-variant px-5 py-2.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container"
           >
-            <MaterialIcon name="edit" className="text-sm" />
+            <PencilIcon className="h-4 w-4" aria-hidden />
             Edit
           </button>
           <button
@@ -94,7 +94,7 @@ export function ClientDetailPage() {
             title={isDevClient ? 'The default development client cannot be deleted' : undefined}
             className="flex items-center gap-2 rounded-xl border border-error/30 px-5 py-2.5 text-sm font-bold text-error transition-colors hover:bg-error/5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <MaterialIcon name="delete" className="text-sm" />
+            <Trash2Icon className="h-4 w-4" aria-hidden />
             Delete
           </button>
         </div>

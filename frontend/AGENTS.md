@@ -20,7 +20,7 @@ React + TypeScript SPA for the [backend](../backend) identity service: login, re
 | Auth hook | `src/hooks/use-auth.ts` |
 | UI primitives | `src/components/ui/` |
 | Layouts + nav | `src/components/layout/` (`auth-layout`, `console-layout`, `console-nav.ts`, shells) |
-| Icons / brand / avatars | `src/components/icons/`, `brand/`, `avatars/` |
+| Icons / brand / avatars | Lucide (`lucide-react` named imports), `brand/`, `avatars/` |
 | Feature modules | `src/features/login/`, `register/`, `mfa/`, `webauthn/`, `admin/` |
 | Route pages | `src/pages/` (home, profile, security, `console/*`, logout) |
 | Utilities | `src/lib/utils.ts` |

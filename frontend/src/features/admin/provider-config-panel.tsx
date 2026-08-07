@@ -1,9 +1,8 @@
-import { Loader2Icon } from 'lucide-react'
+import { Loader2Icon, SaveIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import type { AdminIdentityProviderResponse, PatchIdentityProviderRequest } from '@/api/types'
 import { ApiError } from '@/api/types'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface ProviderConfigPanelProps {
@@ -131,7 +130,7 @@ export function ProviderConfigPanel({ provider, isSaving, onSave, onCancel }: Pr
           disabled={isSaving}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-on-primary disabled:opacity-60"
         >
-          {isSaving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <MaterialIcon name="save" className="text-sm" />}
+          {isSaving ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <SaveIcon className="h-4 w-4" aria-hidden />}
           Save configuration
         </button>
         <button

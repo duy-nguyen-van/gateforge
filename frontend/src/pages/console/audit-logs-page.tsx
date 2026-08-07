@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
+import { DownloadIcon } from 'lucide-react'
 
-import { MaterialIcon } from '@/components/icons/material-icon'
 import {
   auditResultBadgeClass,
   formatAuditAction,
@@ -46,7 +46,7 @@ export function AuditLogsPage() {
         </div>
         <div className="flex gap-3">
           <button type="button" disabled className="flex items-center gap-2 rounded-xl bg-surface-container-highest/60 px-4 py-2 text-sm font-bold">
-            <MaterialIcon name="download" className="text-lg" />
+            <DownloadIcon className="h-5 w-5" aria-hidden />
             Export
           </button>
         </div>

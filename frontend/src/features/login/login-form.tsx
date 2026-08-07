@@ -1,13 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { Loader2Icon } from 'lucide-react'
+import { BriefcaseIcon, Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router'
 
 import { federationStartUrl, federationCompleteReturnTo, listFederationProviders } from '@/api/client'
 import { ApiError } from '@/api/types'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { useAuth } from '@/hooks/use-auth'
 import { loginSchema, type LoginFormValues } from '@/auth/schemas'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -88,7 +87,7 @@ export function LoginForm() {
           onClick={() => setShowEmailForm((open) => !open)}
           className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-transparent bg-surface-container-low font-medium text-on-surface transition-colors hover:border-outline-variant/30"
         >
-          <MaterialIcon name="business_center" className="text-primary" />
+          <BriefcaseIcon className="h-5 w-5 text-primary" aria-hidden />
           Institutional Email / SSO
         </button>
 

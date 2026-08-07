@@ -1,11 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2Icon } from 'lucide-react'
+import { Loader2Icon, ShieldCheckIcon, ShieldIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router'
 
 import { ApiError } from '@/api/types'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { useAuth } from '@/hooks/use-auth'
 import { mfaCodeSchema, type MfaCodeFormValues } from '@/auth/schemas'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -56,7 +55,7 @@ export function MfaChallengeForm() {
       <div className="space-y-6 p-8 md:p-10">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-container">
-            <MaterialIcon name="security" filled className="text-primary text-2xl" />
+            <ShieldIcon className="h-6 w-6 text-primary" aria-hidden />
           </div>
           <div>
             <h2 className="font-headline text-2xl font-bold text-on-surface">Verify Identity</h2>
@@ -94,7 +93,7 @@ export function MfaChallengeForm() {
             disabled={isSubmitting}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-on-primary-fixed py-4 font-headline font-bold tracking-widest text-surface shadow-md transition-all hover:bg-inverse-surface disabled:opacity-60"
           >
-            {isSubmitting ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <MaterialIcon name="verified_user" />}
+            {isSubmitting ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <ShieldCheckIcon className="h-4 w-4" aria-hidden />}
             VERIFY SESSION
           </button>
         </form>

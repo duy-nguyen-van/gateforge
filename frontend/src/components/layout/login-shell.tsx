@@ -1,7 +1,8 @@
+import type { LucideIcon } from 'lucide-react'
+import { LockIcon, ShieldCheckIcon, ShieldIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { GateForgeBrand } from '@/components/brand/gateforge-brand'
-import { MaterialIcon } from '@/components/icons/material-icon'
 
 export function LoginBrand() {
   return (
@@ -12,17 +13,17 @@ export function LoginBrand() {
 }
 
 export function LoginTrustBadges() {
-  const badges = [
-    { icon: 'verified_user', label: 'FIDO2 Certified' },
-    { icon: 'lock', label: 'AES-256 Encryption' },
-    { icon: 'shield', label: 'SOC2 Type II' },
-  ] as const
+  const badges: { icon: LucideIcon; label: string }[] = [
+    { icon: ShieldCheckIcon, label: 'FIDO2 Certified' },
+    { icon: LockIcon, label: 'AES-256 Encryption' },
+    { icon: ShieldIcon, label: 'SOC2 Type II' },
+  ]
 
   return (
     <div className="mt-8 flex flex-nowrap items-center justify-center gap-4 opacity-60 grayscale transition-all duration-500 sm:gap-6 hover:grayscale-0 hover:opacity-100">
-      {badges.map(({ icon, label }) => (
+      {badges.map(({ icon: Icon, label }) => (
         <div key={label} className="flex shrink-0 items-center gap-2">
-          <MaterialIcon name={icon} className="shrink-0 text-base leading-none" />
+          <Icon className="h-4 w-4 shrink-0" aria-hidden />
           <span className="whitespace-nowrap text-[10px] font-bold uppercase leading-none tracking-widest">
             {label}
           </span>

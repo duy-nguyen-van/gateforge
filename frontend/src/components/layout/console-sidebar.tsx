@@ -1,6 +1,7 @@
+import type { LucideIcon } from 'lucide-react'
+import { LifeBuoyIcon, LogOutIcon } from 'lucide-react'
 import { NavLink } from 'react-router'
 
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { accountNavItems, consoleNavItems } from '@/components/layout/console-nav'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
@@ -8,12 +9,12 @@ import { cn } from '@/lib/utils'
 function SidebarNavLink({
   to,
   label,
-  icon,
+  icon: Icon,
   end,
 }: {
   to: string
   label: string
-  icon: string
+  icon: LucideIcon
   end?: boolean
 }) {
   return (
@@ -29,7 +30,7 @@ function SidebarNavLink({
         )
       }
     >
-      <MaterialIcon name={icon} className="text-xl" />
+      <Icon className="h-5 w-5 shrink-0" aria-hidden />
       <span>{label}</span>
     </NavLink>
   )
@@ -73,7 +74,7 @@ export function ConsoleSidebar() {
           href="#"
           className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-600 transition-all duration-200 hover:bg-slate-200 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800"
         >
-          <MaterialIcon name="contact_support" className="text-xl" />
+          <LifeBuoyIcon className="h-5 w-5 shrink-0" aria-hidden />
           <span>Support</span>
         </a>
         <button
@@ -81,7 +82,7 @@ export function ConsoleSidebar() {
           onClick={() => void logout()}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-600 transition-all duration-200 hover:text-error dark:text-slate-400"
         >
-          <MaterialIcon name="logout" className="text-xl" />
+          <LogOutIcon className="h-5 w-5 shrink-0" aria-hidden />
           <span>Sign Out</span>
         </button>
       </div>

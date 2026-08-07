@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  CheckCircle2Icon,
+  CircleXIcon,
+  ListFilterIcon,
+  SearchIcon,
+  ShieldIcon,
+  UserCheckIcon,
+  UserPlusIcon,
+  UsersIcon,
+} from 'lucide-react'
 
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { AddMemberDialog } from '@/features/admin/add-member-dialog'
 import { displayUserName, formatUserStatus } from '@/features/admin/admin-utils'
 import { ConsolePagination } from '@/features/admin/console-pagination'
@@ -38,6 +48,14 @@ export function UsersPage() {
   const users = usersQuery.data?.data ?? []
   const meta = usersQuery.data?.meta
 
+  const statCards: { label: string; value: string; icon: LucideIcon }[] = stats
+    ? [
+        { label: 'Total Users', value: stats.total_users.toLocaleString(), icon: UsersIcon },
+        { label: 'MFA Enabled', value: `${stats.mfa_enabled_percent}%`, icon: ShieldIcon },
+        { label: 'Active Sessions', value: stats.active_sessions.toLocaleString(), icon: UserCheckIcon },
+      ]
+    : []
+
   return (
     <div>
       <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -51,7 +69,7 @@ export function UsersPage() {
           onClick={() => setAddMemberOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
         >
-          <MaterialIcon name="person_add" className="text-sm" />
+          <UserPlusIcon className="h-4 w-4" aria-hidden />
           Add member
         </button>
       </header>
@@ -64,24 +82,23 @@ export function UsersPage() {
             <ConsoleErrorState message="Could not load user statistics." />
           </div>
         ) : stats ? (
-          [
-            { label: 'Total Users', value: stats.total_users.toLocaleString(), icon: 'group' },
-            { label: 'MFA Enabled', value: `${stats.mfa_enabled_percent}%`, icon: 'security' },
-            { label: 'Active Sessions', value: stats.active_sessions.toLocaleString(), icon: 'person_check' },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl bg-surface-container-lowest p-6 ghost-border">
-              <MaterialIcon name={s.icon} className="mb-3 text-primary text-2xl" />
-              <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">{s.label}</p>
-              <p className="font-headline text-3xl font-extrabold text-on-primary-fixed">{s.value}</p>
-            </div>
-          ))
+          statCards.map((s) => {
+            const Icon = s.icon
+            return (
+              <div key={s.label} className="rounded-xl bg-surface-container-lowest p-6 ghost-border">
+                <Icon className="mb-3 h-6 w-6 text-primary" aria-hidden />
+                <p className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">{s.label}</p>
+                <p className="font-headline text-3xl font-extrabold text-on-primary-fixed">{s.value}</p>
+              </div>
+            )
+          })
         ) : null}
       </div>
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
         <div className="flex items-center justify-between border-b border-surface-container px-6 py-4">
           <div className="relative w-full max-w-md">
-            <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm" />
+            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-outline" aria-hidden />
             <input
               type="text"
               placeholder="Search users..."
@@ -90,7 +107,7 @@ export function UsersPage() {
               className="w-full rounded-full border-none bg-surface-container-low py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary"
             />
           </div>
-          <MaterialIcon name="filter_list" className="text-on-surface-variant" />
+          <ListFilterIcon className="h-5 w-5 text-on-surface-variant" aria-hidden />
         </div>
 
         {usersQuery.isLoading ? (
@@ -140,10 +157,11 @@ export function UsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <MaterialIcon
-                        name={u.mfa_enabled ? 'check_circle' : 'cancel'}
-                        className={u.mfa_enabled ? 'text-green-600' : 'text-outline'}
-                      />
+                      {u.mfa_enabled ? (
+                        <CheckCircle2Icon className="h-5 w-5 text-green-600" aria-hidden />
+                      ) : (
+                        <CircleXIcon className="h-5 w-5 text-outline" aria-hidden />
+                      )}
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-on-surface-variant">{u.tenant_id.slice(0, 8)}…</td>
                     <td className="px-6 py-4">

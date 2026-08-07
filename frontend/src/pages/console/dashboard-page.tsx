@@ -1,7 +1,7 @@
+import { ShieldIcon, UserCheckIcon } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { MfaAvatarPreviewStack } from '@/components/avatars/default-avatar'
-import { MaterialIcon } from '@/components/icons/material-icon'
 import {
   ConsoleEmptyState,
   ConsoleErrorState,
@@ -46,7 +46,9 @@ export function DashboardPage() {
             <>
               <div className="flex min-h-[160px] flex-col justify-between rounded-full bg-surface-container-lowest p-6 shadow-sm ghost-border">
                 <div className="flex items-start justify-between">
-                  <MaterialIcon name="person_check" className="rounded-lg bg-primary-container p-2 text-primary-dim" />
+                  <span className="rounded-lg bg-primary-container p-2 text-primary-dim">
+                    <UserCheckIcon className="h-5 w-5" aria-hidden />
+                  </span>
                   <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-600">
                     {stats.total_users.toLocaleString()} users
                   </span>
@@ -63,7 +65,9 @@ export function DashboardPage() {
 
               <div className="flex min-h-[160px] flex-col justify-between rounded-full bg-surface-container-lowest p-6 shadow-sm ghost-border">
                 <div className="flex items-start justify-between">
-                  <MaterialIcon name="security" className="rounded-lg bg-primary-container p-2 text-primary-dim" />
+                  <span className="rounded-lg bg-primary-container p-2 text-primary-dim">
+                    <ShieldIcon className="h-5 w-5" aria-hidden />
+                  </span>
                   <MfaAvatarPreviewStack />
                 </div>
                 <div>

@@ -1,7 +1,7 @@
+import { ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { MaterialIcon } from '@/components/icons/material-icon'
 import { CreateTenantDialog } from '@/features/admin/create-tenant-dialog'
 import { ConsolePagination } from '@/features/admin/console-pagination'
 import { ConsoleEmptyState, ConsoleErrorState, ConsoleLoadingState } from '@/features/admin/console-state'
@@ -28,7 +28,7 @@ export function TenantsPage() {
           onClick={() => setCreateOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
         >
-          <MaterialIcon name="add" className="text-sm" />
+          <PlusIcon className="h-4 w-4" aria-hidden />
           New Tenant
         </button>
       </header>
@@ -75,7 +75,7 @@ export function TenantsPage() {
                       }}
                       className="text-on-surface-variant hover:text-primary"
                     >
-                      <MaterialIcon name="chevron_right" />
+                      <ChevronRightIcon className="h-5 w-5" aria-hidden />
                     </button>
                   </td>
                 </tr>

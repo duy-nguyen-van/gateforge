@@ -15,6 +15,24 @@ definitions:
       token_type:
         type: string
     type: object
+  dtos.AcceptMemberInviteRequest:
+    properties:
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 128
+        minLength: 12
+        type: string
+      token:
+        type: string
+    required:
+    - password
+    - token
+    type: object
   dtos.AdminAddMemberRequest:
     properties:
       email:
@@ -431,6 +449,15 @@ definitions:
         type: string
     required:
     - code
+    type: object
+  dtos.MemberInvitePreview:
+    properties:
+      email:
+        type: string
+      organization_name:
+        type: string
+      role:
+        type: string
     type: object
   dtos.Meta:
     description: Metadata for pagination
@@ -1722,6 +1749,59 @@ paths:
       summary: Token introspection endpoint (RFC 7662)
       tags:
       - OIDC
+  /invites/accept:
+    post:
+      consumes:
+      - application/json
+      description: Creates the user when they do not exist, adds the membership, and
+        returns a session. If the existing account has MFA enabled, `data` is MFALoginChallengeResponse
+        instead of LoginResponse.
+      parameters:
+      - description: Invite acceptance
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AcceptMemberInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'When MFA is off: LoginResponse and iam_session cookie. When
+            MFA is on: MFALoginChallengeResponse.'
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Accept an organization invite
+      tags:
+      - Auth
+  /invites/preview:
+    get:
+      parameters:
+      - description: Invite token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.MemberInvitePreview'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Preview an organization invite
+      tags:
+      - Auth
   /login:
     post:
       consumes:

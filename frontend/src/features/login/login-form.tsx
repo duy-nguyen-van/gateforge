@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SocialLoginGrid } from '@/features/login/social-provider-icons'
+import { InviteAcceptForm } from '@/features/login/invite-accept-form'
 import { PasskeyLoginButton } from '@/features/webauthn/passkey-login'
 
 const defaultTenantId = import.meta.env.VITE_DEFAULT_TENANT_ID ?? '00000000-0000-0000-0000-000000000001'
@@ -24,6 +25,7 @@ export function LoginForm() {
   const { login } = useAuth()
   const [searchParams] = useSearchParams()
   const returnTo = searchParams.get('return_to') ?? undefined
+  const inviteToken = searchParams.get('invite') ?? ''
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showEmailForm, setShowEmailForm] = useState(false)
@@ -56,6 +58,10 @@ export function LoginForm() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (inviteToken) {
+    return <InviteAcceptForm token={inviteToken} />
   }
 
   return (

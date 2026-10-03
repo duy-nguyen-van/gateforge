@@ -1585,6 +1585,84 @@ const docTemplate = `{
                 }
             }
         },
+        "/invites/accept": {
+            "post": {
+                "description": "Creates the user when they do not exist, adds the membership, and returns a session. If the existing account has MFA enabled, ` + "`" + `data` + "`" + ` is MFALoginChallengeResponse instead of LoginResponse.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Accept an organization invite",
+                "parameters": [
+                    {
+                        "description": "Invite acceptance",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.AcceptMemberInviteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "When MFA is off: LoginResponse and iam_session cookie. When MFA is on: MFALoginChallengeResponse.",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "$ref": "#/definitions/dtos.LoginResponse"
+                                },
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/invites/preview": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Preview an organization invite",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invite token",
+                        "name": "token",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "$ref": "#/definitions/dtos.MemberInvitePreview"
+                                },
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Sets the same iam_session cookie as OIDC so /authorize recognizes the browser without a second login. If the user has MFA (TOTP) enabled, ` + "`" + `data` + "`" + ` is MFALoginChallengeResponse (mfa_ticket) instead of LoginResponse; complete login with POST /mfa/challenge/verify. When the user belongs to multiple tenants and no tenant context is provided, ` + "`" + `data` + "`" + ` is TenantSelectionResponse.",
@@ -2829,6 +2907,31 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.AcceptMemberInviteRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "token"
+            ],
+            "properties": {
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 12
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.AdminAddMemberRequest": {
             "type": "object",
             "required": [
@@ -3443,6 +3546,20 @@ const docTemplate = `{
                 "code": {
                     "type": "string",
                     "example": "123456"
+                }
+            }
+        },
+        "dtos.MemberInvitePreview": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "organization_name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
                 }
             }
         },

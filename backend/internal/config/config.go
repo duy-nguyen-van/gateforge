@@ -98,6 +98,10 @@ type Config struct {
 
 	// Email configuration
 	EmailProvider   string
+	EmailFrom       string
+	EmailFromName   string
+	ResendAPIKey    string
+	MailpitBaseURL  string
 	AWSSESRegion    string
 	AWSSESAccessKey string
 	AWSSESSecretKey string
@@ -254,6 +258,10 @@ func baseConfigFromEnv(appEnv Environment) *Config {
 		MaxRetryBackoff:         getEnvAsDuration("REDIS_MAX_RETRY_BACKOFF", 5*time.Second),
 		LogLevel:                getEnv("LOG_LEVEL", "info"),
 		EmailProvider:           getEnv("EMAIL_PROVIDER", "ses"),
+		EmailFrom:               getEnv("EMAIL_FROM", ""),
+		EmailFromName:           getEnv("EMAIL_FROM_NAME", ""),
+		ResendAPIKey:            getEnvFirst("", "RESEND_API_KEY", "EMAIL_RESEND_API_KEY"),
+		MailpitBaseURL:          getEnv("EMAIL_MAILPIT_BASE_URL", "http://localhost:8025"),
 		AWSSESRegion:            getEnv("AWS_SES_REGION", ""),
 		AWSSESAccessKey:         getEnv("AWS_SES_ACCESS_KEY", ""),
 		AWSSESSecretKey:         getEnv("AWS_SES_SECRET_KEY", ""),
@@ -349,6 +357,16 @@ func splitCommaTrim(s string) []string {
 		}
 	}
 	return out
+}
+
+// getEnvFirst returns the first non-empty environment variable among keys.
+func getEnvFirst(fallback string, keys ...string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return fallback
 }
 
 // getEnv gets an environment variable with a fallback value

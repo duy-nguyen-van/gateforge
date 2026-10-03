@@ -23,6 +23,7 @@ type stubBootstrapUserRepo struct {
 }
 
 func (s *stubBootstrapUserRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
+func (s *stubBootstrapUserRepo) MarkEmailVerified(context.Context, string) error          { return nil }
 func (s *stubBootstrapUserRepo) CreateWithPasswordHash(ctx context.Context, user *models.User, passwordHash string) error {
 	s.created = append(s.created, user)
 	s.users[user.ID] = user

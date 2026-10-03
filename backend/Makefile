@@ -16,6 +16,10 @@ bootstrap: container-up migrate-up up
 lint:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./... --config .golangci.yml
 
+.PHONY: lint-fix
+lint-fix:
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./... --config .golangci.yml --fix
+
 mocks:
 	mockery --case snake --dir ./repositories --all --output ./mocks/repositories
 	mockery --case snake --dir ./adapters --all --output ./mocks/adapters
@@ -32,7 +36,7 @@ dep:
 	@go mod tidy
 
 container-up:
-	set -a && source cmd/server/.env && set +a && docker compose up -d postgres redis adminer
+	set -a && source cmd/server/.env && set +a && docker compose up -d postgres redis adminer mailpit
 
 container-down:
 	docker compose down

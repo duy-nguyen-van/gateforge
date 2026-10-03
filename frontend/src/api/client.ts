@@ -11,8 +11,10 @@ import { apiUrl } from '@/lib/utils'
 import {
   ApiError,
   type ApiEnvelope,
+  type AcceptMemberInviteRequest,
   type LoginRequest,
   type LoginResponse,
+  type MemberInvitePreview,
   type LoginResult,
   type MFAChallengeVerifyRequest,
   type MFARecoveryCodesResponse,
@@ -210,6 +212,19 @@ export async function resetPassword(token: string, newPassword: string) {
 
 export async function registerUser(body: RegisterRequest) {
   return apiFetch<UserResponse>('/api/v1/register', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function previewMemberInvite(token: string) {
+  return apiFetch<MemberInvitePreview>(
+    `/api/v1/invites/preview?token=${encodeURIComponent(token)}`,
+  )
+}
+
+export async function acceptMemberInvite(body: AcceptMemberInviteRequest) {
+  return apiFetch<LoginResult>('/api/v1/invites/accept', {
     method: 'POST',
     body: JSON.stringify(body),
   })

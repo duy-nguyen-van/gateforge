@@ -1,4 +1,4 @@
-h1:EMZeLkWe+YlxEFGHvC6Msd7TDQc9vqjiUKeQIOt/ujw=
+h1:+BGHhBxXstNXjOgEetG7DtgQn9vR5C0l6HmM/oW/kTI=
 20260329053634_init_tables.sql h1:/wWeDZLY9HtdHuYMpeC46jgJMj9oicaGXRaMWuwPwtM=
 20260329120000_seed_default_tenant.sql h1:2wYIB7UM9DyFc8zPaYVpjwgvfHQf9swLXbBBNnJ5jO4=
 20260329140000_oidc_phase2_scope_nonce_jwks.sql h1:V2zvHHFU0+SjAo9DJj4+BlMDS0QFmCj2aPwF1kWUqpw=
@@ -10,3 +10,4 @@ h1:EMZeLkWe+YlxEFGHvC6Msd7TDQc9vqjiUKeQIOt/ujw=
 20260621130000_tenant_idp_oauth_config.sql h1:obG2WQpC1Hq+9CGb6URCbPJoccEHGGGwskfJ3aMEzNQ=
 20260621140000_tenant_domain_unique.sql h1:kyF7ggDb7WrgPKZTt1DR5si48m9/C9x0p+z51Sq0hvM=
 20261002120000_enterprise_phase1.sql h1:Rw6dfF9SuKgCYfuKs+s+aYMKba9wWQt5LrzYsKGbAk0=
+20261003120000_tenant_invites.sql h1:lwXGpssfgcoz7IBA32Wy8/6FTq4iV7VDASzY1bnFyqU=

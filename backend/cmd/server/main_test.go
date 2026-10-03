@@ -46,6 +46,7 @@ func TestNewHTTPServer(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		tokenService,
 		nil,
 		cfg,
@@ -74,7 +75,7 @@ func TestNewHTTPServer_RegistersLifecycleHook(t *testing.T) {
 	var hooks []fx.Hook
 	lc := hookLifecycle{appendHook: func(h fx.Hook) { hooks = append(hooks, h) }}
 
-	srv := NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
+	srv := NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
 	require.NotNil(t, srv)
 	require.Len(t, hooks, 1)
 }

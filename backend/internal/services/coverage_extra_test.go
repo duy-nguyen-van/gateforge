@@ -103,7 +103,7 @@ func TestAdminService_DeleteTenant_Success(t *testing.T) {
 	tenantRepo := newAdminTenantTestRepo()
 	tenantID := "tenant-del"
 	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Delete Me"}
-	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil)
+	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil, EmailService{}, nil)
 
 	require.NoError(t, svc.DeleteTenant(context.Background(), tenantID))
 	_, ok := tenantRepo.tenants[tenantID]
@@ -210,7 +210,7 @@ func TestAdminService_UpdateTenant_AllFields(t *testing.T) {
 	tenantRepo := newAdminTenantTestRepo()
 	tenantID := "tenant-upd"
 	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Old", Domain: "old.example.com"}
-	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil)
+	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil, EmailService{}, nil)
 
 	name := "New Name"
 	domain := "new.example.com"

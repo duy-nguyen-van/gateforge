@@ -39,6 +39,7 @@ func NewHTTPServer(lc fx.Lifecycle,
 	adminHandler *handlers.AdminHandler,
 	webauthnHandler *handlers.WebauthnHandler,
 	mfaHandler *handlers.MFAHandler,
+	memberInviteHandler *handlers.MemberInviteHandler,
 	tokenService *auth.TokenService,
 	userRepo repositories.UserRepository,
 	cfg *config.Config,
@@ -47,7 +48,7 @@ func NewHTTPServer(lc fx.Lifecycle,
 	totp repositories.UserMFATOTPRepository,
 	webauthn repositories.WebauthnCredentialRepository,
 ) *http.Server {
-	handler := routes.Router(authHandler, healthHandler, oidcHandler, tenantIdentityAdmin, adminHandler, webauthnHandler, mfaHandler, tokenService, userRepo, cfg, shared, totp, webauthn)
+	handler := routes.Router(authHandler, healthHandler, oidcHandler, tenantIdentityAdmin, adminHandler, webauthnHandler, mfaHandler, memberInviteHandler, tokenService, userRepo, cfg, shared, totp, webauthn)
 
 	readTimeout := cfg.HTTPReadTimeout
 	writeTimeout := cfg.HTTPWriteTimeout
@@ -225,6 +226,7 @@ func applicationProviders() fx.Option {
 		storage.ProvideStorageAdapter,
 		repositories.ProvideUserRepository,
 		repositories.ProvideTenantMembershipRepository,
+		repositories.ProvideTenantInviteRepository,
 		repositories.ProvideFederatedIdentityRepository,
 		repositories.ProvideTenantRepository,
 		repositories.ProvideTenantIdentityProviderRepository,
@@ -247,6 +249,8 @@ func applicationProviders() fx.Option {
 		services.ProvideSessionService,
 		services.ProvideOIDCService,
 		services.ProvideAdminService,
+		services.ProvideMemberInviteService,
+		handlers.ProvideMemberInviteHandler,
 		services.ProvidePlatformAdminBootstrap,
 		repositories.ProvideRetentionRepository,
 		services.ProvideRetentionService,

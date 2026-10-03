@@ -18,6 +18,8 @@ const (
 	TemplateWelcome       = "welcome"
 	TemplatePasswordReset = "password_reset"
 	TemplateNotification  = "notification"
+	TemplateMemberAdded   = "member_added"
+	TemplateMemberInvite  = "member_invite"
 )
 
 // Vars are the runtime values a template may interpolate.

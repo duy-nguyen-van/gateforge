@@ -28,6 +28,19 @@ export interface RegisterRequest {
   last_name?: string
 }
 
+export interface MemberInvitePreview {
+  email: string
+  organization_name: string
+  role: string
+}
+
+export interface AcceptMemberInviteRequest {
+  token: string
+  password: string
+  first_name?: string
+  last_name?: string
+}
+
 export interface LoginRequest {
   email: string
   password: string

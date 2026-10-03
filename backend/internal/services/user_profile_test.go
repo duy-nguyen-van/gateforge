@@ -22,6 +22,7 @@ func newProfileTestUserRepo() *profileTestUserRepo {
 }
 
 func (r *profileTestUserRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
+func (r *profileTestUserRepo) MarkEmailVerified(context.Context, string) error          { return nil }
 func (r *profileTestUserRepo) CreateWithPasswordHash(_ context.Context, _ *models.User, _ string) error {
 	return nil
 }

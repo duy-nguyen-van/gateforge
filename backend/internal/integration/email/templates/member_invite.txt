@@ -1,0 +1,9 @@
+{{define "subject"}}Join {{.OrgName}} on GateForge{{end}}
+{{define "text"}}Join {{.OrgName}}.
+
+You were invited as {{.Role}}. Open the link, then sign in. If you do not have an account yet, you can create one there.
+
+Sign in:
+{{.CTAURL}}
+
+{{template "footer"}}{{end}}

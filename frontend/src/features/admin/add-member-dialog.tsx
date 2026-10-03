@@ -80,7 +80,7 @@ export function AddMemberDialog({ open, onOpenChange, defaultTenantId }: AddMemb
                 Add member
               </h2>
               <p className="mt-1 text-sm text-on-surface-variant">
-                The user must already be registered in the system.
+                We email them a sign-in link. If they do not have an account yet, they can create one from that link.
               </p>
             </div>
             <button
@@ -101,7 +101,7 @@ export function AddMemberDialog({ open, onOpenChange, defaultTenantId }: AddMemb
 
           {success ? (
             <Alert variant="success" className="mb-4">
-              <AlertDescription>Member added successfully.</AlertDescription>
+              <AlertDescription>Member added. They will get an email to sign in.</AlertDescription>
             </Alert>
           ) : null}
 

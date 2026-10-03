@@ -157,6 +157,8 @@ func newAdminTenantTestService(tenants *adminTenantTestRepo, memberships *adminT
 		nil, nil, nil,
 		&adminTenantAuditStub{},
 		nil, nil, nil,
+		EmailService{},
+		nil,
 	)
 }
 

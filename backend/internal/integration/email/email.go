@@ -21,15 +21,16 @@ type EmailMessage struct {
 
 // EmailRequest represents a generic email request
 type EmailRequest struct {
-	To           []string               `json:"to"`
-	Cc           []string               `json:"cc,omitempty"`
-	Bcc          []string               `json:"bcc,omitempty"`
-	Subject      string                 `json:"subject"`
-	TemplateID   string                 `json:"template_id,omitempty"`
-	TemplateData map[string]interface{} `json:"template_data,omitempty"`
-	HTMLBody     string                 `json:"html_body,omitempty"`
-	TextBody     string                 `json:"text_body,omitempty"`
-	Attachments  []Attachment           `json:"attachments,omitempty"`
+	To             []string               `json:"to"`
+	Cc             []string               `json:"cc,omitempty"`
+	Bcc            []string               `json:"bcc,omitempty"`
+	Subject        string                 `json:"subject"`
+	TemplateID     string                 `json:"template_id,omitempty"`
+	TemplateData   map[string]interface{} `json:"template_data,omitempty"`
+	HTMLBody       string                 `json:"html_body,omitempty"`
+	TextBody       string                 `json:"text_body,omitempty"`
+	IdempotencyKey string                 `json:"idempotency_key,omitempty"`
+	Attachments    []Attachment           `json:"attachments,omitempty"`
 }
 
 // Attachment represents an email attachment
@@ -64,7 +65,20 @@ type EmailSender interface {
 }
 
 func ProvideEmailSender(cfg *config.Config) (EmailSender, error) {
+	if cfg == nil {
+		return nil, errors.InternalError("Invalid email provider", fmt.Errorf("config is nil")).
+			WithOperation("initialize_email_sender").
+			WithResource("email")
+	}
 	switch cfg.EmailProvider {
+	case constants.EmailProviderResend:
+		resendSender, err := NewResendSender(*cfg)
+		if err != nil {
+			return nil, errors.ExternalServiceError("Failed to initialize Resend email sender", err).
+				WithOperation("initialize_email_sender").
+				WithResource("email")
+		}
+		return resendSender, nil
 	case constants.EmailProviderSES:
 		sesSender, err := NewSESSender(*cfg)
 		if err != nil {
@@ -73,6 +87,14 @@ func ProvideEmailSender(cfg *config.Config) (EmailSender, error) {
 				WithResource("email")
 		}
 		return sesSender, nil
+	case constants.EmailProviderMailpit:
+		mailpitSender, err := NewMailpitSender(*cfg)
+		if err != nil {
+			return nil, errors.ExternalServiceError("Failed to initialize Mailpit email sender", err).
+				WithOperation("initialize_email_sender").
+				WithResource("email")
+		}
+		return mailpitSender, nil
 	default:
 		return nil, errors.InternalError("Invalid email provider", fmt.Errorf("invalid email provider: %s", cfg.EmailProvider)).
 			WithOperation("initialize_email_sender").

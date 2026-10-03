@@ -4,6 +4,8 @@
 
 Users are **global identities** (unique `email_lower`). Access to an organization is granted via **`tenant_memberships`**. Dashboard JWTs include `tenant_id` as the active tenant. When a user belongs to multiple tenants and no tenant is resolved at login, the API returns **`selection_required`** with a short-lived **`selection_token`**; the client completes login with `POST /api/v1/tenants/select`. Authenticated users switch tenants with `POST /api/v1/tenants/switch`. OIDC `/authorize` resolves tenant from the OAuth **`client_id`** and requires active membership in that tenant.
 
+Adding a person to a tenant emails them. If they already have an account, the membership is active immediately. If they do not, the email links to sign-in and the account is created when they set a password. They still see the organization in the console switcher after they sign in.
+
 ## Endpoints
 
 | Method | Path | Auth |
@@ -59,6 +61,15 @@ sequenceDiagram
 Constants: `internal/constants/tenant_membership.go`.
 
 Platform-wide admin is separate: `users.is_platform_admin` — see [AUTHORIZATION.md](AUTHORIZATION.md).
+
+## Member notification
+
+`POST /admin/tenants/{tenantId}/members` looks up the email.
+
+- An existing user who is not already a member gets an active membership and the `member_added` email.
+- An unknown email gets a pending `tenant_invites` row and the `member_invite` email. The link is `{OIDC_LOGIN_PAGE_URL}?invite=...` (or `{APP_BASE_URL}/login` when the login page URL is unset). `POST /api/v1/invites/accept` creates the user when they do not exist, adds the membership, marks the email verified, and returns a session. An existing account with MFA enabled still gets the membership, then completes MFA before the session is issued.
+
+Delivery uses `EMAIL_PROVIDER` (`ses`, `resend`, or local `mailpit`). A send failure is logged with a masked address and does not remove the membership or invite. The add-member API still returns 204. A user who is already a member is not emailed again.
 
 ## JWT claims (dashboard API)
 

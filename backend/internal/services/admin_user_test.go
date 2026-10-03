@@ -20,6 +20,7 @@ type adminUserTestRepo struct {
 }
 
 func (r *adminUserTestRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
+func (r *adminUserTestRepo) MarkEmailVerified(context.Context, string) error          { return nil }
 func (r *adminUserTestRepo) CreateWithPasswordHash(context.Context, *models.User, string) error {
 	return nil
 }

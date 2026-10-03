@@ -259,3 +259,23 @@ func TestEmailService_SendNotificationEmail(t *testing.T) {
 		})
 	}
 }
+
+func TestEmailService_SendMemberAddedEmail(t *testing.T) {
+	t.Run("nil sender is a no-op", func(t *testing.T) {
+		require.NoError(t, EmailService{}.SendMemberAddedEmail(context.Background(), "a@example.com", "Acme", "member", "http://localhost:5173/login", "mem-1"))
+	})
+
+	t.Run("sends template with idempotency key", func(t *testing.T) {
+		sender := new(MockEmailSender)
+		sender.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
+			return req.TemplateID == email.TemplateMemberAdded &&
+				req.IdempotencyKey == "member-added/mem-1" &&
+				req.To[0] == "a@example.com" &&
+				strings.Contains(req.TextBody, "Acme")
+		})).Return(&email.EmailResponse{Status: "sent"}, nil)
+
+		err := ProvideEmailService(sender).SendMemberAddedEmail(context.Background(), "a@example.com", "Acme", "member", "http://localhost:5173/login", "mem-1")
+		require.NoError(t, err)
+		sender.AssertExpectations(t)
+	})
+}

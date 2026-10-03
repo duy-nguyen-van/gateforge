@@ -46,7 +46,7 @@ func TestNewHTTPServer_LifecycleOnStopWithoutStart(t *testing.T) {
 	var hooks []fx.Hook
 	lc := hookLifecycle{appendHook: func(h fx.Hook) { hooks = append(hooks, h) }}
 
-	_ = NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
+	_ = NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
 	require.Len(t, hooks, 1)
 	require.NoError(t, hooks[0].OnStop(context.Background()))
 }
@@ -66,7 +66,7 @@ func TestNewHTTPServer_LifecycleOnStart(t *testing.T) {
 	var hooks []fx.Hook
 	lc := hookLifecycle{appendHook: func(h fx.Hook) { hooks = append(hooks, h) }}
 
-	srv := NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
+	srv := NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
 	require.NotNil(t, srv)
 	require.Len(t, hooks, 1)
 
@@ -90,7 +90,7 @@ func TestNewHTTPServer_LifecycleOnStartListenError(t *testing.T) {
 	var hooks []fx.Hook
 	lc := hookLifecycle{appendHook: func(h fx.Hook) { hooks = append(hooks, h) }}
 
-	_ = NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
+	_ = NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
 	require.Len(t, hooks, 1)
 	require.Error(t, hooks[0].OnStart(context.Background()))
 }

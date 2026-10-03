@@ -25,6 +25,21 @@ func TestRender_PasswordReset(t *testing.T) {
 	assert.Contains(t, msg.TextBody, "GateForge identity")
 }
 
+func TestRender_MemberAdded(t *testing.T) {
+	link := "http://localhost:5173/login"
+	msg, err := Render(TemplateMemberAdded, Vars{
+		"OrgName": "Acme",
+		"Role":    "member",
+		"CTAURL":  link,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "You were added to Acme", msg.Subject)
+	assert.Contains(t, msg.HTMLBody, link)
+	assert.Contains(t, msg.HTMLBody, "member")
+	assert.Contains(t, msg.TextBody, "Acme")
+	assert.Contains(t, msg.TextBody, "GateForge identity")
+}
+
 func TestRender_WelcomeOmitsButton(t *testing.T) {
 	msg, err := Render(TemplateWelcome, Vars{"UserName": "Ada"})
 	require.NoError(t, err)

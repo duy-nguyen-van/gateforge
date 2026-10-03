@@ -123,6 +123,15 @@ func (r *userTestRepo) seed(email, password string) *models.User {
 	return u
 }
 
+func (r *userTestRepo) MarkEmailVerified(_ context.Context, userID string) error {
+	u, ok := r.users[userID]
+	if !ok {
+		return errors.NotFoundError("User", nil)
+	}
+	u.EmailVerified = true
+	return nil
+}
+
 func (r *userTestRepo) UpdatePasswordHash(_ context.Context, userID, passwordHash string) error {
 	u, ok := r.users[userID]
 	if !ok {

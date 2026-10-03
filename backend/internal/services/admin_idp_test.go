@@ -92,6 +92,8 @@ func newAdminIdpTestService(tip *adminIdpTipStub) AdminService {
 		nil, nil, nil, nil,
 		adminIdpAuditStub{},
 		nil, nil, nil,
+		EmailService{},
+		nil,
 	)
 }
 

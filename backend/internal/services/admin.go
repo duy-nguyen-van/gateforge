@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"math"
 	"strings"
@@ -13,11 +14,13 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
+	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/zap"
 )
 
 // AdminService exposes platform admin read/update operations for the console.
@@ -66,6 +69,8 @@ type adminService struct {
 	sessionSvc    SessionService
 	userSvc       UserService
 	clientCache   cache.Cache
+	mail          EmailService
+	invites       repositories.TenantInviteRepository
 }
 
 // ProvideAdminService wires admin console operations.
@@ -86,6 +91,8 @@ func ProvideAdminService(
 	sessionSvc SessionService,
 	userSvc UserService,
 	clientCache cache.Cache,
+	mail EmailService,
+	invites repositories.TenantInviteRepository,
 ) AdminService {
 	return &adminService{
 		cfg:           cfg,
@@ -104,6 +111,8 @@ func ProvideAdminService(
 		sessionSvc:    sessionSvc,
 		userSvc:       userSvc,
 		clientCache:   clientCache,
+		mail:          mail,
+		invites:       invites,
 	}
 }
 
@@ -336,16 +345,21 @@ func (s *adminService) AddMemberByEmail(ctx context.Context, tenantID, email, ro
 		})
 }
 
-func (s *adminService) addMemberByEmail(ctx context.Context, tenantID, email, role string) error {
-	if _, err := s.tenants.GetByID(ctx, tenantID); err != nil {
-		return err
-	}
-	u, err := s.users.GetByEmailLower(ctx, strings.ToLower(strings.TrimSpace(email)))
+func (s *adminService) addMemberByEmail(ctx context.Context, tenantID, emailAddr, role string) error {
+	tenant, err := s.tenants.GetByID(ctx, tenantID)
 	if err != nil {
 		return err
 	}
 	if role == "" {
 		role = string(constants.TenantMembershipRoleMember)
+	}
+	u, err := s.users.GetByEmailLower(ctx, strings.ToLower(strings.TrimSpace(emailAddr)))
+	if err != nil {
+		var appErr *errors.AppError
+		if stderrors.As(err, &appErr) && appErr.Type == errors.ErrorTypeNotFound {
+			return s.inviteNewMember(ctx, tenant, emailAddr, role)
+		}
+		return err
 	}
 	ok, err := s.memberships.ExistsActive(ctx, u.ID, tenantID)
 	if err != nil {
@@ -376,7 +390,45 @@ func (s *adminService) addMemberByEmail(ctx context.Context, tenantID, email, ro
 	}); err != nil {
 		return err
 	}
+	orgName := ""
+	if tenant != nil {
+		orgName = tenant.Name
+	}
+	if err := s.mail.SendMemberAddedEmail(ctx, u.Email, orgName, role, s.memberSignInURL(), membership.ID); err != nil {
+		logger.From(ctx).Error("failed to send member added email",
+			zap.String("tenant_id", tenantID),
+			zap.String("membership_id", membership.ID),
+			zap.String("recipient", maskEmail(u.Email)),
+			zap.Error(err),
+		)
+	}
 	return nil
+}
+
+func (s *adminService) memberSignInURL() string {
+	if s.cfg == nil {
+		return ""
+	}
+	if loginURL := strings.TrimSpace(s.cfg.OIDCLoginPageURL); loginURL != "" {
+		return loginURL
+	}
+	base := strings.TrimRight(strings.TrimSpace(s.cfg.AppBaseURL), "/")
+	if base == "" {
+		return ""
+	}
+	return base + "/login"
+}
+
+func maskEmail(emailAddr string) string {
+	parts := strings.Split(emailAddr, "@")
+	if len(parts) != 2 || parts[0] == "" {
+		return "***"
+	}
+	local := parts[0]
+	if len(local) == 1 {
+		return local[:1] + "***@" + parts[1]
+	}
+	return local[:1] + "***@" + parts[1]
 }
 
 func (s *adminService) RemoveMember(ctx context.Context, tenantID, userID string) error {

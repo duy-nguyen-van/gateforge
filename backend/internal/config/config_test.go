@@ -71,6 +71,10 @@ func TestBaseConfigFromEnv(t *testing.T) {
 	t.Setenv("JWT_SECRET", "custom-secret-thirty-two-bytes-long!!")
 	t.Setenv("WEBAUTHN_RP_ORIGINS", "http://a.com, http://b.com")
 	t.Setenv("SERVE_EMBEDDED_FRONTEND", "false")
+	t.Setenv("EMAIL_PROVIDER", "")
+	t.Setenv("EMAIL_MAILPIT_BASE_URL", "")
+	t.Setenv("RESEND_API_KEY", "re_from_primary")
+	t.Setenv("EMAIL_RESEND_API_KEY", "re_from_alias")
 
 	cfg := baseConfigFromEnv(EnvironmentDevelopment)
 	require.Equal(t, "test-app", cfg.AppName)
@@ -80,6 +84,9 @@ func TestBaseConfigFromEnv(t *testing.T) {
 	require.False(t, cfg.ServeEmbeddedFrontend)
 	require.Equal(t, "test-app", cfg.OTelServiceName)
 	require.True(t, cfg.OTelTracesEnabled)
+	require.Equal(t, "ses", cfg.EmailProvider)
+	require.Equal(t, "http://localhost:8025", cfg.MailpitBaseURL)
+	require.Equal(t, "re_from_primary", cfg.ResendAPIKey)
 }
 
 func TestBaseConfigFromEnv_OTel(t *testing.T) {

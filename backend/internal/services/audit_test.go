@@ -137,7 +137,7 @@ func TestAdminService_ListAuditLogs(t *testing.T) {
 			Pageable: &dtos.Pageable{Page: 1, PageSize: 20, Total: 1},
 		},
 	}
-	svc := ProvideAdminService(&config.Config{}, nil, nil, nil, nil, nil, nil, nil, nil, repo, nil, nil, noopAuditService{}, nil, nil, nil)
+	svc := ProvideAdminService(&config.Config{}, nil, nil, nil, nil, nil, nil, nil, nil, repo, nil, nil, noopAuditService{}, nil, nil, nil, EmailService{}, nil)
 
 	rows, pageable, err := svc.ListAuditLogs(context.Background(), dtos.AdminAuditLogListParams{
 		TenantID: tenantID,

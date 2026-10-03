@@ -32,6 +32,7 @@ func Router(
 	adminHandler *handlers.AdminHandler,
 	webauthnHandler *handlers.WebauthnHandler,
 	mfaHandler *handlers.MFAHandler,
+	memberInviteHandler *handlers.MemberInviteHandler,
 	tokenService *auth.TokenService,
 	userRepo repositories.UserRepository,
 	cfg *config.Config,
@@ -63,7 +64,7 @@ func Router(
 	registerOIDCRoutes(r, oidcHandler)
 
 	v1 := r.Group("api/v1")
-	registerPublicV1Routes(v1, healthHandler, authHandler, webauthnHandler, mfaHandler, tenantIdentityAdmin, cfg, shared)
+	registerPublicV1Routes(v1, healthHandler, authHandler, webauthnHandler, mfaHandler, tenantIdentityAdmin, memberInviteHandler, cfg, shared)
 
 	authJWT := middlewares.JWTBearerAuth(tokenService)
 	adminAuth := middlewares.PlatformAdminAuth(userRepo)
@@ -164,6 +165,7 @@ func registerPublicV1Routes(
 	webauthnHandler *handlers.WebauthnHandler,
 	mfaHandler *handlers.MFAHandler,
 	tenantIdentityAdmin *handlers.TenantIdentityAdminHandler,
+	memberInviteHandler *handlers.MemberInviteHandler,
 	cfg *config.Config,
 	shared cache.Cache,
 ) {
@@ -174,6 +176,8 @@ func registerPublicV1Routes(
 	publicGroup.GET("/health/metrics", healthHandler.DatabaseMetrics)
 	publicGroup.GET("/health/ready", healthHandler.Ready)
 
+	publicGroup.GET("/invites/preview", memberInviteHandler.Preview, authLimit)
+	publicGroup.POST("/invites/accept", memberInviteHandler.Accept, authLimit)
 	publicGroup.POST("/register", authHandler.Register, authLimit)
 	publicGroup.POST("/forgot-password", authHandler.ForgotPassword, authLimit)
 	publicGroup.POST("/reset-password", authHandler.ResetPassword, authLimit)

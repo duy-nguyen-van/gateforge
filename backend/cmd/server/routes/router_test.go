@@ -34,6 +34,7 @@ func TestRouter_HealthCheckSmoke(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		tokenService,
 		nil,
 		cfg,
@@ -58,7 +59,7 @@ func TestRouter_SwaggerRegisteredInNonProduction(t *testing.T) {
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, time.Hour)
 	require.NoError(t, err)
 
-	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
+	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
 
 	found := false
 	for _, route := range e.Routes() {
@@ -81,7 +82,7 @@ func TestRouter_OIDCRoutesRegistered(t *testing.T) {
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, time.Hour)
 	require.NoError(t, err)
 
-	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
+	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
 
 	paths := map[string]bool{}
 	for _, route := range e.Routes() {

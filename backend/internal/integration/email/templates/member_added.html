@@ -1,0 +1,16 @@
+{{define "preheader"}}You can sign in to {{.OrgName}}.{{end}}
+{{define "content"}}
+              <h1 style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;font-size:26px;line-height:1.2;font-weight:700;letter-spacing:-0.02em;color:#1B2438;">
+                You were added to {{.OrgName}}.
+              </h1>
+              <p style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:16px;line-height:1.55;color:#1B2438;">
+                Your account now has the {{.Role}} role in this organization. Sign in to open it.
+              </p>
+              {{if .CTAURL}}
+              <p style="margin:24px 0 0;">
+                <a href="{{.CTAURL}}" style="display:inline-block;background-color:#3451B2;color:#F7F8FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;font-weight:700;line-height:1;padding:14px 24px;text-decoration:none;border-radius:8px;">
+                  Sign in
+                </a>
+              </p>
+              {{end}}
+{{end}}

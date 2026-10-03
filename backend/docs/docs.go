@@ -1347,6 +1347,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/forgot-password": {
+            "post": {
+                "description": "Always returns 200 so callers cannot tell whether the email exists",
+                "consumes": [
+                    "application/json",
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth",
+                    "Auth"
+                ],
+                "summary": "Request a password reset",
+                "parameters": [
+                    {
+                        "description": "Refresh token",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.RefreshTokenRequest"
+                        }
+                    },
+                    {
+                        "description": "Email",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/health/database": {
             "get": {
                 "description": "Check if the database connection is healthy",
@@ -1400,6 +1451,45 @@ const docTemplate = `{
                                 "data": {
                                     "type": "object"
                                 },
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "description": "Ping Postgres and Redis",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Readiness check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "$ref": "#/definitions/dtos.HealthResponse"
+                                },
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
                                 "meta": {
                                     "$ref": "#/definitions/dtos.Meta"
                                 }
@@ -2118,16 +2208,20 @@ const docTemplate = `{
         },
         "/refresh": {
             "post": {
+                "description": "Always returns 200 so callers cannot tell whether the email exists",
                 "consumes": [
+                    "application/json",
                     "application/json"
                 ],
                 "produces": [
+                    "application/json",
                     "application/json"
                 ],
                 "tags": [
+                    "Auth",
                     "Auth"
                 ],
-                "summary": "Exchange refresh token for a new access token (and rotated refresh token)",
+                "summary": "Request a password reset",
                 "parameters": [
                     {
                         "description": "Refresh token",
@@ -2137,6 +2231,15 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dtos.RefreshTokenRequest"
                         }
+                    },
+                    {
+                        "description": "Email",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ForgotPasswordRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -2145,9 +2248,6 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "data": {
-                                    "$ref": "#/definitions/dtos.LoginResponse"
-                                },
                                 "meta": {
                                     "$ref": "#/definitions/dtos.Meta"
                                 }
@@ -2189,6 +2289,55 @@ const docTemplate = `{
                                 "data": {
                                     "$ref": "#/definitions/dtos.UserResponse"
                                 },
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reset-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset a password with a one-time token",
+                "parameters": [
+                    {
+                        "description": "Token and new password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dtos.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "meta": {
+                                    "$ref": "#/definitions/dtos.Meta"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
                                 "meta": {
                                     "$ref": "#/definitions/dtos.Meta"
                                 }
@@ -3160,6 +3309,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dtos.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
         "dtos.HealthResponse": {
             "type": "object",
             "properties": {
@@ -3439,10 +3599,27 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "maxLength": 128,
-                    "minLength": 8,
+                    "minLength": 12,
                     "example": "secretpassword"
                 },
                 "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dtos.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 12
+                },
+                "token": {
                     "type": "string"
                 }
             }

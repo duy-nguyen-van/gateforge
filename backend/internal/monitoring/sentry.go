@@ -7,11 +7,8 @@ import (
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
-	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 
 	"github.com/getsentry/sentry-go"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func InitSentry(cfg config.Config) {
@@ -25,14 +22,10 @@ func InitSentry(cfg config.Config) {
 		Debug:            cfg.AppEnv == config.EnvironmentDevelopment,
 		AttachStacktrace: true,
 		EnableTracing:    true,
-		EnableLogs:       true,
 		TracesSampleRate: 1.0,
 		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-			if event.Request != nil {
-				if event.Request.Headers != nil {
-					delete(event.Request.Headers, "Authorization")
-					delete(event.Request.Headers, "Cookie")
-				}
+			if event != nil {
+				RedactSentryRequest(event.Request)
 			}
 			return event
 		},
@@ -40,13 +33,6 @@ func InitSentry(cfg config.Config) {
 
 	if err != nil {
 		log.Fatalf("sentry.Init failed: %v", err)
-	}
-
-	if logger.Log != nil {
-		logger.Log = logger.Log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-			return zapcore.NewTee(core, NewSentryCore(context.Background(), nil))
-		}))
-		logger.Sugar = logger.Log.Sugar()
 	}
 }
 

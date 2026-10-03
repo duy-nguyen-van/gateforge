@@ -1,33 +1,51 @@
 import {
   Building2Icon,
   ChevronDownIcon,
-  CircleHelpIcon,
   Loader2Icon,
+  MenuIcon,
+  MonitorIcon,
+  MoonIcon,
   SettingsIcon,
+  SunIcon,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 
 import { switchTenant } from '@/api/client'
 import { setTokens } from '@/auth/token-store'
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
 import { GateForgeBrand } from '@/components/brand/gateforge-brand'
+import { useTheme, type ThemePreference } from '@/components/theme/theme'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 
-const topNavItems = [
-  { label: 'Overview', to: '/console', match: '/console' },
-  { label: 'System Logs', to: '/console/audit-logs', match: '/console/audit-logs' },
-] as const
-
-export function ConsoleTopbar() {
-  const location = useLocation()
+export function ConsoleTopbar({
+  mobileOpen,
+  onOpenMenu,
+}: {
+  mobileOpen: boolean
+  onOpenMenu: () => void
+}) {
   const { user, refreshProfile } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [switchingTenant, setSwitchingTenant] = useState(false)
   const homeTo = user?.is_platform_admin ? '/console' : '/settings/profile'
 
   const tenants = user?.tenants ?? []
   const activeTenant = user?.active_tenant_id
+  const profileLabel = user?.email ? `Profile for ${user.email}` : 'Profile'
+  const nextTheme: Record<ThemePreference, ThemePreference> = {
+    light: 'dark',
+    dark: 'system',
+    system: 'light',
+  }
+  const ThemeIcon = theme === 'light' ? SunIcon : theme === 'dark' ? MoonIcon : MonitorIcon
+  const themeLabel =
+    theme === 'light'
+      ? 'Theme: Light. Switch to dark.'
+      : theme === 'dark'
+        ? 'Theme: Dark. Switch to system.'
+        : 'Theme: System. Switch to light.'
 
   const onSwitchTenant = async (tenantId: string) => {
     if (!tenantId || tenantId === activeTenant || switchingTenant) return
@@ -42,45 +60,33 @@ export function ConsoleTopbar() {
   }
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-slate-50 px-6 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex h-full items-center gap-8">
+    <nav className="fixed left-0 right-0 top-0 z-50 flex h-16 w-full items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 lg:px-6">
+      <div className="flex h-full items-center gap-3">
+        <button
+          type="button"
+          className="inline-flex rounded-lg p-2 text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          aria-label="Open menu"
+          aria-expanded={mobileOpen}
+          aria-controls="console-sidebar"
+          onClick={onOpenMenu}
+        >
+          <MenuIcon className="h-5 w-5" aria-hidden />
+        </button>
         <GateForgeBrand size="md" layout="horizontal" showTagline={false} linkTo={homeTo} />
-        {user?.is_platform_admin ? (
-          <div className="hidden h-full items-stretch gap-6 font-manrope text-sm font-medium tracking-tight md:flex">
-            {topNavItems.map(({ label, to, match }) => {
-              const isActive = match ? location.pathname === match : false
-              return (
-                <Link
-                  key={label}
-                  to={to}
-                  className={cn(
-                    'inline-flex h-full items-center border-b-2 px-1 transition-colors',
-                    isActive
-                      ? 'border-blue-700 font-semibold text-blue-700 dark:border-blue-400 dark:text-blue-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200',
-                  )}
-                >
-                  {label}
-                </Link>
-              )
-            })}
-          </div>
-        ) : null}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         {tenants.length > 1 ? (
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <Building2Icon
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant"
               aria-hidden
             />
             <select
               className={cn(
-                'h-10 min-w-[11rem] max-w-[14rem] appearance-none truncate rounded-xl bg-surface-container-low pl-9 pr-9',
-                'text-sm font-medium text-on-surface ghost-border',
-                'transition-colors hover:bg-surface-container',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                'h-10 min-w-[11rem] max-w-[14rem] appearance-none truncate rounded-lg border border-input bg-background pl-9 pr-9',
+                'text-sm font-medium text-on-surface',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 'disabled:cursor-wait disabled:opacity-60',
               )}
               value={activeTenant ?? ''}
@@ -107,19 +113,32 @@ export function ConsoleTopbar() {
             )}
           </div>
         ) : null}
-        <CircleHelpIcon className="h-9 w-9 cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-hidden />
-        <Link to="/settings/security" aria-label="Security settings">
-          <SettingsIcon className="h-9 w-9 cursor-pointer rounded-full p-2 text-slate-500 hover:bg-slate-100" aria-hidden />
+        <button
+          type="button"
+          aria-label={themeLabel}
+          onClick={() => setTheme(nextTheme[theme])}
+          className="inline-flex rounded-lg p-2 text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ThemeIcon className="h-5 w-5" aria-hidden />
+        </button>
+        <Link
+          to="/settings/security"
+          aria-label="Security settings"
+          className="inline-flex rounded-lg p-2 text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <SettingsIcon className="h-5 w-5" aria-hidden />
         </Link>
-        <Link to="/settings/profile">
+        <Link
+          to="/settings/profile"
+          aria-label={profileLabel}
+          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <DefaultAvatar
             seed={user?.email ?? user?.id ?? 'admin'}
-            name={
-              user?.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : undefined
-            }
+            name={user?.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : undefined}
             size="sm"
-            title={user?.email ?? 'Administrator profile'}
-            className="ml-2 ring-2 ring-primary-container"
+            title={user?.email ?? 'Profile'}
+            className="ring-2 ring-primary-container"
           />
         </Link>
       </div>

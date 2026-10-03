@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
 import { ConsoleEmptyState, ConsoleErrorState, ConsoleLoadingState } from '@/features/admin/console-state'
 import { ProviderConfigPanel } from '@/features/admin/provider-config-panel'
 import { usePatchIdentityProvider, useTenantIdentityProviders } from '@/features/admin/use-admin-queries'
@@ -15,14 +16,10 @@ export function IdentityProvidersPage() {
 
   return (
     <div>
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Identity Providers</h1>
-          <p className="mt-1 text-on-surface-variant">
-            Configure upstream OAuth credentials per tenant. Secrets are encrypted at rest in the database.
-          </p>
-        </div>
-      </header>
+      <ConsolePageHeader
+        title="Identity providers"
+        description="Configure upstream OAuth credentials. Secrets stay encrypted in the database."
+      />
 
       {providersQuery.isLoading ? (
         <ConsoleLoadingState />
@@ -41,14 +38,18 @@ export function IdentityProvidersPage() {
                 <div className="flex flex-col items-end gap-1">
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                      p.enabled ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                      p.enabled
+                        ? 'bg-success-container text-on-success-container'
+                        : 'bg-warning-container text-on-warning-container'
                     }`}
                   >
                     {p.enabled ? 'Enabled' : 'Disabled'}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                      p.configured ? 'bg-blue-50 text-blue-700' : 'bg-surface-container text-on-surface-variant'
+                      p.configured
+                        ? 'bg-primary-container text-on-primary-container'
+                        : 'bg-surface-container text-on-surface-variant'
                     }`}
                   >
                     {p.configured ? 'Configured' : 'Not configured'}

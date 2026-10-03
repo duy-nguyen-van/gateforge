@@ -253,27 +253,26 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 }
 
 func (h *AuthHandler) clearSessionCookie(c echo.Context) {
-	c.SetCookie(&http.Cookie{
-		Name:     constants.SessionCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   h.cfg.AppEnv == config.EnvironmentProduction,
-		MaxAge:   -1,
-	})
+	c.SetCookie(newSessionCookie(h.cfg.AppEnv == config.EnvironmentProduction, "", -1))
 }
 
 func (h *AuthHandler) setSessionCookie(c echo.Context, sid string, ttl time.Duration) {
-	c.SetCookie(&http.Cookie{
+	c.SetCookie(newSessionCookie(h.cfg.AppEnv == config.EnvironmentProduction, sid, int(ttl.Seconds())))
+}
+
+// Secure follows production so a local HTTP dev server can still store the cookie.
+//
+//nolint:gosec // G124: HttpOnly and SameSite=Lax are set; Secure is true in production
+func newSessionCookie(production bool, value string, maxAge int) *http.Cookie {
+	return &http.Cookie{
 		Name:     constants.SessionCookieName,
-		Value:    sid,
+		Value:    value,
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   h.cfg.AppEnv == config.EnvironmentProduction,
-		MaxAge:   int(ttl.Seconds()),
-	})
+		Secure:   production,
+		MaxAge:   maxAge,
+	}
 }
 
 // Refresh godoc
@@ -284,6 +283,52 @@ func (h *AuthHandler) setSessionCookie(c echo.Context, sid string, ttl time.Dura
 // @Param body body dtos.RefreshTokenRequest true "Refresh token"
 // @Success 200 {object} object{meta=dtos.Meta,data=dtos.LoginResponse}
 // @Router /refresh [post]
+// ForgotPassword godoc
+// @Summary Request a password reset
+// @Description Always returns 200 so callers cannot tell whether the email exists
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body dtos.ForgotPasswordRequest true "Email"
+// @Success 200 {object} object{meta=dtos.Meta}
+// @Router /forgot-password [post]
+func (h *AuthHandler) ForgotPassword(c echo.Context) error {
+	var req dtos.ForgotPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return h.HandleError(c, errors.ValidationError("Invalid request body", err))
+	}
+	if err := h.validator.Struct(req); err != nil {
+		return h.HandleError(c, errors.ValidationError("Validation failed", err))
+	}
+	if err := h.userService.ForgotPassword(c.Request().Context(), req.Email); err != nil {
+		return h.HandleError(c, err)
+	}
+	return h.SuccessResponse(c, "If an account exists, a reset link has been sent", nil, nil)
+}
+
+// ResetPassword godoc
+// @Summary Reset a password with a one-time token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body dtos.ResetPasswordRequest true "Token and new password"
+// @Success 200 {object} object{meta=dtos.Meta}
+// @Failure 401 {object} object{meta=dtos.Meta}
+// @Router /reset-password [post]
+func (h *AuthHandler) ResetPassword(c echo.Context) error {
+	var req dtos.ResetPasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return h.HandleError(c, errors.ValidationError("Invalid request body", err))
+	}
+	if err := h.validator.Struct(req); err != nil {
+		return h.HandleError(c, errors.ValidationError("Validation failed", err))
+	}
+	if err := h.userService.ResetPassword(c.Request().Context(), req.Token, req.NewPassword); err != nil {
+		return h.HandleError(c, err)
+	}
+	return h.SuccessResponse(c, "Password updated", nil, nil)
+}
+
 func (h *AuthHandler) Refresh(c echo.Context) error {
 	var req dtos.RefreshTokenRequest
 	if err := c.Bind(&req); err != nil {

@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.26.5-alpine AS builder
+FROM golang:1.27.1-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -21,7 +21,7 @@ RUN go mod tidy && \
     CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
 # Final stage
-FROM alpine:3.23.3
+FROM alpine:3.24
 
 # Install ca-certificates and create non-root user
 RUN apk --no-cache add ca-certificates && \
@@ -44,7 +44,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health/ready || exit 1
 
 # Run the application
 CMD ["./main"]

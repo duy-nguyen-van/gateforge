@@ -36,6 +36,7 @@ Identity and access backend: **Echo**, **Uber FX**, **PostgreSQL**, **Redis**, *
 | Logging / APM | `internal/logger/`, `internal/monitoring/` |
 | Pure utils | `internal/utils/` |
 | Small shared packages | `pkg/` (e.g. `pkg/correlationid/`) |
+| OTel collector config | `deploy/otel/` |
 | SQL migrations + checksum | `cmd/migrations/sql/`, `atlas.sum` |
 | OpenAPI (swag-generated) | `docs/swagger.yaml`, `docs/swagger.json`, `docs/docs.go` |
 
@@ -71,16 +72,19 @@ Routes are registered in `cmd/server/routes/router.go`. **Two URL namespaces** �
 - May use repos, auth, cache, integration, domains, crypto
 
 ### Logging & observability
-- **Global Zap** initialized in `cmd/server/main.go` via `logger.Init()` — use `logger.Log` / `logger.Sugar`, not injected `slog`
-- Request logging: `internal/middlewares/logging.go` (`RequestLogging`); Sentry/New Relic in `internal/monitoring/`
+- **Global Zap** initialized in `cmd/server/main.go` via `logger.Init()` — use `logger.From(ctx)` on request paths (not injected `slog`)
+- HTTP spans: official Echo v4 `otelecho` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; business spans via `monitoring.Observe` on exported service methods
+- Request logging: `internal/middlewares/logging.go` (no bodies/JWT); Sentry redaction in `internal/monitoring/sentry_headers.go`
 - Correlation ID: `pkg/correlationid/` via `internal/request/context.go` helpers
+- Local traces: `make otel-up` → Jaeger at http://localhost:16686 — see [docs/OPENTELEMETRY.md](docs/OPENTELEMETRY.md)
 
 ### Local dev
 ```bash
 make container-up   # dependencies
+make otel-up        # optional: otel-collector + jaeger
 make migrate-up     # Atlas migrations
 make up             # run server
-make bootstrap      # all three
+make bootstrap      # postgres, redis, migrate, server
 ```
 
 ## Codex configuration
@@ -105,6 +109,7 @@ make bootstrap      # all three
 | Rule | When |
 |------|------|
 | `rules/go-layering.mdc` | Editing `**/*.go` |
+| `rules/observability.mdc` | Editing Go — traces, `logger.From`, IAM log redaction |
 | `rules/golang-patterns.mdc` | Editing `**/*.go` |
 | `rules/go-testing.mdc` | Editing `**/*_test.go` |
 | `rules/database-migrations.mdc` | Editing `cmd/migrations/**/*.sql` |
@@ -135,6 +140,7 @@ make bootstrap      # all three
 | `README.md` | Backend setup |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | Monorepo contribution |
 | [docs/README.md](docs/README.md) | **Hub** — feature index, DB/Redis reference, routes |
+| [docs/OPENTELEMETRY.md](docs/OPENTELEMETRY.md) | OpenTelemetry, Jaeger, `logger.From`, `Observe` |
 | [docs/features/](docs/features/) | OIDC, SSO, federation, passkey/MFA, multi-tenant, authorization |
 | [docs/testing/](docs/testing/) | curl / Postman manual testing |
 | `docs/swagger.yaml` | OpenAPI for `/api/v1` only |

@@ -1,0 +1,8 @@
+{{define "subject"}}Welcome to GateForge{{end}}
+{{define "text"}}Welcome to GateForge.
+
+Hello {{.UserName}}.
+
+Your identity is ready. Sign in when you need to manage access.
+
+{{template "footer"}}{{end}}

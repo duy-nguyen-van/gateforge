@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/request"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/logger"
@@ -67,15 +68,15 @@ func RecoveryMiddleware(cfg *config.Config) echo.MiddlewareFunc {
 							scope.SetTag("error_code", panicErr.Code)
 							scope.SetTag("error_type", string(panicErr.Type))
 							scope.SetTag("operation", panicErr.Operation)
-							scope.SetExtra("panic_value", r)
-							scope.SetExtra("stack_trace", panicErr.StackTrace)
-							scope.SetExtra("path", c.Request().URL.Path)
-							scope.SetExtra("method", c.Request().Method)
-							scope.SetExtra("query", c.QueryParams())
-							scope.SetExtra("user_agent", c.Request().UserAgent())
-							scope.SetExtra("ip", c.RealIP())
-							scope.SetExtra("correlation_id", correlationID)
-							scope.SetExtra("language_code", languageCode)
+							monitoring.SetScopeData(scope, "panic_value", r)
+							monitoring.SetScopeData(scope, "stack_trace", panicErr.StackTrace)
+							monitoring.SetScopeData(scope, "path", c.Request().URL.Path)
+							monitoring.SetScopeData(scope, "method", c.Request().Method)
+							monitoring.SetScopeData(scope, "query", c.QueryParams())
+							monitoring.SetScopeData(scope, "user_agent", c.Request().UserAgent())
+							monitoring.SetScopeData(scope, "ip", c.RealIP())
+							monitoring.SetScopeData(scope, "correlation_id", correlationID)
+							monitoring.SetScopeData(scope, "language_code", languageCode)
 							hub.CaptureException(panicErr)
 						})
 					}

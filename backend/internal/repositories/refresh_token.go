@@ -10,6 +10,16 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+// RefreshRotationStatus is the outcome of rotating an opaque refresh token.
+type RefreshRotationStatus string
+
+const (
+	RefreshRotationOK      RefreshRotationStatus = "ok"
+	RefreshRotationInvalid RefreshRotationStatus = "invalid"
+	RefreshRotationReuse   RefreshRotationStatus = "reuse"
 )
 
 // RefreshTokenUsage aggregates refresh token metrics for an OAuth client record.
@@ -28,6 +38,8 @@ type RefreshTokenRepository interface {
 	RevokeAllValidForUser(ctx context.Context, userID string) error
 	// RevokeAndCreate rotates a refresh token in one transaction (old revoked, new persisted).
 	RevokeAndCreate(ctx context.Context, oldID string, newRT *models.RefreshToken) error
+	// Rotate locks the presented token, detects reuse, and persists the replacement.
+	Rotate(ctx context.Context, oldHash string, newRT *models.RefreshToken) (RefreshRotationStatus, error)
 	UsageByClientRecordID(ctx context.Context, clientRecordID string) (*RefreshTokenUsage, error)
 }
 
@@ -96,6 +108,68 @@ func (r *refreshTokenRepository) RevokeAndCreate(ctx context.Context, oldID stri
 			WithResource("refresh_token")
 	}
 	return nil
+}
+
+func (r *refreshTokenRepository) Rotate(ctx context.Context, oldHash string, newRT *models.RefreshToken) (RefreshRotationStatus, error) {
+	status := RefreshRotationInvalid
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var rt models.RefreshToken
+		q := tx.Where("token_hash = ?", oldHash)
+		if r.db.Name() == "postgres" {
+			q = q.Clauses(clause.Locking{Strength: "UPDATE"})
+		}
+		if err := q.First(&rt).Error; err != nil {
+			if stderrors.Is(err, gorm.ErrRecordNotFound) {
+				status = RefreshRotationInvalid
+				return nil
+			}
+			return err
+		}
+		if !rt.ExpiresAt.After(time.Now().UTC()) {
+			status = RefreshRotationInvalid
+			return nil
+		}
+		if rt.Revoked {
+			if err := tx.Model(&models.RefreshToken{}).Where("family_id = ?", rt.FamilyID).Update("revoked", true).Error; err != nil {
+				return err
+			}
+			status = RefreshRotationReuse
+			return nil
+		}
+		if newRT.OAuthClientID != "" && newRT.OAuthClientID != rt.OAuthClientID {
+			status = RefreshRotationInvalid
+			return nil
+		}
+		if err := tx.Model(&models.RefreshToken{}).Where("id = ?", rt.ID).Update("revoked", true).Error; err != nil {
+			return err
+		}
+		if newRT.FamilyID == "" {
+			newRT.FamilyID = rt.FamilyID
+		}
+		if newRT.Scope == "" {
+			newRT.Scope = rt.Scope
+		}
+		if newRT.UserID == "" {
+			newRT.UserID = rt.UserID
+		}
+		if newRT.TenantID == "" {
+			newRT.TenantID = rt.TenantID
+		}
+		if newRT.OAuthClientID == "" {
+			newRT.OAuthClientID = rt.OAuthClientID
+		}
+		if err := tx.Create(newRT).Error; err != nil {
+			return err
+		}
+		status = RefreshRotationOK
+		return nil
+	})
+	if err != nil {
+		return "", errors.DatabaseError("Failed to rotate refresh token", err).
+			WithOperation("rotate_refresh_token").
+			WithResource("refresh_token")
+	}
+	return status, nil
 }
 
 func (r *refreshTokenRepository) UsageByClientRecordID(ctx context.Context, clientRecordID string) (*RefreshTokenUsage, error) {

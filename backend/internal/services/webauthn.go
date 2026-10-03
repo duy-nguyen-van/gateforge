@@ -11,13 +11,13 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
-	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // WebauthnService implements passkey registration and login.
@@ -79,14 +79,26 @@ func (s *webauthnService) loadUserForWebAuthn(ctx context.Context, userID string
 }
 
 func (s *webauthnService) ListCredentials(ctx context.Context, userID string, pr *dtos.PageableRequest) ([]models.WebauthnCredential, *dtos.Pageable, error) {
-	result, err := s.credRepo.ListByUserIDPaginated(ctx, userID, pr)
-	if err != nil {
-		return nil, nil, err
-	}
-	return result.Data, result.Pageable, nil
+	return monitoring.Observe2(ctx, webauthnTracer, "WebauthnService.ListCredentials",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) ([]models.WebauthnCredential, *dtos.Pageable, error) {
+			result, err := s.credRepo.ListByUserIDPaginated(ctx, userID, pr)
+			if err != nil {
+				return nil, nil, err
+			}
+			return result.Data, result.Pageable, nil
+		})
 }
 
 func (s *webauthnService) RegisterStart(ctx context.Context, userID, deviceName string) (json.RawMessage, string, error) {
+	return monitoring.Observe2(ctx, webauthnTracer, "WebauthnService.RegisterStart",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) (json.RawMessage, string, error) {
+			return s.registerStart(ctx, userID, deviceName)
+		})
+}
+
+func (s *webauthnService) registerStart(ctx context.Context, userID, deviceName string) (json.RawMessage, string, error) {
 	u, err := s.loadUserForWebAuthn(ctx, userID)
 	if err != nil {
 		return nil, "", err
@@ -98,7 +110,6 @@ func (s *webauthnService) RegisterStart(ctx context.Context, userID, deviceName 
 	}
 	creation, session, err := s.wa.BeginRegistration(waUser, webauthn.WithExclusions(exclude))
 	if err != nil {
-		logger.Log.Error("webauthn register start", zap.Error(err))
 		return nil, "", errors.ValidationError("WebAuthn registration failed to start", err).
 			WithOperation("webauthn_register_start").
 			WithResource("webauthn")
@@ -120,6 +131,14 @@ func (s *webauthnService) RegisterStart(ctx context.Context, userID, deviceName 
 }
 
 func (s *webauthnService) RegisterFinish(ctx context.Context, userID, sessionToken string, credentialJSON []byte) error {
+	return monitoring.ObserveErr(ctx, webauthnTracer, "WebauthnService.RegisterFinish",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) error {
+			return s.registerFinish(ctx, userID, sessionToken, credentialJSON)
+		})
+}
+
+func (s *webauthnService) registerFinish(ctx context.Context, userID, sessionToken string, credentialJSON []byte) error {
 	var env webauthnRegEnvelope
 	if err := s.ephemeral.TakeWebauthnRegistrationSession(ctx, sessionToken, &env); err != nil {
 		return err
@@ -137,7 +156,6 @@ func (s *webauthnService) RegisterFinish(ctx context.Context, userID, sessionTok
 	}
 	cred, err := s.wa.CreateCredential(waUser, env.Session, parsed)
 	if err != nil {
-		logger.Log.Warn("webauthn register finish verify failed", zap.Error(err))
 		return errors.ValidationError("WebAuthn registration verification failed", err).
 			WithOperation("webauthn_register_finish").
 			WithResource("webauthn")
@@ -163,9 +181,6 @@ func (s *webauthnService) RegisterFinish(ctx context.Context, userID, sessionTok
 	if err := s.credRepo.Create(ctx, row); err != nil {
 		return err
 	}
-	logger.Log.Info("webauthn credential registered",
-		zap.String("operation", "webauthn_register_finish"),
-		zap.String("user_id", userID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionWebauthnRegister,
 		Result:       constants.AuditResultSuccess,
@@ -179,6 +194,13 @@ func (s *webauthnService) RegisterFinish(ctx context.Context, userID, sessionTok
 }
 
 func (s *webauthnService) LoginStart(ctx context.Context, email string) (json.RawMessage, string, error) {
+	return monitoring.Observe2(ctx, webauthnTracer, "WebauthnService.LoginStart", nil,
+		func(ctx context.Context) (json.RawMessage, string, error) {
+			return s.loginStart(ctx, email)
+		})
+}
+
+func (s *webauthnService) loginStart(ctx context.Context, email string) (json.RawMessage, string, error) {
 	emailLower := strings.ToLower(strings.TrimSpace(email))
 	u, err := s.userRepo.GetByEmailLower(ctx, emailLower)
 	if err != nil {
@@ -201,7 +223,6 @@ func (s *webauthnService) LoginStart(ctx context.Context, email string) (json.Ra
 	waUser := &domains.WebAuthnUser{User: u}
 	assertion, session, err := s.wa.BeginLogin(waUser)
 	if err != nil {
-		logger.Log.Warn("webauthn login start", zap.Error(err))
 		return s.fakeLoginOptions(ctx)
 	}
 	env := webauthnLoginEnvelope{Session: *session}
@@ -240,6 +261,13 @@ func (s *webauthnService) fakeLoginOptions(ctx context.Context) (json.RawMessage
 }
 
 func (s *webauthnService) LoginFinish(ctx context.Context, email, sessionToken string, credentialJSON []byte) (*models.User, error) {
+	return monitoring.Observe(ctx, webauthnTracer, "WebauthnService.LoginFinish", nil,
+		func(ctx context.Context) (*models.User, error) {
+			return s.loginFinish(ctx, email, sessionToken, credentialJSON)
+		})
+}
+
+func (s *webauthnService) loginFinish(ctx context.Context, email, sessionToken string, credentialJSON []byte) (*models.User, error) {
 	var env webauthnLoginEnvelope
 	if err := s.ephemeral.TakeWebauthnLoginSession(ctx, sessionToken, &env); err != nil {
 		return nil, err
@@ -303,9 +331,6 @@ func (s *webauthnService) LoginFinish(ctx context.Context, email, sessionToken s
 	if err := s.credRepo.UpdateCredentialJSON(ctx, row.ID, updatedJSON, int64(cred.Authenticator.SignCount)); err != nil {
 		return nil, err
 	}
-	logger.Log.Info("webauthn login success",
-		zap.String("operation", "webauthn_login_finish"),
-		zap.String("user_id", u.ID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionWebauthnLogin,
 		Result:       constants.AuditResultSuccess,

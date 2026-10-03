@@ -15,7 +15,7 @@ import (
 
 func TestHealthHandler_HealthCheck(t *testing.T) {
 	cfg := handlerTestConfig()
-	h := ProvideHealthHandler(cfg, nil)
+	h := ProvideHealthHandler(cfg, nil, nil)
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
@@ -29,7 +29,7 @@ func TestHealthHandler_HealthCheck(t *testing.T) {
 }
 
 func TestHealthHandler_DatabaseHealthCheck_nilDB(t *testing.T) {
-	h := ProvideHealthHandler(handlerTestConfig(), nil)
+	h := ProvideHealthHandler(handlerTestConfig(), nil, nil)
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/health/database", nil)
 	rec := httptest.NewRecorder()
@@ -41,7 +41,7 @@ func TestHealthHandler_DatabaseHealthCheck_nilDB(t *testing.T) {
 }
 
 func TestHealthHandler_DatabaseHealthCheck_unhealthy(t *testing.T) {
-	h := ProvideHealthHandler(handlerTestConfig(), &db.PostgresDB{})
+	h := ProvideHealthHandler(handlerTestConfig(), &db.PostgresDB{}, nil)
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/health/database", nil)
 	rec := httptest.NewRecorder()
@@ -54,7 +54,7 @@ func TestHealthHandler_DatabaseHealthCheck_unhealthy(t *testing.T) {
 }
 
 func TestHealthHandler_DatabaseMetrics_nilDB(t *testing.T) {
-	h := ProvideHealthHandler(handlerTestConfig(), nil)
+	h := ProvideHealthHandler(handlerTestConfig(), nil, nil)
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/health/metrics", nil)
 	rec := httptest.NewRecorder()
@@ -66,7 +66,7 @@ func TestHealthHandler_DatabaseMetrics_nilDB(t *testing.T) {
 }
 
 func TestHealthHandler_DatabaseHealthCheck_healthy(t *testing.T) {
-	h := ProvideHealthHandler(handlerTestConfig(), db.NewHealthyPostgresDBStub())
+	h := ProvideHealthHandler(handlerTestConfig(), db.NewHealthyPostgresDBStub(), nil)
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/health/database", nil)
 	rec := httptest.NewRecorder()
@@ -87,7 +87,7 @@ func TestHealthHandler_DatabaseMetrics_success(t *testing.T) {
 	cfg.DatabaseConnectTimeout = 5 * time.Second
 	cfg.DatabaseQueryTimeout = 10 * time.Second
 
-	h := ProvideHealthHandler(cfg, &db.PostgresDB{})
+	h := ProvideHealthHandler(cfg, &db.PostgresDB{}, nil)
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/health/metrics", nil)
 	rec := httptest.NewRecorder()

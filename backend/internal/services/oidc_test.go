@@ -27,7 +27,7 @@ func newOIDCTestService(t *testing.T) (OIDCService, *auth.OIDCSigner, *stubClien
 	authCodes := newAuthCodeTestRepo()
 	users := newUserTestRepo()
 	memberships := &stubMembershipRepo{active: map[string]map[string]bool{}}
-	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, newRefreshTokenTestRepo(), memberships, &auditCapture{})
+	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, newRefreshTokenTestRepo(), memberships, &auditCapture{}, nil)
 	return svc, signer, clients, authCodes, users, memberships
 }
 

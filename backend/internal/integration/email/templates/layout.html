@@ -1,0 +1,38 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.EmailTitle}}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F4F6FB;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">{{block "preheader" .}}{{end}}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#F4F6FB" style="background-color:#F4F6FB;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;">
+          <tr>
+            <td bgcolor="#1B2438" style="background-color:#1B2438;padding:28px 32px;">
+              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;color:#F7F8FC;">
+                GateForge
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td bgcolor="#FFFFFF" style="background-color:#FFFFFF;padding:32px;">
+              {{template "content" .}}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 8px 0;">
+              <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.5;color:#5C6478;">
+                GateForge identity
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>{{end}}

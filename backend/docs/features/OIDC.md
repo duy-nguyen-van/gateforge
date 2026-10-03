@@ -74,8 +74,21 @@ sequenceDiagram
 
 ### Consent
 
-- Stored in `consents` per `(tenant_id, user_id, oauth_client_id)`.
-- Scopes recorded on `authorization_codes.scope`.
+Consent screens are **not enforced**. The `consents` table exists, but `/authorize` does not read or write it. Requested scopes are stored on the authorization code and copied onto the refresh token.
+
+### Refresh tokens
+
+`POST /token` accepts `grant_type=refresh_token`. The refresh token is opaque. Rotation happens in one database transaction:
+
+- A live token is revoked and replaced with a new row that keeps the same `family_id`.
+- Presenting an already revoked token revokes every row in that family and returns `invalid_grant`.
+- An ID token is issued on refresh only when the stored scope includes `openid`.
+
+Authorization codes are consumed with one locked delete. If signing fails after consume, the code stays spent and the client must authorize again.
+
+Client secrets are stored as `hmac-sha256:<hex>` using `CLIENT_SECRET_PEPPER`. A leftover plaintext secret is compared in constant time and upgraded on the next successful `/token` or `/introspect`.
+
+`/.well-known/jwks.json` is precomputed and sent with `Cache-Control: public, max-age=300`. Set `OIDC_RSA_PREVIOUS_PRIVATE_KEY_PEM` and `OIDC_PREVIOUS_KEY_ID` while rotating: both public keys are published, and only the active key signs new tokens. Verification accepts either key. Every replica must load the same PEMs. Drop the previous key only after access tokens signed with it have expired.
 
 ## Persistence
 
@@ -86,8 +99,8 @@ sequenceDiagram
 | `clients` | Read: validate `client_id`, redirect URIs, tenant; confidential auth for `/introspect` |
 | `authorization_codes` | Write on authorize; read + consume on token exchange |
 | `access_tokens` | Legacy schema (unused — OIDC access tokens are RS256 JWTs) |
-| `refresh_tokens` | Write on token response; read on `/introspect` for opaque refresh tokens |
-| `consents` | Read/write scope grants |
+| `refresh_tokens` | Write on token response; rotate on `refresh_token` grant; read on `/introspect` |
+| `consents` | Schema only. Consent is not enforced |
 | `tenant_memberships` | Read: user must belong to client's tenant |
 | `users` | Read: subject for tokens and userinfo |
 

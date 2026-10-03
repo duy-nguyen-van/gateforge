@@ -101,16 +101,7 @@ func (h *OIDCHandler) Login(c echo.Context) error {
 	if err != nil {
 		return h.HandleError(c, err)
 	}
-	cookie := &http.Cookie{
-		Name:     constants.SessionCookieName,
-		Value:    sid,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   h.cfg.AppEnv == config.EnvironmentProduction,
-		MaxAge:   int(ttl.Seconds()),
-	}
-	c.SetCookie(cookie)
+	c.SetCookie(newSessionCookie(h.cfg.AppEnv == config.EnvironmentProduction, sid, int(ttl.Seconds())))
 	h.auditService.Record(c.Request().Context(), domains.AuditRecordParams{
 		Action:       constants.AuditActionOIDCLogin,
 		Result:       constants.AuditResultSuccess,
@@ -183,16 +174,7 @@ func (h *OIDCHandler) FederationOAuthCallback(c echo.Context) error {
 	if err != nil {
 		return h.HandleError(c, err)
 	}
-	cookie := &http.Cookie{
-		Name:     constants.SessionCookieName,
-		Value:    sid,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   h.cfg.AppEnv == config.EnvironmentProduction,
-		MaxAge:   int(ttl.Seconds()),
-	}
-	c.SetCookie(cookie)
+	c.SetCookie(newSessionCookie(h.cfg.AppEnv == config.EnvironmentProduction, sid, int(ttl.Seconds())))
 	return c.Redirect(http.StatusFound, returnTo)
 }
 
@@ -448,6 +430,7 @@ func (h *OIDCHandler) JWKS(c echo.Context) error {
 	if err != nil {
 		return h.InternalErrorResponse(c, "Failed to marshal JWKS", err)
 	}
+	c.Response().Header().Set("Cache-Control", "public, max-age=300")
 	return c.Blob(http.StatusOK, "application/json", b)
 }
 
@@ -478,7 +461,7 @@ func (h *OIDCHandler) OpenIDConfiguration(c echo.Context) error {
 		ScopesSupported:                   []string{"openid", "email", "profile"},
 		TokenEndpointAuthMethodsSupported: []string{"none", "client_secret_post", "client_secret_basic"},
 		CodeChallengeMethodsSupported:     []string{"S256"},
-		GrantTypesSupported:               []string{"authorization_code"},
+		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
 	}
 	return c.JSON(http.StatusOK, response)
 }

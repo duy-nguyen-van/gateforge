@@ -41,6 +41,7 @@ src/models/DatabaseHealthEnvelope.ts
 src/models/DatabaseMetricsEnvelope.ts
 src/models/EmptyDataEnvelope.ts
 src/models/ErrorEnvelope.ts
+src/models/ForgotPasswordRequest.ts
 src/models/HealthEnvelope.ts
 src/models/HealthResponse.ts
 src/models/JWKS.ts
@@ -66,6 +67,7 @@ src/models/PublicFederationProviderListEnvelope.ts
 src/models/PublicFederationProviderResponse.ts
 src/models/RefreshTokenRequest.ts
 src/models/RegisterRequest.ts
+src/models/ResetPasswordRequest.ts
 src/models/TenantSelectRequest.ts
 src/models/TenantSelectionResponse.ts
 src/models/TenantSummary.ts

@@ -14,7 +14,7 @@ import (
 func TestProvideEmailSender_InvalidProvider(t *testing.T) {
 	testutil.InitLogger()
 	cfg := config.Config{EmailProvider: "unknown"}
-	sender, err := ProvideEmailSender(cfg)
+	sender, err := ProvideEmailSender(&cfg)
 	require.Error(t, err)
 	require.Nil(t, sender)
 	require.Contains(t, err.Error(), "invalid email provider")
@@ -28,7 +28,7 @@ func TestProvideEmailSender_SESProvider(t *testing.T) {
 		AWSSESAccessKey: "AKIATESTKEY",
 		AWSSESSecretKey: "secret",
 	}
-	sender, err := ProvideEmailSender(cfg)
+	sender, err := ProvideEmailSender(&cfg)
 	require.NoError(t, err)
 	require.NotNil(t, sender)
 }

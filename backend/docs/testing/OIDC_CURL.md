@@ -218,6 +218,20 @@ curl -sS -X POST "$BASE/token" \
   }" | jq .
 ```
 
+## Refresh grant
+
+Exchange the refresh token from the code grant. A second call with the same token is reuse: the family is revoked and the response is `invalid_grant`.
+
+```bash
+curl -sS -X POST "$BASE/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=refresh_token" \
+  --data-urlencode "refresh_token=$REFRESH_TOKEN" \
+  --data-urlencode "client_id=$CLIENT_ID"
+```
+
+`/.well-known/jwks.json` sends `Cache-Control: public, max-age=300`. Discovery lists `authorization_code` and `refresh_token`. Consent is not enforced.
+
 ## Related
 
 - [features/SSO_SESSION.md](../features/SSO_SESSION.md) — API login instead of `/oidc/login`

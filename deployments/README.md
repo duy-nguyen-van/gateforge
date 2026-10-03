@@ -64,6 +64,23 @@ This builds the multi-stage image from [`docker/Dockerfile`](../docker/Dockerfil
 
 If you prefer a reverse proxy instead of the embedded binary, see [`deployments/caddy/Caddyfile`](caddy/Caddyfile) and [`frontend/README.md`](../frontend/README.md).
 
+## Replicas, readiness, and key rotation
+
+Every replica must share the same `JWT_SECRET`, `CLIENT_SECRET_PEPPER`, `MFA_ENCRYPTION_KEY`, and OIDC RSA PEMs, including `OIDC_RSA_PREVIOUS_PRIVATE_KEY_PEM` during rotation. Redis is required for rate limits, lockout, password reset, and ephemeral login state.
+
+Readiness is `GET /api/v1/health/ready`. It pings Postgres and Redis. Point process and container health checks there.
+
+Signing-key rotation:
+
+1. Generate the new RSA key and set it as `OIDC_RSA_PRIVATE_KEY_PEM` / `OIDC_KEY_ID`.
+2. Move the old PEM to `OIDC_RSA_PREVIOUS_PRIVATE_KEY_PEM` and set `OIDC_PREVIOUS_KEY_ID`.
+3. Roll every replica so JWKS publishes both public keys. New tokens use the active `kid` only.
+4. After the longest access-token TTL has passed, remove the previous key and roll again.
+
+Non-production still refuses to run more than one process without an explicit signing PEM.
+
+Back up the Postgres volume and the Redis volume. Redis holds lockout counters and unused password-reset tokens; Postgres holds users, sessions, refresh-token families, and audit logs. `audit_logs` is append-only.
+
 ## systemd template
 
 See [`systemd/gateforge-iam.service`](systemd/gateforge-iam.service) for a minimal unit file.

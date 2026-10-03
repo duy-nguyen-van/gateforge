@@ -144,8 +144,11 @@ export function UserDetailDrawer({ userId, onClose }: UserDetailDrawerProps) {
                   <p className="text-sm text-on-surface-variant">{user.email}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${user.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-error-container/30 text-error'
-                        }`}
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                        user.status === 'active'
+                          ? 'bg-success-container text-on-success-container'
+                          : 'bg-error-container text-error'
+                      }`}
                     >
                       {formatUserStatus(user.status)}
                     </span>

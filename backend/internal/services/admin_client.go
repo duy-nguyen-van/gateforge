@@ -8,21 +8,33 @@ import (
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
+	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const seededDevClientID = "oidc-dev"
 
 var (
-	defaultClientGrantTypes = []string{"authorization_code"}
+	defaultClientGrantTypes = []string{"authorization_code", "refresh_token"}
 	defaultClientScopes     = []string{"openid", "email", "profile"}
 )
 
 func (s *adminService) GetClientByID(ctx context.Context, clientID string) (*dtos.AdminClientResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.GetClientByID",
+		[]attribute.KeyValue{attribute.String("client_id", clientID)},
+		func(ctx context.Context) (*dtos.AdminClientResponse, error) {
+			return s.getClientByID(ctx, clientID)
+		})
+}
+
+func (s *adminService) getClientByID(ctx context.Context, clientID string) (*dtos.AdminClientResponse, error) {
 	client, err := s.clients.GetByID(ctx, clientID)
 	if err != nil {
 		return nil, err
@@ -31,6 +43,13 @@ func (s *adminService) GetClientByID(ctx context.Context, clientID string) (*dto
 }
 
 func (s *adminService) CreateClient(ctx context.Context, req *dtos.AdminCreateClientRequest) (*dtos.AdminCreateClientResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.CreateClient", nil,
+		func(ctx context.Context) (*dtos.AdminCreateClientResponse, error) {
+			return s.createClient(ctx, req)
+		})
+}
+
+func (s *adminService) createClient(ctx context.Context, req *dtos.AdminCreateClientRequest) (*dtos.AdminCreateClientResponse, error) {
 	if req == nil {
 		return nil, errors.ValidationError("Request body is required", nil)
 	}
@@ -78,7 +97,11 @@ func (s *adminService) CreateClient(ctx context.Context, req *dtos.AdminCreateCl
 			return nil, err
 		}
 		plaintextSecret = secret
-		clientSecret = secret
+		hashed, hashErr := crypto.HashClientSecret(s.cfg.ClientSecretPepper, secret)
+		if hashErr != nil {
+			return nil, errors.InternalError("Failed to hash client secret", hashErr)
+		}
+		clientSecret = hashed
 	}
 
 	client := &models.Client{
@@ -96,7 +119,7 @@ func (s *adminService) CreateClient(ctx context.Context, req *dtos.AdminCreateCl
 		return nil, err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminClientCreate,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -112,7 +135,9 @@ func (s *adminService) CreateClient(ctx context.Context, req *dtos.AdminCreateCl
 			"grant_types":   grantTypes,
 			"scopes":        scopes,
 		},
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	resp := &dtos.AdminCreateClientResponse{
 		AdminClientResponse: *dtos.NewAdminClientResponse(client),
@@ -122,6 +147,14 @@ func (s *adminService) CreateClient(ctx context.Context, req *dtos.AdminCreateCl
 }
 
 func (s *adminService) UpdateClient(ctx context.Context, clientID string, req *dtos.AdminUpdateClientRequest) (*dtos.AdminClientResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.UpdateClient",
+		[]attribute.KeyValue{attribute.String("client_id", clientID)},
+		func(ctx context.Context) (*dtos.AdminClientResponse, error) {
+			return s.updateClient(ctx, clientID, req)
+		})
+}
+
+func (s *adminService) updateClient(ctx context.Context, clientID string, req *dtos.AdminUpdateClientRequest) (*dtos.AdminClientResponse, error) {
 	if req == nil {
 		return nil, errors.ValidationError("Request body is required", nil)
 	}
@@ -167,7 +200,11 @@ func (s *adminService) UpdateClient(ctx context.Context, clientID string, req *d
 			if err != nil {
 				return nil, err
 			}
-			patch.ClientSecret = &secret
+			hashed, hashErr := crypto.HashClientSecret(s.cfg.ClientSecretPepper, secret)
+			if hashErr != nil {
+				return nil, errors.InternalError("Failed to hash client secret", hashErr)
+			}
+			patch.ClientSecret = &hashed
 		}
 	}
 	if req.ClientSecret != nil {
@@ -178,7 +215,11 @@ func (s *adminService) UpdateClient(ctx context.Context, clientID string, req *d
 		if existing.IsPublic {
 			return nil, errors.ValidationError("Public clients cannot have a client secret", nil)
 		}
-		patch.ClientSecret = &secret
+		hashed, hashErr := crypto.HashClientSecret(s.cfg.ClientSecretPepper, secret)
+		if hashErr != nil {
+			return nil, errors.InternalError("Failed to hash client secret", hashErr)
+		}
+		patch.ClientSecret = &hashed
 	}
 
 	updated, err := s.clients.Update(ctx, clientID, patch)
@@ -186,7 +227,7 @@ func (s *adminService) UpdateClient(ctx context.Context, clientID string, req *d
 		return nil, err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminClientUpdate,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -208,12 +249,23 @@ func (s *adminService) UpdateClient(ctx context.Context, clientID string, req *d
 			"grant_types":   []string(updated.GrantTypes),
 			"scopes":        []string(updated.Scopes),
 		},
-	})
+	}); err != nil {
+		return nil, err
+	}
+	s.forgetClientCache(ctx, existing.ClientID)
 
 	return dtos.NewAdminClientResponse(updated), nil
 }
 
 func (s *adminService) DeleteClient(ctx context.Context, clientID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.DeleteClient",
+		[]attribute.KeyValue{attribute.String("client_id", clientID)},
+		func(ctx context.Context) error {
+			return s.deleteClient(ctx, clientID)
+		})
+}
+
+func (s *adminService) deleteClient(ctx context.Context, clientID string) error {
 	existing, err := s.clients.GetByID(ctx, clientID)
 	if err != nil {
 		return err
@@ -225,7 +277,7 @@ func (s *adminService) DeleteClient(ctx context.Context, clientID string) error 
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminClientDelete,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -237,8 +289,18 @@ func (s *adminService) DeleteClient(ctx context.Context, clientID string) error 
 			"client_id": existing.ClientID,
 			"name":      existing.Name,
 		},
-	})
+	}); err != nil {
+		return err
+	}
+	s.forgetClientCache(ctx, existing.ClientID)
 	return nil
+}
+
+func (s *adminService) forgetClientCache(ctx context.Context, clientID string) {
+	if s.clientCache == nil || clientID == "" {
+		return
+	}
+	_ = s.clientCache.Delete(ctx, "iam:oauth-client:"+clientID)
 }
 
 func generateClientIdentifier() (string, error) {

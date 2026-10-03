@@ -57,6 +57,10 @@ linters:
       - linters:
           - staticcheck
         text: "ST1003:"
+      # otelecho's replacement instruments Echo v5. This service is still on Echo v4.
+      - linters:
+          - staticcheck
+        text: "SA1019: go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
       - path: _test\.go$
         linters:
           - funlen

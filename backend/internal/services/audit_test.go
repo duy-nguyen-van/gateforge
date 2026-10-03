@@ -44,12 +44,16 @@ func (s *stubAuditLogRepo) Count(_ context.Context, _ repositories.AuditLogListF
 type noopAuditService struct{}
 
 func (noopAuditService) Record(context.Context, domains.AuditRecordParams) {}
+func (noopAuditService) RecordRequired(context.Context, domains.AuditRecordParams) error {
+	return nil
+}
+func (noopAuditService) Shutdown(context.Context) error { return nil }
 
 func TestAuditService_RecordExplicitFields(t *testing.T) {
 	repo := &stubAuditLogRepo{}
-	svc := ProvideAuditService(repo)
+	svc := ProvideAuditService(repo, nil, nil)
 
-	svc.Record(context.Background(), domains.AuditRecordParams{
+	require.NoError(t, svc.RecordRequired(context.Background(), domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminTenantCreate,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -60,7 +64,7 @@ func TestAuditService_RecordExplicitFields(t *testing.T) {
 		ResourceName: "Acme",
 		OldValue:     map[string]any{"name": "Old"},
 		NewValue:     map[string]any{"name": "New"},
-	})
+	}))
 
 	require.Len(t, repo.created, 1)
 	row := repo.created[0]
@@ -71,7 +75,7 @@ func TestAuditService_RecordExplicitFields(t *testing.T) {
 
 func TestAuditService_RecordMergesContext(t *testing.T) {
 	repo := &stubAuditLogRepo{}
-	svc := ProvideAuditService(repo)
+	svc := ProvideAuditService(repo, nil, nil)
 
 	ctx := request.NewAuditContextContext(context.Background(), request.AuditContext{
 		IPAddress:     "127.0.0.1",
@@ -83,10 +87,10 @@ func TestAuditService_RecordMergesContext(t *testing.T) {
 		TenantID:      "tenant-from-ctx",
 	})
 
-	svc.Record(ctx, domains.AuditRecordParams{
+	require.NoError(t, svc.RecordRequired(ctx, domains.AuditRecordParams{
 		Action: constants.AuditActionAuthLogin,
 		Result: constants.AuditResultSuccess,
-	})
+	}))
 
 	require.Len(t, repo.created, 1)
 	row := repo.created[0]
@@ -102,7 +106,7 @@ func TestAuditService_RecordMergesContext(t *testing.T) {
 
 func TestAuditService_RecordDoesNotPropagateRepoError(t *testing.T) {
 	repo := &stubAuditLogRepo{err: context.Canceled}
-	svc := ProvideAuditService(repo)
+	svc := ProvideAuditService(repo, nil, nil)
 	require.NotPanics(t, func() {
 		svc.Record(context.Background(), domains.AuditRecordParams{
 			Action:    constants.AuditActionAuthLogin,
@@ -110,6 +114,11 @@ func TestAuditService_RecordDoesNotPropagateRepoError(t *testing.T) {
 			ActorType: constants.AuditActorTypeUser,
 		})
 	})
+	require.Error(t, svc.RecordRequired(context.Background(), domains.AuditRecordParams{
+		Action:    constants.AuditActionAuthLogin,
+		Result:    constants.AuditResultFailure,
+		ActorType: constants.AuditActorTypeUser,
+	}))
 }
 
 func TestAdminService_ListAuditLogs(t *testing.T) {
@@ -128,7 +137,7 @@ func TestAdminService_ListAuditLogs(t *testing.T) {
 			Pageable: &dtos.Pageable{Page: 1, PageSize: 20, Total: 1},
 		},
 	}
-	svc := ProvideAdminService(&config.Config{}, nil, nil, nil, nil, nil, nil, nil, nil, repo, nil, nil, noopAuditService{}, nil, nil)
+	svc := ProvideAdminService(&config.Config{}, nil, nil, nil, nil, nil, nil, nil, nil, repo, nil, nil, noopAuditService{}, nil, nil, nil)
 
 	rows, pageable, err := svc.ListAuditLogs(context.Background(), dtos.AdminAuditLogListParams{
 		TenantID: tenantID,

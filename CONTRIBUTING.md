@@ -15,8 +15,8 @@ Production ships as a **single hybrid binary** (`bin/gateforge-iam-server`) with
 
 1. Fork the repository and branch from `main` (see [Branch naming](#branch-naming) below).
 2. Install prerequisites:
-   - **Go 1.26+**
-   - **Node.js 26+**
+   - **Go 1.27+**
+   - **Node.js 26.10+**
    - **Docker** (Postgres + Redis for local dev)
    - **Make**
    - **[Atlas CLI](https://atlasgo.io/)** — required for database migrations in `backend/`

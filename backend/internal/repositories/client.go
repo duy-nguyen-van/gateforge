@@ -33,6 +33,7 @@ type ClientRepository interface {
 	List(ctx context.Context, tenantID string, pr *dtos.PageableRequest) (*dtos.DataResponse[models.Client], error)
 	Create(ctx context.Context, client *models.Client) error
 	Update(ctx context.Context, id string, patch ClientPatch) (*models.Client, error)
+	UpdateSecretHash(ctx context.Context, id, secretHash string) error
 	Delete(ctx context.Context, id string) error
 	ClientIDTaken(ctx context.Context, tenantID, clientID, excludeID string) (bool, error)
 }
@@ -151,6 +152,16 @@ func (r *clientRepository) Update(ctx context.Context, id string, patch ClientPa
 			WithResource("client")
 	}
 	return r.GetByID(ctx, id)
+}
+
+func (r *clientRepository) UpdateSecretHash(ctx context.Context, id, secretHash string) error {
+	res := r.db.WithContext(ctx).Model(&models.Client{}).Where("id = ?", id).Update("client_secret", secretHash)
+	if res.Error != nil {
+		return errors.DatabaseError("Failed to update client secret", res.Error).
+			WithOperation("update_client_secret").
+			WithResource("client")
+	}
+	return nil
 }
 
 func (r *clientRepository) Delete(ctx context.Context, id string) error {

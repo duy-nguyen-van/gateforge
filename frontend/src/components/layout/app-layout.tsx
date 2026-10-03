@@ -14,7 +14,7 @@ export function AppLayout() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       <header className="border-b bg-card/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
           <Link to="/settings/profile" className="flex items-center gap-2 font-semibold">

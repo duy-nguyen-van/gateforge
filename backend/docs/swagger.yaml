@@ -336,6 +336,13 @@ definitions:
       tenant_id:
         type: string
     type: object
+  dtos.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   dtos.HealthResponse:
     properties:
       service:
@@ -527,13 +534,25 @@ definitions:
       password:
         example: secretpassword
         maxLength: 128
-        minLength: 8
+        minLength: 12
         type: string
       tenant_id:
         type: string
     required:
     - email
     - password
+    type: object
+  dtos.ResetPasswordRequest:
+    properties:
+      new_password:
+        maxLength: 128
+        minLength: 12
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
     type: object
   dtos.TenantSelectRequest:
     properties:
@@ -1547,6 +1566,40 @@ paths:
       summary: List enabled federation sign-in methods for a tenant
       tags:
       - Auth
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      - application/json
+      description: Always returns 200 so callers cannot tell whether the email exists
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RefreshTokenRequest'
+      - description: Email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.ForgotPasswordRequest'
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Request a password reset
+      tags:
+      - Auth
+      - Auth
   /health/database:
     get:
       consumes:
@@ -1585,6 +1638,31 @@ paths:
                 $ref: '#/definitions/dtos.Meta'
             type: object
       summary: Database Connection Metrics
+      tags:
+      - Health
+  /health/ready:
+    get:
+      description: Ping Postgres and Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.HealthResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Readiness check
       tags:
       - Health
   /internal/tenants/{tenantId}/identity-providers/{provider}:
@@ -2052,6 +2130,8 @@ paths:
     post:
       consumes:
       - application/json
+      - application/json
+      description: Always returns 200 so callers cannot tell whether the email exists
       parameters:
       - description: Refresh token
         in: body
@@ -2059,21 +2139,26 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dtos.RefreshTokenRequest'
+      - description: Email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.ForgotPasswordRequest'
       produces:
+      - application/json
       - application/json
       responses:
         "200":
           description: OK
           schema:
             properties:
-              data:
-                $ref: '#/definitions/dtos.LoginResponse'
               meta:
                 $ref: '#/definitions/dtos.Meta'
             type: object
-      summary: Exchange refresh token for a new access token (and rotated refresh
-        token)
+      summary: Request a password reset
       tags:
+      - Auth
       - Auth
   /register:
     post:
@@ -2099,6 +2184,37 @@ paths:
                 $ref: '#/definitions/dtos.Meta'
             type: object
       summary: Register a new user
+      tags:
+      - Auth
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token and new password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Reset a password with a one-time token
       tags:
       - Auth
   /tenants/select:

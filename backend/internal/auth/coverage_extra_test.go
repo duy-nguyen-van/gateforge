@@ -82,6 +82,12 @@ func (errCache) Delete(context.Context, string) error { return errors.New("cache
 
 func (errCache) Exists(context.Context, string) (bool, error) { return false, errors.New("cache down") }
 
+func (errCache) Increment(context.Context, string, time.Duration) (int64, error) {
+	return 0, errors.New("cache down")
+}
+
+func (errCache) Ping(context.Context) error { return errors.New("cache down") }
+
 func (errCache) Close() error { return nil }
 
 func TestEphemeralStore_putJSON_CacheError(t *testing.T) {

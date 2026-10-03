@@ -1,7 +1,13 @@
-.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image performance-help performance-smoke performance-token performance-token-hold performance-passkey performance-oidc-e2e performance-rss sdk-generate sdk-check sdk-go-test sdk-ts-build sdk-ts-test
+.PHONY: dev dev-backend dev-frontend bootstrap build-frontend copy-frontend build-prod docker-build security security-fs security-image performance-help performance-smoke performance-token performance-token-hold performance-passkey performance-oidc-e2e performance-rss sdk-generate sdk-check sdk-go-test sdk-ts-build sdk-ts-test otel-up otel-down
 
 OPENAPI_GENERATOR_VERSION ?= v7.19.0
 OPENAPI_GENERATOR_IMAGE ?= openapitools/openapi-generator-cli:$(OPENAPI_GENERATOR_VERSION)
+
+otel-up:
+	$(MAKE) -C backend otel-up
+
+otel-down:
+	$(MAKE) -C backend otel-down
 
 dev-backend:
 	cd backend && make up

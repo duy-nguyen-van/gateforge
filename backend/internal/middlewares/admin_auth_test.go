@@ -23,6 +23,7 @@ type stubUserRepo struct {
 	err  error
 }
 
+func (s *stubUserRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
 func (s *stubUserRepo) CreateWithPasswordHash(_ context.Context, _ *models.User, _ string) error {
 	return nil
 }

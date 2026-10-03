@@ -90,6 +90,7 @@ func (s *stubClientRepo) List(ctx context.Context, tenantID string, pr *dtos.Pag
 	return nil, nil
 }
 
+func (s *stubClientRepo) UpdateSecretHash(context.Context, string, string) error  { return nil }
 func (s *stubClientRepo) Create(ctx context.Context, client *models.Client) error { return nil }
 func (s *stubClientRepo) Update(ctx context.Context, id string, patch repositories.ClientPatch) (*models.Client, error) {
 	return nil, nil

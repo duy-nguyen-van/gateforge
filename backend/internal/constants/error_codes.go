@@ -30,4 +30,5 @@ const (
 	AccountNotActive        = "ACCOUNT_NOT_ACTIVE"
 	InvalidSelectionToken   = "INVALID_SELECTION_TOKEN"
 	EmailAlreadyRegistered  = "EMAIL_ALREADY_REGISTERED"
+	AdminMFARequired        = "ADMIN_MFA_REQUIRED"
 )

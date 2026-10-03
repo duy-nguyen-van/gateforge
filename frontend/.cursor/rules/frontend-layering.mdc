@@ -66,7 +66,6 @@ Forms and submit logic live in `src/features/`. Do **not** add a `login-page.tsx
 | **Settings** | Page header + compose feature panels | `security-page.tsx` → `TotpSetupPanel`, `PasskeyRegisterPanel` |
 | **Profile** | Read-only display from `useAuth()` | `profile-page.tsx` |
 | **Console admin** | Owns queries, local UI state, table markup; pulls shared pieces from `features/admin/` | `users-page.tsx` → `useAdminUsers`, `ConsoleLoadingState` |
-| **Marketing** | Self-contained landing UI | `home-page.tsx` |
 
 Console pages are **not thin** — they call TanStack Query hooks and hold filter/search state. Extract to `features/admin/` only when reused across multiple console pages.
 

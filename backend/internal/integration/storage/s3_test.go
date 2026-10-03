@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/require"
 )
@@ -45,8 +46,9 @@ func newMockS3Adapter(t *testing.T, handler http.HandlerFunc) *S3Adapter {
 			S3Bucket:               "test-bucket",
 			S3PresignedURLDuration: time.Hour,
 		},
-		client: client,
-		bucket: "test-bucket",
+		client:   client,
+		transfer: transfermanager.New(client),
+		bucket:   "test-bucket",
 	}
 }
 

@@ -17,6 +17,10 @@ export function ProtectedRoute() {
   return <Outlet />
 }
 
+function signedInDestination(isPlatformAdmin: boolean | undefined) {
+  return isPlatformAdmin ? '/console' : '/settings/profile'
+}
+
 export function GuestRoute() {
   const { isAuthenticated, isLoading, user } = useAuth()
 
@@ -25,10 +29,25 @@ export function GuestRoute() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={user?.is_platform_admin ? '/console' : '/settings/profile'} replace />
+    return <Navigate to={signedInDestination(user?.is_platform_admin)} replace />
   }
 
   return <Outlet />
+}
+
+export function RootRedirect() {
+  const { isAuthenticated, isLoading, user } = useAuth()
+
+  if (isLoading) {
+    return <GateForgeLoading label="Loading session…" />
+  }
+
+  return (
+    <Navigate
+      to={isAuthenticated ? signedInDestination(user?.is_platform_admin) : '/login'}
+      replace
+    />
+  )
 }
 
 export function AdminRoute() {

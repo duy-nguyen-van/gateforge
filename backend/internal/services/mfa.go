@@ -12,12 +12,12 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
-	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
 	"github.com/pquerna/otp/totp"
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // MFAService handles TOTP enrollment, recovery codes, and MFA-after-login verification.
@@ -62,22 +62,38 @@ func (s *mfaService) mfaKey() string {
 }
 
 func (s *mfaService) HasActiveMFA(ctx context.Context, userID string) (bool, error) {
-	row, err := s.totpRepo.GetActiveByUserID(ctx, userID)
-	if err != nil {
-		return false, err
-	}
-	return row != nil, nil
+	return monitoring.Observe(ctx, mfaTracer, "MFAService.HasActiveMFA",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) (bool, error) {
+			row, err := s.totpRepo.GetActiveByUserID(ctx, userID)
+			if err != nil {
+				return false, err
+			}
+			return row != nil, nil
+		})
 }
 
 func (s *mfaService) CreateLoginTicket(ctx context.Context, p auth.MFAPendingPayload) (string, int64, error) {
-	ticket, err := s.ephemeral.PutMFAPending(ctx, p)
-	if err != nil {
-		return "", 0, err
-	}
-	return ticket, int64(s.cfg.MFAPendingTicketTTL.Seconds()), nil
+	return monitoring.Observe2(ctx, mfaTracer, "MFAService.CreateLoginTicket",
+		[]attribute.KeyValue{attribute.String("user_id", p.UserID)},
+		func(ctx context.Context) (string, int64, error) {
+			ticket, err := s.ephemeral.PutMFAPending(ctx, p)
+			if err != nil {
+				return "", 0, err
+			}
+			return ticket, int64(s.cfg.MFAPendingTicketTTL.Seconds()), nil
+		})
 }
 
-func (s *mfaService) SetupTOTP(ctx context.Context, userID, accountEmail string) (secret string, otpauthURI string, err error) {
+func (s *mfaService) SetupTOTP(ctx context.Context, userID, accountEmail string) (string, string, error) {
+	return monitoring.Observe2(ctx, mfaTracer, "MFAService.SetupTOTP",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) (string, string, error) {
+			return s.setupTOTP(ctx, userID, accountEmail)
+		})
+}
+
+func (s *mfaService) setupTOTP(ctx context.Context, userID, accountEmail string) (secret string, otpauthURI string, err error) {
 	active, err := s.HasActiveMFA(ctx, userID)
 	if err != nil {
 		return "", "", err
@@ -87,12 +103,8 @@ func (s *mfaService) SetupTOTP(ctx context.Context, userID, accountEmail string)
 			WithOperation("mfa_totp_setup").
 			WithResource("user_mfa_totp")
 	}
-	issuer := s.cfg.AppName
-	if issuer == "" {
-		issuer = s.cfg.WebauthnRPDisplayName
-	}
 	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      issuer,
+		Issuer:      constants.TOTPIssuer,
 		AccountName: accountEmail,
 		Period:      30,
 		SecretSize:  20,
@@ -129,6 +141,14 @@ func (s *mfaService) SetupTOTP(ctx context.Context, userID, accountEmail string)
 }
 
 func (s *mfaService) VerifyTOTPEnrollment(ctx context.Context, userID, code string) error {
+	return monitoring.ObserveErr(ctx, mfaTracer, "MFAService.VerifyTOTPEnrollment",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) error {
+			return s.verifyTOTPEnrollment(ctx, userID, code)
+		})
+}
+
+func (s *mfaService) verifyTOTPEnrollment(ctx context.Context, userID, code string) error {
 	row, err := s.totpRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return err
@@ -152,9 +172,6 @@ func (s *mfaService) VerifyTOTPEnrollment(ctx context.Context, userID, code stri
 	if err := s.totpRepo.MarkVerifiedAndEnabled(ctx, userID); err != nil {
 		return err
 	}
-	logger.Log.Info("mfa totp enabled",
-		zap.String("operation", "mfa_totp_verify"),
-		zap.String("user_id", userID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionMFATOTPEnable,
 		Result:       constants.AuditResultSuccess,
@@ -167,6 +184,14 @@ func (s *mfaService) VerifyTOTPEnrollment(ctx context.Context, userID, code stri
 }
 
 func (s *mfaService) RegenerateRecoveryCodes(ctx context.Context, userID string) ([]string, error) {
+	return monitoring.Observe(ctx, mfaTracer, "MFAService.RegenerateRecoveryCodes",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) ([]string, error) {
+			return s.regenerateRecoveryCodes(ctx, userID)
+		})
+}
+
+func (s *mfaService) regenerateRecoveryCodes(ctx context.Context, userID string) ([]string, error) {
 	active, err := s.HasActiveMFA(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -210,6 +235,13 @@ func (s *mfaService) RegenerateRecoveryCodes(ctx context.Context, userID string)
 }
 
 func (s *mfaService) VerifyLoginChallenge(ctx context.Context, ticket, code string) (*auth.MFAPendingPayload, error) {
+	return monitoring.Observe(ctx, mfaTracer, "MFAService.VerifyLoginChallenge", nil,
+		func(ctx context.Context) (*auth.MFAPendingPayload, error) {
+			return s.verifyLoginChallenge(ctx, ticket, code)
+		})
+}
+
+func (s *mfaService) verifyLoginChallenge(ctx context.Context, ticket, code string) (*auth.MFAPendingPayload, error) {
 	payload, err := s.ephemeral.TakeMFAPending(ctx, strings.TrimSpace(ticket))
 	if err != nil {
 		return nil, err

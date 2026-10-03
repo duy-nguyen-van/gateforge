@@ -7,16 +7,17 @@ import (
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
+	"github.com/gateforge-iam/gateforge-iam/internal/cache"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
-	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,6 +31,8 @@ type UserService interface {
 	IssueTokensForUser(ctx context.Context, u *models.User, tenantID string) (*dtos.LoginResponse, error)
 	Login(ctx context.Context, req *dtos.LoginRequest, host string) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error)
 	Refresh(ctx context.Context, req *dtos.RefreshTokenRequest) (*dtos.LoginResponse, error)
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, newPassword string) error
 	GetOneByID(ctx context.Context, userID string) (*models.User, error)
 	UpdateProfile(ctx context.Context, userID string, req *dtos.UpdateProfileRequest) (*models.User, error)
 	ListMemberships(ctx context.Context, userID string) ([]dtos.TenantSummary, error)
@@ -45,6 +48,9 @@ type userService struct {
 	cfg              *config.Config
 	tokenService     *auth.TokenService
 	audit            AuditService
+	loginCache       cache.Cache
+	sessions         SessionService
+	resetMailer      passwordResetMailer
 }
 
 // ProvideUserService creates the identity service.
@@ -56,6 +62,9 @@ func ProvideUserService(
 	cfg *config.Config,
 	tokenService *auth.TokenService,
 	audit AuditService,
+	loginCache cache.Cache,
+	sessions SessionService,
+	resetMailer passwordResetMailer,
 ) UserService {
 	return &userService{
 		userRepo:         userRepo,
@@ -65,10 +74,23 @@ func ProvideUserService(
 		cfg:              cfg,
 		tokenService:     tokenService,
 		audit:            audit,
+		loginCache:       loginCache,
+		sessions:         sessions,
+		resetMailer:      resetMailer,
 	}
 }
 
 func (s *userService) Register(ctx context.Context, req *dtos.RegisterRequest, host string) (*models.User, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.Register", nil,
+		func(ctx context.Context) (*models.User, error) {
+			return s.register(ctx, req, host)
+		})
+}
+
+func (s *userService) register(ctx context.Context, req *dtos.RegisterRequest, host string) (*models.User, error) {
+	if err := ValidatePassword(req.Password); err != nil {
+		return nil, err
+	}
 	emailLower := strings.ToLower(strings.TrimSpace(req.Email))
 
 	_, err := s.userRepo.GetByEmailLower(ctx, emailLower)
@@ -123,11 +145,6 @@ func (s *userService) Register(ctx context.Context, req *dtos.RegisterRequest, h
 	if err := s.membershipRepo.Create(ctx, membership); err != nil {
 		return nil, err
 	}
-
-	logger.Log.Info("user registered",
-		zap.String("operation", "register"),
-		zap.String("user_id", u.ID),
-		zap.String("tenant_id", resolved.TenantID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAuthRegister,
 		Result:       constants.AuditResultSuccess,
@@ -141,19 +158,40 @@ func (s *userService) Register(ctx context.Context, req *dtos.RegisterRequest, h
 }
 
 func (s *userService) Login(ctx context.Context, req *dtos.LoginRequest, host string) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
-	u, err := s.AuthenticateUser(ctx, req)
-	if err != nil {
-		return nil, nil, err
-	}
-	return s.CompleteAuth(ctx, u, TenantResolveInput{
-		Host:          host,
-		TenantIDParam: req.TenantID,
-		UserID:        u.ID,
-	})
+	return monitoring.Observe2(ctx, userTracer, "UserService.Login", nil,
+		func(ctx context.Context) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
+			u, err := s.AuthenticateUser(ctx, req)
+			if err != nil {
+				return nil, nil, err
+			}
+			return s.CompleteAuth(ctx, u, TenantResolveInput{
+				Host:          host,
+				TenantIDParam: req.TenantID,
+				UserID:        u.ID,
+			})
+		})
 }
 
 func (s *userService) AuthenticateUser(ctx context.Context, req *dtos.LoginRequest) (*models.User, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.AuthenticateUser", nil,
+		func(ctx context.Context) (*models.User, error) {
+			return s.authenticateUser(ctx, req)
+		})
+}
+
+func (s *userService) authenticateUser(ctx context.Context, req *dtos.LoginRequest) (*models.User, error) {
 	emailLower := strings.ToLower(strings.TrimSpace(req.Email))
+	if s.loginLocked(ctx, emailLower) {
+		monitoring.AddAuthLogin(ctx, "locked")
+		s.audit.Record(ctx, domains.AuditRecordParams{
+			Action:    constants.AuditActionAuthLoginLocked,
+			Result:    constants.AuditResultDenied,
+			ActorType: constants.AuditActorTypeUser,
+		})
+		return nil, errors.CodedUnauthorized(constants.InvalidLoginCredentials, nil).
+			WithOperation("login").
+			WithResource("user")
+	}
 
 	u, err := s.userRepo.GetByEmailLower(ctx, emailLower)
 	if err != nil {
@@ -194,6 +232,8 @@ func (s *userService) AuthenticateUser(ctx context.Context, req *dtos.LoginReque
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordCredential.PasswordHash), []byte(req.Password)); err != nil {
+		s.noteLoginFailure(ctx, emailLower, u.ID)
+		monitoring.AddAuthLogin(ctx, "failure")
 		s.audit.Record(ctx, domains.AuditRecordParams{
 			Action:    constants.AuditActionAuthLogin,
 			Result:    constants.AuditResultFailure,
@@ -205,10 +245,20 @@ func (s *userService) AuthenticateUser(ctx context.Context, req *dtos.LoginReque
 			WithResource("user")
 	}
 
+	s.clearLoginLock(ctx, emailLower)
+	monitoring.AddAuthLogin(ctx, "success")
 	return u, nil
 }
 
 func (s *userService) CompleteAuth(ctx context.Context, u *models.User, in TenantResolveInput) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
+	return monitoring.Observe2(ctx, userTracer, "UserService.CompleteAuth",
+		[]attribute.KeyValue{attribute.String("user_id", u.ID)},
+		func(ctx context.Context) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
+			return s.completeAuth(ctx, u, in)
+		})
+}
+
+func (s *userService) completeAuth(ctx context.Context, u *models.User, in TenantResolveInput) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
 	in.UserID = u.ID
 	resolved, err := s.tenantCtx.Resolve(ctx, in)
 	if err != nil {
@@ -248,6 +298,13 @@ func (s *userService) buildTenantSelection(ctx context.Context, userID string) (
 }
 
 func (s *userService) SelectTenant(ctx context.Context, req *dtos.TenantSelectRequest) (*dtos.LoginResponse, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.SelectTenant", nil,
+		func(ctx context.Context) (*dtos.LoginResponse, error) {
+			return s.selectTenant(ctx, req)
+		})
+}
+
+func (s *userService) selectTenant(ctx context.Context, req *dtos.TenantSelectRequest) (*dtos.LoginResponse, error) {
 	userID, err := s.tokenService.ParseSelectionToken(req.SelectionToken)
 	if err != nil {
 		return nil, errors.CodedUnauthorized(constants.InvalidSelectionToken, err).
@@ -278,6 +335,17 @@ func (s *userService) SelectTenant(ctx context.Context, req *dtos.TenantSelectRe
 }
 
 func (s *userService) SwitchTenant(ctx context.Context, userID, tenantID string) (*dtos.LoginResponse, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.SwitchTenant",
+		[]attribute.KeyValue{
+			attribute.String("user_id", userID),
+			attribute.String("tenant_id", tenantID),
+		},
+		func(ctx context.Context) (*dtos.LoginResponse, error) {
+			return s.switchTenant(ctx, userID, tenantID)
+		})
+}
+
+func (s *userService) switchTenant(ctx context.Context, userID, tenantID string) (*dtos.LoginResponse, error) {
 	if err := s.tenantCtx.ValidateMembership(ctx, userID, tenantID); err != nil {
 		return nil, err
 	}
@@ -302,10 +370,28 @@ func (s *userService) SwitchTenant(ctx context.Context, userID, tenantID string)
 }
 
 func (s *userService) IssueTokensForUser(ctx context.Context, u *models.User, tenantID string) (*dtos.LoginResponse, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.IssueTokensForUser",
+		[]attribute.KeyValue{
+			attribute.String("user_id", u.ID),
+			attribute.String("tenant_id", tenantID),
+		},
+		func(ctx context.Context) (*dtos.LoginResponse, error) {
+			return s.issueTokensForUser(ctx, u, tenantID)
+		})
+}
+
+func (s *userService) issueTokensForUser(ctx context.Context, u *models.User, tenantID string) (*dtos.LoginResponse, error) {
 	return s.issueAccessAndRefresh(ctx, u, tenantID)
 }
 
 func (s *userService) Refresh(ctx context.Context, req *dtos.RefreshTokenRequest) (*dtos.LoginResponse, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.Refresh", nil,
+		func(ctx context.Context) (*dtos.LoginResponse, error) {
+			return s.refresh(ctx, req)
+		})
+}
+
+func (s *userService) refresh(ctx context.Context, req *dtos.RefreshTokenRequest) (*dtos.LoginResponse, error) {
 	raw := strings.TrimSpace(req.RefreshToken)
 	if raw == "" {
 		return nil, errors.CodedUnauthorized(constants.InvalidRefreshToken, nil).
@@ -314,18 +400,40 @@ func (s *userService) Refresh(ctx context.Context, req *dtos.RefreshTokenRequest
 	}
 
 	hash := auth.HashOpaqueToken(raw)
-	oldRT, err := s.refreshTokenRepo.FindValidByTokenHash(ctx, hash)
+	opaqueRefreshToken, refreshTokenHash, err := auth.NewOpaqueRefreshToken()
 	if err != nil {
-		var appErr *errors.AppError
-		if stderrors.As(err, &appErr) && appErr.Type == errors.ErrorTypeNotFound {
-			return nil, errors.CodedUnauthorized(constants.InvalidRefreshToken, nil).
-				WithOperation("refresh").
-				WithResource("refresh_token")
-		}
+		return nil, errors.InternalError("Failed to issue refresh token", err).
+			WithOperation("refresh").
+			WithResource("refresh_token")
+	}
+	newRT := &models.RefreshToken{
+		OAuthClientID: s.cfg.NativeOAuthClientID,
+		TokenHash:     refreshTokenHash,
+		Revoked:       false,
+		ExpiresAt:     time.Now().UTC().Add(s.cfg.JWTRefreshTTL),
+	}
+	status, err := s.refreshTokenRepo.Rotate(ctx, hash, newRT)
+	if err != nil {
 		return nil, err
 	}
+	if status == repositories.RefreshRotationReuse {
+		s.audit.Record(ctx, domains.AuditRecordParams{
+			Action:    constants.AuditActionAuthRefresh,
+			Result:    constants.AuditResultFailure,
+			ActorType: constants.AuditActorTypeUser,
+			NewValue:  map[string]any{"reuse": true},
+		})
+		return nil, errors.CodedUnauthorized(constants.InvalidRefreshToken, nil).
+			WithOperation("refresh").
+			WithResource("refresh_token")
+	}
+	if status != repositories.RefreshRotationOK {
+		return nil, errors.CodedUnauthorized(constants.InvalidRefreshToken, nil).
+			WithOperation("refresh").
+			WithResource("refresh_token")
+	}
 
-	u, err := s.userRepo.GetOneByID(ctx, oldRT.UserID)
+	u, err := s.userRepo.GetOneByID(ctx, newRT.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -335,33 +443,12 @@ func (s *userService) Refresh(ctx context.Context, req *dtos.RefreshTokenRequest
 			WithResource("user")
 	}
 
-	tenantID := oldRT.TenantID
+	tenantID := newRT.TenantID
 	access, _, err := s.tokenService.SignAccessToken(u.ID, tenantID)
 	if err != nil {
 		return nil, errors.InternalError("Failed to issue token", err).
 			WithOperation("refresh").
 			WithResource("user")
-	}
-
-	opaqueRefreshToken, refreshTokenHash, err := auth.NewOpaqueRefreshToken()
-	if err != nil {
-		return nil, errors.InternalError("Failed to issue refresh token", err).
-			WithOperation("refresh").
-			WithResource("refresh_token")
-	}
-
-	expiresAt := time.Now().UTC().Add(s.cfg.JWTRefreshTTL)
-	newRT := &models.RefreshToken{
-		TenantID:      tenantID,
-		UserID:        u.ID,
-		OAuthClientID: s.cfg.NativeOAuthClientID,
-		TokenHash:     refreshTokenHash,
-		Revoked:       false,
-		ExpiresAt:     expiresAt,
-	}
-
-	if err := s.refreshTokenRepo.RevokeAndCreate(ctx, oldRT.ID, newRT); err != nil {
-		return nil, err
 	}
 
 	s.audit.Record(ctx, domains.AuditRecordParams{
@@ -433,10 +520,22 @@ func (s *userService) issueAccessAndRefresh(ctx context.Context, u *models.User,
 }
 
 func (s *userService) GetOneByID(ctx context.Context, userID string) (*models.User, error) {
-	return s.userRepo.GetOneByID(ctx, userID)
+	return monitoring.Observe(ctx, userTracer, "UserService.GetOneByID",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) (*models.User, error) {
+			return s.userRepo.GetOneByID(ctx, userID)
+		})
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID string, req *dtos.UpdateProfileRequest) (*models.User, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.UpdateProfile",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) (*models.User, error) {
+			return s.updateProfile(ctx, userID, req)
+		})
+}
+
+func (s *userService) updateProfile(ctx context.Context, userID string, req *dtos.UpdateProfileRequest) (*models.User, error) {
 	if req == nil || (req.FirstName == nil && req.LastName == nil) {
 		return nil, errors.ValidationError("At least one field must be provided", nil)
 	}
@@ -466,6 +565,14 @@ func (s *userService) UpdateProfile(ctx context.Context, userID string, req *dto
 }
 
 func (s *userService) ListMemberships(ctx context.Context, userID string) ([]dtos.TenantSummary, error) {
+	return monitoring.Observe(ctx, userTracer, "UserService.ListMemberships",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) ([]dtos.TenantSummary, error) {
+			return s.listMemberships(ctx, userID)
+		})
+}
+
+func (s *userService) listMemberships(ctx context.Context, userID string) ([]dtos.TenantSummary, error) {
 	rows, err := s.membershipRepo.ListByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -474,6 +581,14 @@ func (s *userService) ListMemberships(ctx context.Context, userID string) ([]dto
 }
 
 func (s *userService) ListMembershipsPaginated(ctx context.Context, userID string, pr *dtos.PageableRequest) ([]dtos.TenantSummary, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, userTracer, "UserService.ListMembershipsPaginated",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) ([]dtos.TenantSummary, *dtos.Pageable, error) {
+			return s.listMembershipsPaginated(ctx, userID, pr)
+		})
+}
+
+func (s *userService) listMembershipsPaginated(ctx context.Context, userID string, pr *dtos.PageableRequest) ([]dtos.TenantSummary, *dtos.Pageable, error) {
 	result, err := s.membershipRepo.ListByUserIDPaginated(ctx, userID, pr)
 	if err != nil {
 		return nil, nil, err
@@ -498,8 +613,12 @@ func tenantSummariesFromMemberships(rows []models.TenantMembership) []dtos.Tenan
 }
 
 func (s *userService) RevokeAllRefreshTokensForUser(ctx context.Context, userID string) error {
-	if userID == "" {
-		return nil
-	}
-	return s.refreshTokenRepo.RevokeAllValidForUser(ctx, userID)
+	return monitoring.ObserveErr(ctx, userTracer, "UserService.RevokeAllRefreshTokensForUser",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) error {
+			if userID == "" {
+				return nil
+			}
+			return s.refreshTokenRepo.RevokeAllValidForUser(ctx, userID)
+		})
 }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
+import { Input } from '@/components/ui/input'
 import {
   auditResultBadgeClass,
   formatAuditAction,
@@ -9,8 +11,9 @@ import { ConsolePagination } from '@/features/admin/console-pagination'
 import {
   ConsoleEmptyState,
   ConsoleErrorState,
-  ConsoleLoadingState,
+  ConsoleTableSkeleton,
 } from '@/features/admin/console-state'
+import { OrganizationFilter } from '@/features/admin/organization-filter'
 import { useConsolePagination } from '@/features/admin/use-console-pagination'
 import { useAdminLoginHistory } from '@/features/admin/use-admin-queries'
 
@@ -38,27 +41,24 @@ export function LoginHistoryPage() {
 
   return (
     <div>
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Login History</h1>
-          <p className="mt-1 text-on-surface-variant">
-            Password, passkey, federation, and OIDC sign-in events across all tenants.
-          </p>
-        </div>
-      </header>
+      <ConsolePageHeader
+        title="Login history"
+        description="Password, passkey, federation, and OIDC sign-in events."
+      />
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <input
+        <Input
           type="text"
+          aria-label="Filter by actor user ID"
           placeholder="Filter by actor user ID"
           value={actorFilter}
           onChange={(e) => setActorFilter(e.target.value)}
-          className="rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary"
         />
         <select
+          aria-label="Filter by result"
           value={resultFilter}
           onChange={(e) => setResultFilter(e.target.value)}
-          className="rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary"
+          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {RESULT_OPTIONS.map((opt) => (
             <option key={opt || 'all'} value={opt}>
@@ -66,18 +66,12 @@ export function LoginHistoryPage() {
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          placeholder="Filter by tenant ID"
-          value={tenantFilter}
-          onChange={(e) => setTenantFilter(e.target.value)}
-          className="rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary"
-        />
+        <OrganizationFilter value={tenantFilter} onChange={setTenantFilter} />
       </div>
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
         {historyQuery.isLoading ? (
-          <ConsoleLoadingState label="Loading login history…" />
+          <ConsoleTableSkeleton columns={6} />
         ) : historyQuery.isError ? (
           <ConsoleErrorState message="Could not load login history." />
         ) : logs.length === 0 ? (
@@ -105,9 +99,9 @@ export function LoginHistoryPage() {
                       {log.result}
                     </span>
                   </td>
-                  <td className="px-6 py-3 font-mono text-xs">{log.actor_id?.slice(0, 8) ?? '—'}…</td>
-                  <td className="px-6 py-3 font-mono text-xs">{log.ip_address ?? '—'}</td>
-                  <td className="px-6 py-3 font-mono text-xs">{log.tenant_id?.slice(0, 8) ?? '—'}…</td>
+                  <td className="px-6 py-3 font-mono text-xs">{log.actor_id ? `${log.actor_id.slice(0, 8)}…` : 'Not set'}</td>
+                  <td className="px-6 py-3 font-mono text-xs">{log.ip_address ?? 'Not set'}</td>
+                  <td className="px-6 py-3 font-mono text-xs">{log.tenant_id ? `${log.tenant_id.slice(0, 8)}…` : 'Not set'}</td>
                 </tr>
               ))}
             </tbody>

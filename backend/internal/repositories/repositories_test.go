@@ -107,6 +107,8 @@ var sqliteTestSchema = []string{
 		user_id TEXT NOT NULL,
 		oauth_client_id TEXT NOT NULL,
 		token_hash TEXT NOT NULL,
+		family_id TEXT,
+		scope TEXT,
 		revoked INTEGER DEFAULT 0,
 		expires_at DATETIME NOT NULL,
 		client_record_id TEXT

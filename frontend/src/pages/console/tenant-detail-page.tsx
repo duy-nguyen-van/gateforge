@@ -2,10 +2,13 @@ import { ArrowLeftIcon, PencilIcon, Trash2Icon, UserMinusIcon, UserPlusIcon } fr
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
+import { useDetailCrumb } from '@/components/layout/use-detail-crumb'
+import { Button } from '@/components/ui/button'
 import { AddMemberDialog } from '@/features/admin/add-member-dialog'
 import { displayUserName } from '@/features/admin/admin-utils'
 import { ConsolePagination } from '@/features/admin/console-pagination'
-import { ConsoleEmptyState, ConsoleErrorState, ConsoleLoadingState } from '@/features/admin/console-state'
+import { ConsoleEmptyState, ConsoleErrorState, ConsoleLoadingState, ConsoleTableSkeleton } from '@/features/admin/console-state'
 import { DeleteTenantDialog } from '@/features/admin/delete-tenant-dialog'
 import { EditTenantDialog } from '@/features/admin/edit-tenant-dialog'
 import { RemoveMemberDialog } from '@/features/admin/remove-member-dialog'
@@ -32,6 +35,7 @@ export function TenantDetailPage() {
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null)
 
   const tenant = tenantQuery.data?.data
+  useDetailCrumb(tenant?.name || undefined)
   const members = membersQuery.data?.data ?? []
   const meta = membersQuery.data?.meta
   const isDefaultTenant = tenantId === defaultTenantId
@@ -63,53 +67,38 @@ export function TenantDetailPage() {
         </Link>
       </div>
 
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-            {tenant.name || 'Unnamed tenant'}
-          </h1>
-          <p className="mt-1 font-mono text-sm text-on-surface-variant">{tenant.id}</p>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-on-surface-variant">
-            {tenant.domain ? <span>Domain: {tenant.domain}</span> : null}
-            <span>{tenant.user_count.toLocaleString()} members</span>
-            <span>Created {new Date(tenant.created_at).toLocaleDateString()}</span>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setAddMemberOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
-          >
-            <UserPlusIcon className="h-4 w-4" aria-hidden />
-            Add member
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-bold text-on-surface ghost-border transition-opacity hover:opacity-90"
-          >
-            <PencilIcon className="h-4 w-4" aria-hidden />
-            Edit
-          </button>
-          {!isDefaultTenant ? (
-            <button
-              type="button"
-              onClick={() => setDeleteOpen(true)}
-              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-error ghost-border transition-opacity hover:bg-error/10"
-            >
-              <Trash2Icon className="h-4 w-4" aria-hidden />
-              Delete
-            </button>
-          ) : null}
-        </div>
-      </header>
+      <ConsolePageHeader
+        title={tenant.name || 'Unnamed tenant'}
+        description={`${tenant.user_count.toLocaleString()} members`}
+        actions={
+          <>
+            <Button type="button" onClick={() => setAddMemberOpen(true)}>
+              <UserPlusIcon className="h-4 w-4" aria-hidden />
+              Add member
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setEditOpen(true)}>
+              <PencilIcon className="h-4 w-4" aria-hidden />
+              Edit
+            </Button>
+            {!isDefaultTenant ? (
+              <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2Icon className="h-4 w-4" aria-hidden />
+                Delete
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+      <p className="-mt-4 mb-8 text-sm text-on-surface-variant">
+        {tenant.domain ? <span className="mr-4">Domain: {tenant.domain}</span> : null}
+        <span>Created {new Date(tenant.created_at).toLocaleDateString()}</span>
+      </p>
 
       <section>
         <h2 className="mb-4 font-headline text-xl font-bold text-on-surface">Members</h2>
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
           {membersQuery.isLoading ? (
-            <ConsoleLoadingState />
+            <ConsoleTableSkeleton columns={5} />
           ) : membersQuery.isError ? (
             <div className="p-6">
               <ConsoleErrorState message="Could not load members." />

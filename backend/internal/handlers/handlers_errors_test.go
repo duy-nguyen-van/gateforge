@@ -234,7 +234,7 @@ func TestAdminHandler_validationAndParamErrors(t *testing.T) {
 func TestAuthHandler_errorPaths(t *testing.T) {
 	t.Run("Register service error", func(t *testing.T) {
 		h := authHandler(&stubAuthUserService{registerErr: errors.InternalError("fail", nil)}, &stubAuthSessionService{}, &stubAuthMFAService{}, &stubAuthFederationService{})
-		c, rec := newJSONContext(http.MethodPost, "/", `{"email":"user@example.com","password":"secretpass"}`)
+		c, rec := newJSONContext(http.MethodPost, "/", `{"email":"user@example.com","password":"correct-horse-1"}`)
 		require.NoError(t, h.Register(c))
 		require.Equal(t, http.StatusInternalServerError, rec.Code)
 	})

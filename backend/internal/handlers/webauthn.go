@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
-	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/services"
@@ -245,15 +243,7 @@ func (h *WebauthnHandler) LoginFinish(c echo.Context) error {
 }
 
 func (h *WebauthnHandler) setSessionCookie(c echo.Context, sid string, ttl time.Duration) {
-	c.SetCookie(&http.Cookie{
-		Name:     constants.SessionCookieName,
-		Value:    sid,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   h.cfg.AppEnv == config.EnvironmentProduction,
-		MaxAge:   int(ttl.Seconds()),
-	})
+	c.SetCookie(newSessionCookie(h.cfg.AppEnv == config.EnvironmentProduction, sid, int(ttl.Seconds())))
 }
 
 func (h *WebauthnHandler) validationErr(c echo.Context, err error) error {

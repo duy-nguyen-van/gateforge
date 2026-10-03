@@ -16,14 +16,20 @@
 import * as runtime from '../runtime.js';
 import type {
   ErrorEnvelope,
+  ForgotPasswordRequest,
   LoginRequest,
   LoginResponseEnvelope,
   LoginResultEnvelope,
   MetaOnlyEnvelope,
   RefreshTokenRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   UserResponseEnvelope,
 } from '../models/index.js';
+
+export interface ForgotPasswordOperationRequest {
+    forgotPasswordRequest: ForgotPasswordRequest;
+}
 
 export interface LoginOperationRequest {
     loginRequest: LoginRequest;
@@ -35,6 +41,10 @@ export interface RefreshTokenOperationRequest {
 
 export interface RegisterUserRequest {
     registerRequest: RegisterRequest;
+}
+
+export interface ResetPasswordOperationRequest {
+    resetPasswordRequest: ResetPasswordRequest;
 }
 
 /**
@@ -58,6 +68,22 @@ export interface AuthApiInterface {
      * Exchange iam_session cookie for API tokens (after federated sign-in)
      */
     exchangeSession(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LoginResultEnvelope>;
+
+    /**
+     * Always returns 200 so callers cannot tell whether the email exists.
+     * @summary Request a password reset
+     * @param {ForgotPasswordRequest} forgotPasswordRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthApiInterface
+     */
+    forgotPasswordRaw(requestParameters: ForgotPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MetaOnlyEnvelope>>;
+
+    /**
+     * Always returns 200 so callers cannot tell whether the email exists.
+     * Request a password reset
+     */
+    forgotPassword(requestParameters: ForgotPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MetaOnlyEnvelope>;
 
     /**
      * Sets the same iam_session cookie as OIDC so /authorize recognizes the browser without a second login. If the user has MFA (TOTP) enabled, `data` is MFALoginChallengeResponse (mfa_ticket) instead of LoginResponse; complete login with POST /api/v1/mfa/challenge/verify. When the user belongs to multiple tenants and no tenant context is provided, `data` is TenantSelectionResponse.
@@ -119,6 +145,21 @@ export interface AuthApiInterface {
      */
     registerUser(requestParameters: RegisterUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserResponseEnvelope>;
 
+    /**
+     * 
+     * @summary Reset a password with a one-time token
+     * @param {ResetPasswordRequest} resetPasswordRequest 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof AuthApiInterface
+     */
+    resetPasswordRaw(requestParameters: ResetPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MetaOnlyEnvelope>>;
+
+    /**
+     * Reset a password with a one-time token
+     */
+    resetPassword(requestParameters: ResetPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MetaOnlyEnvelope>;
+
 }
 
 /**
@@ -154,6 +195,47 @@ export class AuthApi extends runtime.BaseAPI implements AuthApiInterface {
      */
     async exchangeSession(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LoginResultEnvelope> {
         const response = await this.exchangeSessionRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Always returns 200 so callers cannot tell whether the email exists.
+     * Request a password reset
+     */
+    async forgotPasswordRaw(requestParameters: ForgotPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MetaOnlyEnvelope>> {
+        if (requestParameters['forgotPasswordRequest'] == null) {
+            throw new runtime.RequiredError(
+                'forgotPasswordRequest',
+                'Required parameter "forgotPasswordRequest" was null or undefined when calling forgotPassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/forgot-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['forgotPasswordRequest'],
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response);
+    }
+
+    /**
+     * Always returns 200 so callers cannot tell whether the email exists.
+     * Request a password reset
+     */
+    async forgotPassword(requestParameters: ForgotPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MetaOnlyEnvelope> {
+        const response = await this.forgotPasswordRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -310,6 +392,45 @@ export class AuthApi extends runtime.BaseAPI implements AuthApiInterface {
      */
     async registerUser(requestParameters: RegisterUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserResponseEnvelope> {
         const response = await this.registerUserRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reset a password with a one-time token
+     */
+    async resetPasswordRaw(requestParameters: ResetPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MetaOnlyEnvelope>> {
+        if (requestParameters['resetPasswordRequest'] == null) {
+            throw new runtime.RequiredError(
+                'resetPasswordRequest',
+                'Required parameter "resetPasswordRequest" was null or undefined when calling resetPassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/reset-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['resetPasswordRequest'],
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response);
+    }
+
+    /**
+     * Reset a password with a one-time token
+     */
+    async resetPassword(requestParameters: ResetPasswordOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MetaOnlyEnvelope> {
+        const response = await this.resetPasswordRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

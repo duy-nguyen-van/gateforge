@@ -63,10 +63,10 @@ type EmailSender interface {
 	SendRawEmail(ctx context.Context, rawData []byte) (*EmailResponse, error)
 }
 
-func ProvideEmailSender(config config.Config) (EmailSender, error) {
-	switch config.EmailProvider {
+func ProvideEmailSender(cfg *config.Config) (EmailSender, error) {
+	switch cfg.EmailProvider {
 	case constants.EmailProviderSES:
-		sesSender, err := NewSESSender(config)
+		sesSender, err := NewSESSender(*cfg)
 		if err != nil {
 			return nil, errors.ExternalServiceError("Failed to initialize SES email sender", err).
 				WithOperation("initialize_email_sender").
@@ -74,9 +74,9 @@ func ProvideEmailSender(config config.Config) (EmailSender, error) {
 		}
 		return sesSender, nil
 	default:
-		return nil, errors.InternalError("Invalid email provider", fmt.Errorf("invalid email provider: %s", config.EmailProvider)).
+		return nil, errors.InternalError("Invalid email provider", fmt.Errorf("invalid email provider: %s", cfg.EmailProvider)).
 			WithOperation("initialize_email_sender").
 			WithResource("email").
-			WithContext("email_provider", config.EmailProvider)
+			WithContext("email_provider", cfg.EmailProvider)
 	}
 }

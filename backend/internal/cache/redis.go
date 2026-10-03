@@ -8,7 +8,10 @@ import (
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	appErrors "github.com/gateforge-iam/gateforge-iam/internal/errors"
+	"github.com/gateforge-iam/gateforge-iam/internal/logger"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -41,6 +44,19 @@ func NewRedisCache(cfg *config.Config) (*RedisCache, error) {
 		return nil, appErrors.CacheError("Failed to connect to Redis", err).
 			WithOperation("connect_redis").
 			WithResource("cache")
+	}
+
+	if monitoring.IsOTelEnabled(*cfg) {
+		var instrumentErr error
+		if cfg.OTelTracesEnabled {
+			instrumentErr = errors.Join(instrumentErr, redisotel.InstrumentTracing(client))
+		}
+		if cfg.OTelMetricsEnabled {
+			instrumentErr = errors.Join(instrumentErr, redisotel.InstrumentMetrics(client))
+		}
+		if instrumentErr != nil {
+			logger.Sugar.Warnf("Failed to instrument Redis with OpenTelemetry: %v", instrumentErr)
+		}
 	}
 
 	return &RedisCache{
@@ -86,6 +102,36 @@ func (r *RedisCache) Delete(ctx context.Context, key string) error {
 			WithOperation("delete_cache").
 			WithResource("cache").
 			WithContext("key", key)
+	}
+	return nil
+}
+
+// Increment adds one to a counter and sets the window on the first hit.
+func (r *RedisCache) Increment(ctx context.Context, key string, window time.Duration) (int64, error) {
+	n, err := r.client.Incr(ctx, key).Result()
+	if err != nil {
+		return 0, appErrors.CacheError("Failed to increment cache key", err).
+			WithOperation("increment_cache").
+			WithResource("cache").
+			WithContext("key", key)
+	}
+	if n == 1 && window > 0 {
+		if err := r.client.PExpire(ctx, key, window).Err(); err != nil {
+			return 0, appErrors.CacheError("Failed to expire cache key", err).
+				WithOperation("increment_cache").
+				WithResource("cache").
+				WithContext("key", key)
+		}
+	}
+	return n, nil
+}
+
+// Ping checks that Redis is reachable.
+func (r *RedisCache) Ping(ctx context.Context) error {
+	if err := r.client.Ping(ctx).Err(); err != nil {
+		return appErrors.CacheError("Failed to ping cache", err).
+			WithOperation("ping_cache").
+			WithResource("cache")
 	}
 	return nil
 }

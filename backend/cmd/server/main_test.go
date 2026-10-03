@@ -35,7 +35,7 @@ func TestNewHTTPServer(t *testing.T) {
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
 
-	healthHandler := handlers.ProvideHealthHandler(cfg, nil)
+	healthHandler := handlers.ProvideHealthHandler(cfg, nil, nil)
 
 	srv := NewHTTPServer(
 		noopLifecycle{},
@@ -50,6 +50,7 @@ func TestNewHTTPServer(t *testing.T) {
 		nil,
 		cfg,
 		&db.PostgresDB{},
+		nil, nil, nil,
 	)
 
 	require.NotNil(t, srv)
@@ -68,12 +69,12 @@ func TestNewHTTPServer_RegistersLifecycleHook(t *testing.T) {
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
 
-	healthHandler := handlers.ProvideHealthHandler(cfg, nil)
+	healthHandler := handlers.ProvideHealthHandler(cfg, nil, nil)
 
 	var hooks []fx.Hook
 	lc := hookLifecycle{appendHook: func(h fx.Hook) { hooks = append(hooks, h) }}
 
-	srv := NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{})
+	srv := NewHTTPServer(lc, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, &db.PostgresDB{}, nil, nil, nil)
 	require.NotNil(t, srv)
 	require.Len(t, hooks, 1)
 }

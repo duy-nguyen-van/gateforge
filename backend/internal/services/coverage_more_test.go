@@ -46,7 +46,7 @@ func TestAdminService_AddMemberByEmail_AlreadyMember(t *testing.T) {
 }
 
 func TestAdminService_CreateTenant_Validation(t *testing.T) {
-	svc := ProvideAdminService(testConfig(), nil, newAdminTenantTestRepo(), nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil)
+	svc := ProvideAdminService(testConfig(), nil, newAdminTenantTestRepo(), nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil)
 	_, err := svc.CreateTenant(context.Background(), nil)
 	require.Error(t, err)
 	_, err = svc.CreateTenant(context.Background(), &dtos.AdminCreateTenantRequest{Name: "  "})
@@ -83,7 +83,7 @@ func TestUserService_Login_Flow(t *testing.T) {
 	}
 	cfg := testConfig()
 	tokenSvc, _ := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	resp, sel, err := svc.Login(context.Background(), &dtos.LoginRequest{Email: "flow@example.com", Password: "secret123", TenantID: tenantID}, "")
 	require.NoError(t, err)

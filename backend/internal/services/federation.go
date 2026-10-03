@@ -14,11 +14,11 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/db"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
-	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/gorm"
 )
 
@@ -113,6 +113,17 @@ func federationStateCacheKey(providerID, state string) string {
 }
 
 func (s *federationService) BuildAuthorizeRedirectURL(ctx context.Context, providerID, returnTo, tenantID string) (string, error) {
+	return monitoring.Observe(ctx, federationTracer, "FederationService.BuildAuthorizeRedirectURL",
+		[]attribute.KeyValue{
+			attribute.String("provider", providerID),
+			attribute.String("tenant_id", tenantID),
+		},
+		func(ctx context.Context) (string, error) {
+			return s.buildAuthorizeRedirectURL(ctx, providerID, returnTo, tenantID)
+		})
+}
+
+func (s *federationService) buildAuthorizeRedirectURL(ctx context.Context, providerID, returnTo, tenantID string) (string, error) {
 	p, err := s.providerByID(providerID)
 	if err != nil {
 		return "", err
@@ -161,10 +172,6 @@ func (s *federationService) BuildAuthorizeRedirectURL(ctx context.Context, provi
 	if err != nil {
 		return "", err
 	}
-	logger.Log.Info("federation authorize URL built",
-		zap.String("operation", "federation_oauth_authorize"),
-		zap.String("provider", p.ID()),
-		zap.String("tenant_id", tenantID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionFederationStart,
 		Result:       constants.AuditResultSuccess,
@@ -177,6 +184,14 @@ func (s *federationService) BuildAuthorizeRedirectURL(ctx context.Context, provi
 }
 
 func (s *federationService) CompleteOAuthLogin(ctx context.Context, providerID, code, state string) (*models.User, string, string, error) {
+	return monitoring.Observe3(ctx, federationTracer, "FederationService.CompleteOAuthLogin",
+		[]attribute.KeyValue{attribute.String("provider", providerID)},
+		func(ctx context.Context) (*models.User, string, string, error) {
+			return s.completeOAuthLogin(ctx, providerID, code, state)
+		})
+}
+
+func (s *federationService) completeOAuthLogin(ctx context.Context, providerID, code, state string) (*models.User, string, string, error) {
 	p, err := s.providerByID(providerID)
 	if err != nil {
 		return nil, "", "", err
@@ -213,11 +228,6 @@ func (s *federationService) CompleteOAuthLogin(ctx context.Context, providerID, 
 
 	claims, err := p.ExchangeAuthorizationCode(ctx, payload.TenantID, code, payload.Nonce)
 	if err != nil {
-		logger.Log.Error("federation token exchange or verify failed",
-			zap.String("operation", "federation_oauth_callback"),
-			zap.String("provider", p.ID()),
-			zap.String("tenant_id", payload.TenantID),
-			zap.Error(err))
 		s.audit.Record(ctx, domains.AuditRecordParams{
 			Action:       constants.AuditActionFederationLogin,
 			Result:       constants.AuditResultFailure,
@@ -231,18 +241,8 @@ func (s *federationService) CompleteOAuthLogin(ctx context.Context, providerID, 
 
 	u, err := s.federationResolveOrProvisionUser(ctx, payload.TenantID, p.ID(), claims)
 	if err != nil {
-		logger.Log.Error("federation resolve or provision user failed",
-			zap.String("operation", "federation_oauth_callback"),
-			zap.String("provider", p.ID()),
-			zap.String("tenant_id", payload.TenantID),
-			zap.Error(err))
 		return nil, "", "", err
 	}
-	logger.Log.Info("federation login completed",
-		zap.String("operation", "federation_oauth_callback"),
-		zap.String("provider", p.ID()),
-		zap.String("user_id", u.ID),
-		zap.String("tenant_id", payload.TenantID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionFederationLogin,
 		Result:       constants.AuditResultSuccess,
@@ -381,6 +381,14 @@ func federationRandomHex(nBytes int) (string, error) {
 }
 
 func (s *federationService) ListAvailableProviders(ctx context.Context, tenantID string) ([]ProviderAvailability, error) {
+	return monitoring.Observe(ctx, federationTracer, "FederationService.ListAvailableProviders",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) ([]ProviderAvailability, error) {
+			return s.listAvailableProviders(ctx, tenantID)
+		})
+}
+
+func (s *federationService) listAvailableProviders(ctx context.Context, tenantID string) ([]ProviderAvailability, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	if tenantID == "" {
 		return nil, errors.ValidationError("tenant_id is required", nil)

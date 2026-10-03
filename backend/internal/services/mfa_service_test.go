@@ -8,6 +8,7 @@ import (
 	"github.com/pquerna/otp/totp"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
+	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
@@ -32,6 +33,7 @@ func TestMFAService_SetupAndVerifyTOTP(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, secret)
 	require.Contains(t, uri, "otpauth://")
+	require.Contains(t, uri, "issuer="+constants.TOTPIssuer)
 	require.NotNil(t, totpRepo.byUser[userID])
 
 	code, err := totp.GenerateCode(secret, time.Now())

@@ -1,0 +1,44 @@
+---
+description: OpenTelemetry traces, Zap correlation, and IAM-safe logs
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Observability (traces, logs, metrics)
+
+OpenTelemetry is the single trace/metrics/logs export. Sentry is errors only. New Relic is log forwarding only. Do not add Sentry `StartSpan`, `nrecho`, or a second metric SDK.
+
+## Traces
+
+- HTTP: official Echo v4 `otelecho.Middleware` in `cmd/server/routes/router.go` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set and traces are on. Do not add a custom Echo tracer.
+- Business: `monitoring.Observe` / `Observe2` / `Observe3` / `ObserveErr` on exported service methods. OIDC (`Authorize`, `Token`, `UserInfo`, `Introspect`) uses `StartSpan`/`Finish` because `*OAuthTokenError` / `*OAuthRedirectError` are not `error`.
+- Tracer name: `gateforge-iam/services/<domain>` (`oidcTracer`, `userTracer`, …). Span name: `Type.Method` (`OIDCService.Token`).
+- Attributes: `client_id`, `tenant_id`, `user_id`, `provider`. Never email, JWT, password, tokens, codes, or body.
+- Nest I/O: GORM `WithContext(ctx)`, Redis methods with `ctx`, federation IdP HTTP via `otelhttp`. Do not start a new root span inside a request.
+- Do **not** wrap `AuditService.Record`.
+- OTel is optional: empty exporter → no-op spans. Do not crash when disabled.
+
+## Logs
+
+- Global Zap only. Use `logger.From(ctx)` on request paths so records carry `correlation_id`, `trace_id`, `span_id`.
+- Process-level (startup, shutdown, FX): `logger.Sugar` / `logger.Log` is fine.
+- OTLP + Sentry tee **error+ only**. Info/debug stay on stdout.
+- `Observe` already logs success at Info and failure at Error. Do not log the same outcome again before returning.
+- Access logs: method/URI/status/latency/`user_id` — no body, no JWT payload, no `Authorization`.
+- `LogBodyMiddleware` skips `/token`, `/authorize`, `/introspect`, `/userinfo`, `/oidc/*`, `/api/v1/login|register|refresh|logout`, `/api/v1/mfa/*`, `/api/v1/webauthn/*`, tenant select/switch.
+
+## Metrics
+
+- Prefer GORM plugin, `redisotel.InstrumentMetrics`, and HTTP via OTel. Do not add Prometheus scrape endpoints.
+- Honor `OTEL_METRICS_ENABLED`. Empty OTLP endpoint skips init.
+
+## Correlation
+
+| You have | You join with |
+| --- | --- |
+| HTTP request | `c.Request().Context()` → service → `logger.From(ctx)` |
+| SQL | GORM with `ctx` |
+| Redis | cache method `ctx` |
+| Outbound IdP HTTP | `otelhttp` client using `ctx` |
+
+Jaeger: `make otel-up` → http://localhost:16686. See `backend/docs/OPENTELEMETRY.md`.

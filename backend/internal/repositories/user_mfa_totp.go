@@ -49,14 +49,15 @@ func (r *userMFATOTPRepository) GetByUserID(ctx context.Context, userID string) 
 
 func (r *userMFATOTPRepository) GetActiveByUserID(ctx context.Context, userID string) (*models.UserMFATOTP, error) {
 	var row models.UserMFATOTP
-	err := r.db.WithContext(ctx).Where("user_id = ? AND enabled = ?", userID, true).First(&row).Error
+	// Find, not First: a missing row means MFA is off, and First logs that as an error.
+	err := r.db.WithContext(ctx).Where("user_id = ? AND enabled = ?", userID, true).Limit(1).Find(&row).Error
 	if err != nil {
-		if stderrors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		return nil, errors.DatabaseError("Failed to load active MFA TOTP", err).
 			WithOperation("get_active_user_mfa_totp").
 			WithResource("user_mfa_totp")
+	}
+	if row.ID == "" {
+		return nil, nil
 	}
 	return &row, nil
 }

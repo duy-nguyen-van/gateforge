@@ -25,7 +25,7 @@ GateForge IAM gives your applications one secure place for user sign-in and acce
 
 ## Quick start
 
-Prerequisites: Go 1.26+, Node.js 26+, Docker (for Postgres/Redis).
+Prerequisites: Go 1.27+, Node.js 26.10+, Docker (for Postgres/Redis).
 
 ```bash
 # Start Postgres, Redis, migrations, API (:3000), and Admin UI (:5173)
@@ -63,7 +63,7 @@ Then run/debug the backend. Without `-tags embedfrontend`, assets are read from 
 ```
 gateforge-iam/
 ├── api/           Canonical OpenAPI 3.0.3 contract (SDK source of truth)
-├── backend/       Go 1.26 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
+├── backend/       Go 1.27 + Echo — auth, OIDC, WebAuthn, MFA, admin APIs
 ├── frontend/      Vite + React 19 SPA
 ├── sdk/           Official Go + TypeScript client SDKs
 ├── docker/        Multi-stage production Dockerfile and compose

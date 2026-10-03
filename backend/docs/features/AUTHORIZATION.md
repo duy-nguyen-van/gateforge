@@ -10,8 +10,11 @@ GateForge IAM is a **native IdP**. Authorization uses two layers: **platform adm
 |-----------|--------|
 | Flag | `users.is_platform_admin` (boolean) |
 | Bootstrap | First startup: `BOOTSTRAP_ADMIN_EMAIL` + `BOOTSTRAP_ADMIN_PASSWORD` if no admins exist |
-| Middleware | `PlatformAdminAuth` after `JWTBearerAuth` |
+| Middleware | `PlatformAdminAuth` then `RequireAdminMFA` after `JWTBearerAuth` |
 | Routes | `/api/v1/admin/*` |
+| MFA gate | Verified TOTP or at least one passkey. Otherwise `403` `ADMIN_MFA_REQUIRED`. The console shows enrollment steps for that response. |
+
+Enroll on `/api/v1/mfa/*` or `/api/v1/webauthn/*` (those routes stay outside the admin gate) before calling `/api/v1/admin/*`.
 
 ### Admin API routes
 

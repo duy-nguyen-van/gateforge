@@ -194,6 +194,20 @@ export async function prefetchCsrfToken(): Promise<string | undefined> {
   return response.headers.get('X-CSRF-Token') ?? undefined
 }
 
+export async function forgotPassword(email: string) {
+  return apiFetch<Record<string, never>>('/api/v1/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  return apiFetch<Record<string, never>>('/api/v1/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password: newPassword }),
+  })
+}
+
 export async function registerUser(body: RegisterRequest) {
   return apiFetch<UserResponse>('/api/v1/register', {
     method: 'POST',

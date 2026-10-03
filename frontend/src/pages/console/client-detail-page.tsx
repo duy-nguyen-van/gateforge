@@ -2,6 +2,9 @@ import { ArrowLeftIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
+import { useDetailCrumb } from '@/components/layout/use-detail-crumb'
+import { Button } from '@/components/ui/button'
 import { ClientUsagePanel } from '@/features/admin/client-usage-panel'
 import { ConsoleErrorState, ConsoleLoadingState } from '@/features/admin/console-state'
 import { DeleteClientDialog } from '@/features/admin/delete-client-dialog'
@@ -21,6 +24,7 @@ export function ClientDetailPage() {
 
   const client = clientQuery.data?.data
   const isDevClient = client?.tenant_id === defaultTenantId && client?.client_id === devClientId
+  useDetailCrumb(client?.name || client?.client_id)
 
   if (clientQuery.isLoading) {
     return <ConsoleLoadingState label="Loading client…" />
@@ -49,12 +53,29 @@ export function ClientDetailPage() {
         </Link>
       </div>
 
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">
-            {client.name || client.client_id}
-          </h1>
-          <p className="mt-1 font-mono text-sm text-on-surface-variant">{client.client_id}</p>
+      <ConsolePageHeader
+        title={client.name || client.client_id}
+        description={client.client_id}
+        actions={
+          <>
+            <Button type="button" variant="outline" onClick={() => setEditOpen(true)}>
+              <PencilIcon className="h-4 w-4" aria-hidden />
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+              disabled={isDevClient}
+              title={isDevClient ? 'The default development client cannot be deleted' : undefined}
+            >
+              <Trash2Icon className="h-4 w-4" aria-hidden />
+              Delete
+            </Button>
+          </>
+        }
+      />
+      <div className="-mt-4 mb-8">
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-md bg-tertiary-container px-2 py-0.5 text-[10px] font-bold text-on-tertiary-container">
               {client.is_public ? 'Public' : 'Confidential'}
@@ -77,28 +98,7 @@ export function ClientDetailPage() {
             <span>Tenant: {client.tenant_id.slice(0, 8)}…</span>
             <span>Created {new Date(client.created_at).toLocaleDateString()}</span>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-outline-variant px-5 py-2.5 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container"
-          >
-            <PencilIcon className="h-4 w-4" aria-hidden />
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setDeleteOpen(true)}
-            disabled={isDevClient}
-            title={isDevClient ? 'The default development client cannot be deleted' : undefined}
-            className="flex items-center gap-2 rounded-xl border border-error/30 px-5 py-2.5 text-sm font-bold text-error transition-colors hover:bg-error/5 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Trash2Icon className="h-4 w-4" aria-hidden />
-            Delete
-          </button>
-        </div>
-      </header>
+      </div>
 
       <section className="mb-8 rounded-xl bg-surface-container-lowest p-6 ghost-border">
         <h2 className="mb-4 font-headline text-lg font-bold text-on-surface">Configuration</h2>

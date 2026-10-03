@@ -19,6 +19,9 @@ const (
 	EnvironmentStaging     Environment = "staging"
 	EnvironmentProduction  Environment = "production"
 	EnvironmentTest        Environment = "test"
+
+	defaultJWTSecret = "dev-only-change-me-min-32-chars-long!!"
+	devClientPepper  = "dev-client-secret-pepper-not-for-production!!"
 )
 
 func (e Environment) String() string {
@@ -43,6 +46,9 @@ type Config struct {
 	AppHTTPServer string
 	// AppRequestTimeout is the HTTP server read header timeout in seconds.
 	AppRequestTimeout int
+	HTTPReadTimeout   time.Duration
+	HTTPWriteTimeout  time.Duration
+	HTTPIdleTimeout   time.Duration
 	AppBaseURL        string
 	// ServeEmbeddedFrontend serves the Vite SPA from go:embed when true (production single-binary deploy).
 	ServeEmbeddedFrontend bool
@@ -100,11 +106,14 @@ type Config struct {
 	Environment string
 
 	// Rate limiting configuration
-	DefaultRateLimit  int
-	AuthRateLimit     int
-	PublicRateLimit   int
-	RateLimit         int
-	RateLimitDuration time.Duration
+	DefaultRateLimit   int
+	AuthRateLimit      int
+	PublicRateLimit    int
+	RateLimit          int
+	RateLimitDuration  time.Duration
+	CORSAllowedOrigins []string
+	LockoutMaxFailures int
+	LockoutWindow      time.Duration
 
 	// NewRelic configuration
 	NewRelicAppName string
@@ -112,6 +121,15 @@ type Config struct {
 
 	// Sentry configuration
 	SentryDSN string
+
+	// OpenTelemetry configuration
+	OTelServiceName      string
+	OTelExporterEndpoint string
+	OTelExporterProtocol string
+	OTelExporterInsecure bool
+	OTelTracesEnabled    bool
+	OTelMetricsEnabled   bool
+	OTelLogsEnabled      bool
 
 	// JWT (Phase 1 local auth)
 	JWTSecret     string
@@ -130,6 +148,7 @@ type Config struct {
 	WebauthnRPOrigins     []string // parsed from WEBAUTHN_RP_ORIGINS comma-separated
 	WebauthnSessionTTL    time.Duration
 	MFAEncryptionKey      string // AES-256 key material (min 32 bytes recommended)
+	ClientSecretPepper    string // HMAC key for OAuth client secrets
 	MFAPendingTicketTTL   time.Duration
 	MFARecoveryCodeCount  int
 
@@ -141,12 +160,18 @@ type Config struct {
 	BootstrapAdminPassword string
 
 	// OIDC Phase 2 (RS256, JWKS)
-	OIDCRSAPrivateKeyPEM  string
-	OIDCRSAPrivateKeyPath string
-	OIDCKeyID             string
-	OIDCAccessTTL         time.Duration
-	OIDCIDTokenTTL        time.Duration
-	OIDCAuthCodeTTL       time.Duration
+	OIDCRSAPrivateKeyPEM      string
+	OIDCRSAPrivateKeyPath     string
+	OIDCKeyID                 string
+	OIDCPreviousPrivateKeyPEM string
+	OIDCPreviousKeyID         string
+	OIDCAccessTTL             time.Duration
+	OIDCIDTokenTTL            time.Duration
+	OIDCAuthCodeTTL           time.Duration
+	PasswordResetTTL          time.Duration
+	RetentionInterval         time.Duration
+	RetentionRefreshDays      int
+	AuditAsyncBuffer          int
 
 	// Basic Auth configuration
 	BasicAuthUsername string
@@ -180,6 +205,7 @@ func Load() (*Config, error) {
 
 	appEnv := Environment(getEnv("APP_ENV", "development"))
 	cfg := baseConfigFromEnv(appEnv)
+	applyIdentityEnv(cfg)
 	applyHTTPAndStorageEnv(cfg)
 	return cfg, nil
 }
@@ -240,8 +266,15 @@ func baseConfigFromEnv(appEnv Environment) *Config {
 		NewRelicAppName:         getEnv("NEWRELIC_APP_NAME", "github.com/gateforge-iam/gateforge-iam"),
 		NewRelicLicense:         getEnv("NEWRELIC_LICENSE", ""),
 		SentryDSN:               getEnv("SENTRY_DSN", ""),
-		JWTSecret:               getEnv("JWT_SECRET", "dev-only-change-me-min-32-chars-long!!"),
-		JWTAccessTTL:            getEnvAsDuration("JWT_ACCESS_TTL", 24*time.Hour),
+		OTelServiceName:         getEnv("OTEL_SERVICE_NAME", getEnv("APP_NAME", "gateforge-iam")),
+		OTelExporterEndpoint:    getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+		OTelExporterProtocol:    getEnv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"),
+		OTelExporterInsecure:    getEnvAsBool("OTEL_EXPORTER_OTLP_INSECURE", false),
+		OTelTracesEnabled:       getEnvAsBool("OTEL_TRACES_ENABLED", true),
+		OTelMetricsEnabled:      getEnvAsBool("OTEL_METRICS_ENABLED", true),
+		OTelLogsEnabled:         getEnvAsBool("OTEL_LOGS_ENABLED", true),
+		JWTSecret:               getEnv("JWT_SECRET", defaultJWTSecret),
+		JWTAccessTTL:            getEnvAsDuration("JWT_ACCESS_TTL", 15*time.Minute),
 		JWTRefreshTTL:           getEnvAsDuration("JWT_REFRESH_TTL", 168*time.Hour),
 		SSOSessionTTL:           getEnvAsDuration("SSO_SESSION_TTL", 0),
 		SSOSessionRememberTTL:   getEnvAsDuration("SSO_SESSION_REMEMBER_TTL", 720*time.Hour),
@@ -251,21 +284,37 @@ func baseConfigFromEnv(appEnv Environment) *Config {
 		WebauthnRPDisplayName:   getEnv("WEBAUTHN_RP_DISPLAY_NAME", "IAM"),
 		WebauthnRPOrigins:       splitCommaTrim(getEnv("WEBAUTHN_RP_ORIGINS", "http://localhost:3000")),
 		WebauthnSessionTTL:      getEnvAsDuration("WEBAUTHN_SESSION_TTL", 5*time.Minute),
-		MFAEncryptionKey:        getEnv("MFA_ENCRYPTION_KEY", ""),
-		MFAPendingTicketTTL:     getEnvAsDuration("MFA_PENDING_TICKET_TTL", 10*time.Minute),
-		MFARecoveryCodeCount:    getEnvAsInt("MFA_RECOVERY_CODE_COUNT", 10),
-		AdminAPIKey:             getEnv("ADMIN_API_KEY", ""),
-		BootstrapAdminEmail:     getEnv("BOOTSTRAP_ADMIN_EMAIL", ""),
-		BootstrapAdminPassword:  getEnv("BOOTSTRAP_ADMIN_PASSWORD", ""),
-		OIDCRSAPrivateKeyPEM:    getEnv("OIDC_RSA_PRIVATE_KEY_PEM", ""),
-		OIDCRSAPrivateKeyPath:   getEnv("OIDC_RSA_PRIVATE_KEY_FILE", ""),
-		OIDCKeyID:               getEnv("OIDC_KEY_ID", "default-key-1"),
-		OIDCAccessTTL:           getEnvAsDuration("OIDC_ACCESS_TTL", 0),
-		OIDCIDTokenTTL:          getEnvAsDuration("OIDC_ID_TOKEN_TTL", 0),
-		OIDCAuthCodeTTL:         getEnvAsDuration("OIDC_AUTH_CODE_TTL", 10*time.Minute),
-		BasicAuthUsername:       getEnv("BASIC_AUTH_USER", ""),
-		BasicAuthPassword:       getEnv("BASIC_AUTH_SECRET", ""),
 	}
+}
+
+func applyIdentityEnv(cfg *Config) {
+	cfg.MFAEncryptionKey = getEnv("MFA_ENCRYPTION_KEY", "")
+	cfg.ClientSecretPepper = getEnv("CLIENT_SECRET_PEPPER", "")
+	cfg.CORSAllowedOrigins = splitCommaTrim(getEnv("CORS_ALLOWED_ORIGINS", ""))
+	cfg.LockoutMaxFailures = getEnvAsInt("LOCKOUT_MAX_FAILURES", 5)
+	cfg.LockoutWindow = getEnvAsDuration("LOCKOUT_WINDOW", 15*time.Minute)
+	cfg.HTTPReadTimeout = getEnvAsDuration("HTTP_READ_TIMEOUT", 30*time.Second)
+	cfg.HTTPWriteTimeout = getEnvAsDuration("HTTP_WRITE_TIMEOUT", 30*time.Second)
+	cfg.HTTPIdleTimeout = getEnvAsDuration("HTTP_IDLE_TIMEOUT", 60*time.Second)
+	cfg.MFAPendingTicketTTL = getEnvAsDuration("MFA_PENDING_TICKET_TTL", 10*time.Minute)
+	cfg.MFARecoveryCodeCount = getEnvAsInt("MFA_RECOVERY_CODE_COUNT", 10)
+	cfg.AdminAPIKey = getEnv("ADMIN_API_KEY", "")
+	cfg.BootstrapAdminEmail = getEnv("BOOTSTRAP_ADMIN_EMAIL", "")
+	cfg.BootstrapAdminPassword = getEnv("BOOTSTRAP_ADMIN_PASSWORD", "")
+	cfg.OIDCRSAPrivateKeyPEM = getEnv("OIDC_RSA_PRIVATE_KEY_PEM", "")
+	cfg.OIDCRSAPrivateKeyPath = getEnv("OIDC_RSA_PRIVATE_KEY_FILE", "")
+	cfg.OIDCKeyID = getEnv("OIDC_KEY_ID", "default-key-1")
+	cfg.OIDCPreviousPrivateKeyPEM = getEnv("OIDC_RSA_PREVIOUS_PRIVATE_KEY_PEM", "")
+	cfg.OIDCPreviousKeyID = getEnv("OIDC_PREVIOUS_KEY_ID", "")
+	cfg.OIDCAccessTTL = getEnvAsDuration("OIDC_ACCESS_TTL", 0)
+	cfg.OIDCIDTokenTTL = getEnvAsDuration("OIDC_ID_TOKEN_TTL", 0)
+	cfg.OIDCAuthCodeTTL = getEnvAsDuration("OIDC_AUTH_CODE_TTL", 10*time.Minute)
+	cfg.PasswordResetTTL = getEnvAsDuration("PASSWORD_RESET_TTL", 15*time.Minute)
+	cfg.RetentionInterval = getEnvAsDuration("RETENTION_INTERVAL", time.Hour)
+	cfg.RetentionRefreshDays = getEnvAsInt("RETENTION_REFRESH_DAYS", 7)
+	cfg.AuditAsyncBuffer = getEnvAsInt("AUDIT_ASYNC_BUFFER", 1024)
+	cfg.BasicAuthUsername = getEnv("BASIC_AUTH_USER", "")
+	cfg.BasicAuthPassword = getEnv("BASIC_AUTH_SECRET", "")
 }
 
 func applyHTTPAndStorageEnv(cfg *Config) {
@@ -356,6 +405,61 @@ func (c *Config) ConnectionString() string {
 
 func (c *Config) IsDebugMode() bool {
 	return c.DatabaseEnableDebug
+}
+
+// Prepare applies non-production defaults and rejects unsafe production settings.
+func (c *Config) Prepare() error {
+	if c == nil {
+		return fmt.Errorf("config is nil")
+	}
+	if strings.TrimSpace(c.ClientSecretPepper) == "" && !c.AppEnv.IsProduction() {
+		c.ClientSecretPepper = devClientPepper
+	}
+	if len(c.CORSAllowedOrigins) == 0 && !c.AppEnv.IsProduction() {
+		c.CORSAllowedOrigins = []string{"http://localhost:5173", "http://localhost:3000"}
+	}
+	if c.LockoutMaxFailures <= 0 {
+		c.LockoutMaxFailures = 5
+	}
+	if c.LockoutWindow <= 0 {
+		c.LockoutWindow = 15 * time.Minute
+	}
+	if c.AuditAsyncBuffer <= 0 {
+		c.AuditAsyncBuffer = 1024
+	}
+	if c.PasswordResetTTL <= 0 {
+		c.PasswordResetTTL = 15 * time.Minute
+	}
+	if c.RetentionInterval <= 0 {
+		c.RetentionInterval = time.Hour
+	}
+	if c.RetentionRefreshDays <= 0 {
+		c.RetentionRefreshDays = 7
+	}
+	if !c.AppEnv.IsProduction() {
+		return nil
+	}
+	if c.JWTSecret == "" || c.JWTSecret == defaultJWTSecret {
+		return fmt.Errorf("JWT_SECRET must be set to a non-default value in production")
+	}
+	if strings.TrimSpace(c.MFAEncryptionKey) == "" {
+		return fmt.Errorf("MFA_ENCRYPTION_KEY is required in production")
+	}
+	if strings.TrimSpace(c.ClientSecretPepper) == "" {
+		return fmt.Errorf("CLIENT_SECRET_PEPPER is required in production")
+	}
+	if c.JWTAccessTTL <= 0 || c.JWTAccessTTL > time.Hour {
+		return fmt.Errorf("JWT_ACCESS_TTL must be greater than 0 and at most 1h in production")
+	}
+	if len(c.CORSAllowedOrigins) == 0 {
+		return fmt.Errorf("CORS_ALLOWED_ORIGINS is required in production")
+	}
+	for _, origin := range c.CORSAllowedOrigins {
+		if origin == "*" {
+			return fmt.Errorf("CORS_ALLOWED_ORIGINS must not contain * in production")
+		}
+	}
+	return nil
 }
 
 // PopulateFromJSON reads a service account JSON and fills email and private key

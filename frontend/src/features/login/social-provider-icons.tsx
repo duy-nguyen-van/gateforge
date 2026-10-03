@@ -39,13 +39,14 @@ export function SocialLoginGrid({ providers }: SocialLoginGridProps) {
   }
 
   const buttonClass =
-    'flex h-11 items-center justify-center rounded-lg border border-surface-container-high bg-surface-container-lowest transition-all hover:bg-surface-container-low'
+    'flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-input bg-background px-4 text-sm font-medium text-on-surface transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
   return (
-    <div className={`mt-4 grid gap-3 ${providers.length === 1 ? 'grid-cols-1' : providers.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+    <div className="space-y-3">
       {providers.map((p) => (
-        <a key={p.provider} href={p.href} className={buttonClass} title={p.name}>
+        <a key={p.provider} href={p.href} className={buttonClass}>
           <FederationProviderIcon provider={p.provider} className="h-5 w-5" />
+          <span>{p.name}</span>
         </a>
       ))}
     </div>

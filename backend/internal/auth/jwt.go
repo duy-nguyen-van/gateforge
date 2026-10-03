@@ -53,6 +53,7 @@ func (s *TokenService) SignAccessToken(userID, tenantID string) (token string, e
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			Issuer:    s.issuer,
+			Audience:  jwt.ClaimStrings{s.issuer},
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
@@ -73,6 +74,7 @@ func (s *TokenService) SignSelectionToken(userID string) (token string, expiresI
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID,
 			Issuer:    s.issuer,
+			Audience:  jwt.ClaimStrings{s.issuer},
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
@@ -92,7 +94,7 @@ func (s *TokenService) ParseAccessToken(tokenString string) (userID, tenantID st
 			return nil, fmt.Errorf("unexpected signing method")
 		}
 		return s.secret, nil
-	})
+	}, jwt.WithAudience(s.issuer))
 	if err != nil {
 		return "", "", err
 	}
@@ -113,7 +115,7 @@ func (s *TokenService) ParseSelectionToken(tokenString string) (userID string, e
 			return nil, fmt.Errorf("unexpected signing method")
 		}
 		return s.secret, nil
-	})
+	}, jwt.WithAudience(s.issuer))
 	if err != nil {
 		return "", err
 	}

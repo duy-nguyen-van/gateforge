@@ -1,15 +1,16 @@
 import { ShieldIcon } from 'lucide-react'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
 import { TotpSetupPanel } from '@/features/mfa/totp-setup'
 import { PasskeyRegisterPanel } from '@/features/webauthn/passkey-register'
 
 export function SecurityPage() {
   return (
     <div>
-      <header className="mb-10">
-        <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Security Settings</h1>
-        <p className="mt-1 text-on-surface-variant">Manage MFA, recovery codes, and passkeys for your account.</p>
-      </header>
+      <ConsolePageHeader
+        title="Security"
+        description="Add an authenticator app or a passkey. The console stays closed until one of those is on this account."
+      />
 
       <div className="space-y-6">
         <section className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">

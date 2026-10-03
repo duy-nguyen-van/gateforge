@@ -1,9 +1,13 @@
 package logger
 
 import (
+	"context"
 	"os"
 	"strings"
 
+	"github.com/gateforge-iam/gateforge-iam/pkg/correlationid"
+
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -58,4 +62,28 @@ func Init(level string, environment string) {
 	// Create logger with caller and stack trace
 	Log = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 	Sugar = Log.Sugar()
+}
+
+// From returns a logger with correlation_id, trace_id, and span_id from ctx.
+// The empty-key context field lets otelzap attach the active trace to OTLP log records.
+func From(ctx context.Context) *zap.Logger {
+	l := Log
+	if l == nil {
+		l = zap.NewNop()
+	}
+	if ctx == nil {
+		return l
+	}
+
+	fields := make([]zap.Field, 0, 4)
+	if cid, ok := correlationid.FromContext(ctx); ok && cid != "" {
+		fields = append(fields, zap.String("correlation_id", cid))
+	}
+	sc := trace.SpanFromContext(ctx).SpanContext()
+	if sc.IsValid() {
+		fields = append(fields, zap.String("trace_id", sc.TraceID().String()))
+		fields = append(fields, zap.String("span_id", sc.SpanID().String()))
+	}
+	fields = append(fields, zap.Any("", ctx))
+	return l.With(fields...)
 }

@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // RefreshToken stores OAuth2 refresh tokens.
 // TokenHash is a one-way hash of the issued refresh token value.
@@ -11,7 +15,9 @@ type RefreshToken struct {
 	UserID         string    `gorm:"column:user_id;type:uuid;not null;index:idx_refresh_tokens_user_oauth_client_revoked"`
 	OAuthClientID  string    `gorm:"column:oauth_client_id;type:varchar(255);not null;index:idx_refresh_tokens_user_oauth_client_revoked"`
 	TokenHash      string    `gorm:"column:token_hash;type:text;not null;uniqueIndex"`
-	Revoked        bool      `gorm:"column:revoked;default:false;index:idx_refresh_tokens_user_oauth_client_revoked"`
+	FamilyID       string    `gorm:"column:family_id;type:uuid;not null;index:idx_refresh_tokens_family_revoked"`
+	Scope          string    `gorm:"column:scope;type:text"`
+	Revoked        bool      `gorm:"column:revoked;default:false;index:idx_refresh_tokens_user_oauth_client_revoked;index:idx_refresh_tokens_family_revoked"`
 	ExpiresAt      time.Time `gorm:"column:expires_at;type:timestamptz;not null"`
 	ClientRecordID *string   `gorm:"column:client_record_id;type:uuid;index"`
 
@@ -22,4 +28,15 @@ type RefreshToken struct {
 
 func (RefreshToken) TableName() string {
 	return "refresh_tokens"
+}
+
+// BeforeCreate assigns a family id for newly issued refresh tokens.
+func (rt *RefreshToken) BeforeCreate(tx *gorm.DB) error {
+	if err := rt.HardDeleteModel.BeforeCreate(tx); err != nil {
+		return err
+	}
+	if rt.FamilyID == "" {
+		rt.FamilyID = rt.ID
+	}
+	return nil
 }

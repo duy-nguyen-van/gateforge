@@ -14,12 +14,17 @@ Feature guides, database reference, and manual testing for the backend identity 
 | Passkeys + TOTP MFA | [features/PASSKEY_MFA.md](features/PASSKEY_MFA.md) | [testing/PASSKEY_MFA_CURL.md](testing/PASSKEY_MFA_CURL.md) |
 | Multi-tenant memberships | [features/MULTI_TENANT.md](features/MULTI_TENANT.md) | (see login/OIDC testing docs) |
 | Authorization (platform admin, tenant roles) | [features/AUTHORIZATION.md](features/AUTHORIZATION.md) | (admin console + JWT) |
+| Account security (lockout, reset, password policy) | [features/ACCOUNT_SECURITY.md](features/ACCOUNT_SECURITY.md) | (login + forgot/reset) |
 
 Postman: [postman/IAM_OIDC.postman_collection.json](postman/IAM_OIDC.postman_collection.json)
 
 OpenAPI (`/api/v1` only for Swagger UI): [swagger.yaml](swagger.yaml) or `/swagger` (non-prod, basic auth).
 
 **Canonical public SDK contract** (root OIDC + `/api/v1`, excludes internal admin-key routes): [`../../api/openapi.yaml`](../../api/openapi.yaml). Regenerate clients with `make sdk-generate` from the monorepo root. See [`../../sdk/README.md`](../../sdk/README.md).
+
+## Observability
+
+Optional OpenTelemetry (empty `OTEL_EXPORTER_OTLP_ENDPOINT` disables it). Local Jaeger: `make otel-up` → http://localhost:16686. Full guide: [OPENTELEMETRY.md](OPENTELEMETRY.md).
 
 ## Route surfaces
 
@@ -56,7 +61,7 @@ Root OIDC routes are **outside** swag `@BasePath` — document them in [features
 | `clients` | OAuth/OIDC clients per tenant | `tenant_id`, `client_id`, `redirect_uris`, `is_public` |
 | `authorization_codes` | Auth code + PKCE metadata | `code`, `user_id`, `tenant_id`, `code_challenge`, `nonce`, `scope`, `expires_at` |
 | `access_tokens` | Opaque OIDC access token hashes | `token_hash`, `user_id`, `oauth_client_id`, `expires_at` |
-| `refresh_tokens` | Refresh token hashes | `token_hash`, `user_id`, `oauth_client_id`, `revoked`, `expires_at` |
+| `refresh_tokens` | Refresh token hashes and rotation families | `token_hash`, `family_id`, `scope`, `user_id`, `oauth_client_id`, `revoked`, `expires_at` |
 | `consents` | User consent per OAuth client | `user_id`, `oauth_client_id`, `scopes`, `granted` |
 | `sessions` | Browser SSO sessions | `id` (= cookie value), `user_id`, `tenant_id`, `expires_at` |
 | `webauthn_credentials` | Passkeys (user-scoped) | `user_id`, `credential_id`, `public_key`, `sign_count` |
@@ -78,6 +83,9 @@ Defined in `internal/auth/ephemeral_redis.go` and `internal/services/federation.
 | `iam:webauthn:login:{token}` | `WEBAUTHN_SESSION_TTL` | WebAuthn login session JSON | Single-use |
 | `iam:mfa:pending:{ticket}` | `MFA_PENDING_TICKET_TTL` (default 10m) | `MFAPendingPayload` (`user_id`, `tenant_id`, `remember_me`, `return_to`) | Single-use |
 | `oidc_federation_state:{state}` | 10m | `return_to`, `tenant_id`, `nonce`, `provider` | Single-use |
+| `iam:lockout:{sha256(email)}` | `LOCKOUT_WINDOW` (default 15m) | failure count | Deleted on successful login |
+| `iam:password-reset:{sha256(token)}` | `PASSWORD_RESET_TTL` (default 15m) | `user_id` | Single-use |
+| `iam:oauth-client:{client_id}` | 30s | OAuth client row (HMAC secret, never plaintext) | Invalidated on admin update/delete |
 
 Requires `CACHE_PROVIDER=redis` and reachable Redis.
 

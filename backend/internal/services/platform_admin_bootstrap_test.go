@@ -22,6 +22,7 @@ type stubBootstrapUserRepo struct {
 	promoted           map[string]bool
 }
 
+func (s *stubBootstrapUserRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
 func (s *stubBootstrapUserRepo) CreateWithPasswordHash(ctx context.Context, user *models.User, passwordHash string) error {
 	s.created = append(s.created, user)
 	s.users[user.ID] = user
@@ -170,7 +171,7 @@ func TestPlatformAdminBootstrap_ExistingMembershipSkipped(t *testing.T) {
 	b := ProvidePlatformAdminBootstrap(&config.Config{
 		DefaultTenantID:        "tenant-1",
 		BootstrapAdminEmail:    "admin@example.com",
-		BootstrapAdminPassword: "password123",
+		BootstrapAdminPassword: "correct-horse-1",
 	}, repo, memberships)
 
 	require.NoError(t, b.Run(context.Background()))
@@ -214,7 +215,7 @@ func TestPlatformAdminBootstrap_SkipsWhenAdminsExist(t *testing.T) {
 	memberships := &stubBootstrapMembershipRepo{}
 	b := ProvidePlatformAdminBootstrap(&config.Config{
 		BootstrapAdminEmail:    "admin@example.com",
-		BootstrapAdminPassword: "password123",
+		BootstrapAdminPassword: "correct-horse-1",
 	}, repo, memberships)
 
 	require.NoError(t, b.Run(context.Background()))
@@ -227,7 +228,7 @@ func TestPlatformAdminBootstrap_CreatesNewAdmin(t *testing.T) {
 	b := ProvidePlatformAdminBootstrap(&config.Config{
 		DefaultTenantID:        "tenant-1",
 		BootstrapAdminEmail:    "admin@example.com",
-		BootstrapAdminPassword: "password123",
+		BootstrapAdminPassword: "correct-horse-1",
 	}, repo, memberships)
 
 	require.NoError(t, b.Run(context.Background()))
@@ -253,7 +254,7 @@ func TestPlatformAdminBootstrap_PromotesExistingUser(t *testing.T) {
 	b := ProvidePlatformAdminBootstrap(&config.Config{
 		DefaultTenantID:        "tenant-1",
 		BootstrapAdminEmail:    "admin@example.com",
-		BootstrapAdminPassword: "password123",
+		BootstrapAdminPassword: "correct-horse-1",
 	}, repo, memberships)
 
 	require.NoError(t, b.Run(context.Background()))

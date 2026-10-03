@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/gateforge-iam/gateforge-iam/internal/cache"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
@@ -13,7 +14,10 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // AdminService exposes platform admin read/update operations for the console.
@@ -61,6 +65,7 @@ type adminService struct {
 	audit         AuditService
 	sessionSvc    SessionService
 	userSvc       UserService
+	clientCache   cache.Cache
 }
 
 // ProvideAdminService wires admin console operations.
@@ -80,6 +85,7 @@ func ProvideAdminService(
 	audit AuditService,
 	sessionSvc SessionService,
 	userSvc UserService,
+	clientCache cache.Cache,
 ) AdminService {
 	return &adminService{
 		cfg:           cfg,
@@ -97,10 +103,15 @@ func ProvideAdminService(
 		audit:         audit,
 		sessionSvc:    sessionSvc,
 		userSvc:       userSvc,
+		clientCache:   clientCache,
 	}
 }
 
 func (s *adminService) GetStats(ctx context.Context) (*dtos.AdminStatsResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.GetStats", nil, s.getStats)
+}
+
+func (s *adminService) getStats(ctx context.Context) (*dtos.AdminStatsResponse, error) {
 	totalUsers, err := s.users.Count(ctx)
 	if err != nil {
 		return nil, err
@@ -128,6 +139,14 @@ func (s *adminService) GetStats(ctx context.Context) (*dtos.AdminStatsResponse, 
 }
 
 func (s *adminService) ListUsers(ctx context.Context, tenantID, search string, pr *dtos.PageableRequest) ([]*dtos.AdminUserResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListUsers",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) ([]*dtos.AdminUserResponse, *dtos.Pageable, error) {
+			return s.listUsers(ctx, tenantID, search, pr)
+		})
+}
+
+func (s *adminService) listUsers(ctx context.Context, tenantID, search string, pr *dtos.PageableRequest) ([]*dtos.AdminUserResponse, *dtos.Pageable, error) {
 	result, err := s.users.List(ctx, tenantID, search, pr)
 	if err != nil {
 		return nil, nil, err
@@ -140,6 +159,13 @@ func (s *adminService) ListUsers(ctx context.Context, tenantID, search string, p
 }
 
 func (s *adminService) ListTenants(ctx context.Context, pr *dtos.PageableRequest) ([]*dtos.AdminTenantResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListTenants", nil,
+		func(ctx context.Context) ([]*dtos.AdminTenantResponse, *dtos.Pageable, error) {
+			return s.listTenants(ctx, pr)
+		})
+}
+
+func (s *adminService) listTenants(ctx context.Context, pr *dtos.PageableRequest) ([]*dtos.AdminTenantResponse, *dtos.Pageable, error) {
 	result, err := s.tenants.List(ctx, pr)
 	if err != nil {
 		return nil, nil, err
@@ -156,6 +182,14 @@ func (s *adminService) ListTenants(ctx context.Context, pr *dtos.PageableRequest
 }
 
 func (s *adminService) ListClients(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminClientResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListClients",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) ([]*dtos.AdminClientResponse, *dtos.Pageable, error) {
+			return s.listClients(ctx, tenantID, pr)
+		})
+}
+
+func (s *adminService) listClients(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminClientResponse, *dtos.Pageable, error) {
 	result, err := s.clients.List(ctx, tenantID, pr)
 	if err != nil {
 		return nil, nil, err
@@ -168,6 +202,14 @@ func (s *adminService) ListClients(ctx context.Context, tenantID string, pr *dto
 }
 
 func (s *adminService) ListIdentityProviders(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminIdentityProviderResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListIdentityProviders",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) ([]*dtos.AdminIdentityProviderResponse, *dtos.Pageable, error) {
+			return s.listIdentityProviders(ctx, tenantID, pr)
+		})
+}
+
+func (s *adminService) listIdentityProviders(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminIdentityProviderResponse, *dtos.Pageable, error) {
 	out := make([]*dtos.AdminIdentityProviderResponse, 0, len(constants.SupportedIdentityProviders))
 	for _, spec := range constants.SupportedIdentityProviders {
 		tip, err := s.tipRepo.GetByTenantAndProvider(ctx, tenantID, spec.ID)
@@ -202,6 +244,17 @@ func (s *adminService) newIdentityProviderResponse(spec constants.IdentityProvid
 }
 
 func (s *adminService) ConfigureIdentityProvider(ctx context.Context, tenantID, providerID string, req *dtos.PatchIdentityProviderRequest, actorType constants.AuditActorType) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.ConfigureIdentityProvider",
+		[]attribute.KeyValue{
+			attribute.String("tenant_id", tenantID),
+			attribute.String("provider", providerID),
+		},
+		func(ctx context.Context) error {
+			return s.configureIdentityProvider(ctx, tenantID, providerID, req, actorType)
+		})
+}
+
+func (s *adminService) configureIdentityProvider(ctx context.Context, tenantID, providerID string, req *dtos.PatchIdentityProviderRequest, actorType constants.AuditActorType) error {
 	if req == nil {
 		return errors.ValidationError("Request body is required", nil)
 	}
@@ -256,7 +309,7 @@ func (s *adminService) ConfigureIdentityProvider(ctx context.Context, tenantID, 
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminIDPPatch,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    actorType,
@@ -269,11 +322,21 @@ func (s *adminService) ConfigureIdentityProvider(ctx context.Context, tenantID, 
 			"oauth_client_id_set":     strings.TrimSpace(updated.OAuthClientID) != "",
 			"oauth_client_secret_set": strings.TrimSpace(updated.OAuthClientSecretEncrypted) != "",
 		},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) AddMemberByEmail(ctx context.Context, tenantID, email, role string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.AddMemberByEmail",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) error {
+			return s.addMemberByEmail(ctx, tenantID, email, role)
+		})
+}
+
+func (s *adminService) addMemberByEmail(ctx context.Context, tenantID, email, role string) error {
 	if _, err := s.tenants.GetByID(ctx, tenantID); err != nil {
 		return err
 	}
@@ -301,7 +364,7 @@ func (s *adminService) AddMemberByEmail(ctx context.Context, tenantID, email, ro
 	if err := s.memberships.Create(ctx, membership); err != nil {
 		return err
 	}
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminMemberAdd,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -310,15 +373,28 @@ func (s *adminService) AddMemberByEmail(ctx context.Context, tenantID, email, ro
 		ResourceID:   membership.ID,
 		ResourceName: u.ID,
 		NewValue:     map[string]any{"user_id": u.ID, "role": role},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) RemoveMember(ctx context.Context, tenantID, userID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.RemoveMember",
+		[]attribute.KeyValue{
+			attribute.String("tenant_id", tenantID),
+			attribute.String("user_id", userID),
+		},
+		func(ctx context.Context) error {
+			return s.removeMember(ctx, tenantID, userID)
+		})
+}
+
+func (s *adminService) removeMember(ctx context.Context, tenantID, userID string) error {
 	if err := s.memberships.Delete(ctx, userID, tenantID); err != nil {
 		return err
 	}
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminMemberRemove,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -326,11 +402,21 @@ func (s *adminService) RemoveMember(ctx context.Context, tenantID, userID string
 		ResourceType: constants.AuditResourceTypeMembership,
 		ResourceName: userID,
 		OldValue:     map[string]any{"user_id": userID},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) ListAuditLogs(ctx context.Context, filters dtos.AdminAuditLogListParams, pr *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListAuditLogs",
+		[]attribute.KeyValue{attribute.String("tenant_id", filters.TenantID)},
+		func(ctx context.Context) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
+			return s.listAuditLogs(ctx, filters, pr)
+		})
+}
+
+func (s *adminService) listAuditLogs(ctx context.Context, filters dtos.AdminAuditLogListParams, pr *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
 	result, err := s.auditLogs.List(ctx, repositories.AuditLogListFilters{
 		TenantID: filters.TenantID,
 		Action:   filters.Action,

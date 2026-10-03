@@ -21,7 +21,7 @@ func newUserTestService(t *testing.T, users *userTestRepo, memberships *stubMemb
 	require.NoError(t, err)
 	tenantCtx := ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships)
 	audit := &auditCapture{}
-	return ProvideUserService(users, memberships, newRefreshTokenTestRepo(), tenantCtx, cfg, tokenSvc, audit)
+	return ProvideUserService(users, memberships, newRefreshTokenTestRepo(), tenantCtx, cfg, tokenSvc, audit, nil, nil, nil)
 }
 
 func TestUserService_Register(t *testing.T) {
@@ -31,7 +31,7 @@ func TestUserService_Register(t *testing.T) {
 
 	u, err := svc.Register(context.Background(), &dtos.RegisterRequest{
 		Email:     "new@example.com",
-		Password:  "password123",
+		Password:  "correct-horse-1",
 		FirstName: "New",
 		LastName:  "User",
 		TenantID:  testConfig().DefaultTenantID,
@@ -51,7 +51,7 @@ func TestUserService_Register_DuplicateEmail(t *testing.T) {
 
 	_, err := svc.Register(context.Background(), &dtos.RegisterRequest{
 		Email:    "taken@example.com",
-		Password: "password123",
+		Password: "correct-horse-1",
 	}, "")
 	require.Error(t, err)
 	appErr := errors.GetAppError(err)
@@ -125,7 +125,7 @@ func TestUserService_LoginAndRefresh(t *testing.T) {
 	require.NoError(t, err)
 	refreshRepo := newRefreshTokenTestRepo()
 	tenantCtx := ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships)
-	svc := ProvideUserService(users, memberships, refreshRepo, tenantCtx, cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, refreshRepo, tenantCtx, cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	loginResp, sel, err := svc.Login(context.Background(), &dtos.LoginRequest{
 		Email:    "login@example.com",
@@ -150,7 +150,7 @@ func TestUserService_Refresh_InvalidToken(t *testing.T) {
 	cfg := testConfig()
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	_, err = svc.Refresh(context.Background(), &dtos.RefreshTokenRequest{RefreshToken: ""})
 	require.Error(t, err)
@@ -175,7 +175,7 @@ func TestUserService_CompleteAuth_TenantPicker(t *testing.T) {
 	cfg.DefaultTenantID = ""
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	loginResp, sel, err := svc.CompleteAuth(context.Background(), u, TenantResolveInput{UserID: u.ID})
 	require.NoError(t, err)
@@ -202,7 +202,7 @@ func TestUserService_SelectTenantAndSwitchTenant(t *testing.T) {
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
 	audit := &auditCapture{}
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, audit)
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, audit, nil, nil, nil)
 
 	token, _, err := tokenSvc.SignSelectionToken(u.ID)
 	require.NoError(t, err)
@@ -254,7 +254,7 @@ func TestUserService_RevokeAllRefreshTokensForUser(t *testing.T) {
 	cfg := testConfig()
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	svc := ProvideUserService(users, memberships, refreshRepo, ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, refreshRepo, ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	require.NoError(t, svc.RevokeAllRefreshTokensForUser(context.Background(), ""))
 	require.NoError(t, svc.RevokeAllRefreshTokensForUser(context.Background(), "user-1"))
@@ -300,7 +300,7 @@ func TestUserService_Refresh_InactiveUser(t *testing.T) {
 		TokenHash: hash,
 		ExpiresAt: time.Now().UTC().Add(time.Hour),
 	}))
-	svc := ProvideUserService(users, memberships, refreshRepo, ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, refreshRepo, ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	_, err = svc.Refresh(context.Background(), &dtos.RefreshTokenRequest{RefreshToken: raw})
 	require.Error(t, err)

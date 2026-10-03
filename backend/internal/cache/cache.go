@@ -24,6 +24,12 @@ type Cache interface {
 	// Exists checks if a key exists in cache
 	Exists(ctx context.Context, key string) (bool, error)
 
+	// Increment adds one to a counter and sets the window TTL on the first hit.
+	Increment(ctx context.Context, key string, window time.Duration) (int64, error)
+
+	// Ping checks that the cache is reachable.
+	Ping(ctx context.Context) error
+
 	// Close closes the cache connection
 	Close() error
 }

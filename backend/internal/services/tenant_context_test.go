@@ -14,11 +14,16 @@ import (
 )
 
 type stubMembershipRepo struct {
-	byUser map[string][]models.TenantMembership
-	active map[string]map[string]bool
+	byUser    map[string][]models.TenantMembership
+	active    map[string]map[string]bool
+	existsErr error
+	createErr error
 }
 
 func (s *stubMembershipRepo) Create(ctx context.Context, m *models.TenantMembership) error {
+	if s.createErr != nil {
+		return s.createErr
+	}
 	s.byUser[m.UserID] = append(s.byUser[m.UserID], *m)
 	if s.active[m.UserID] == nil {
 		s.active[m.UserID] = map[string]bool{}
@@ -32,6 +37,9 @@ func (s *stubMembershipRepo) GetActive(ctx context.Context, userID, tenantID str
 }
 
 func (s *stubMembershipRepo) ExistsActive(ctx context.Context, userID, tenantID string) (bool, error) {
+	if s.existsErr != nil {
+		return false, s.existsErr
+	}
 	return s.active[userID][tenantID], nil
 }
 

@@ -61,6 +61,21 @@ var sqliteTestSchema = []string{
 		status TEXT NOT NULL
 	)`,
 	`CREATE UNIQUE INDEX idx_tenant_memberships_user_tenant ON tenant_memberships(user_id, tenant_id)`,
+	`CREATE TABLE tenant_invites (
+		id TEXT PRIMARY KEY,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		deleted_at DATETIME,
+		email TEXT NOT NULL,
+		email_lower TEXT NOT NULL,
+		tenant_id TEXT NOT NULL,
+		role TEXT NOT NULL,
+		token_hash TEXT NOT NULL,
+		status TEXT NOT NULL,
+		expires_at DATETIME NOT NULL,
+		accepted_user_id TEXT
+	)`,
+	`CREATE UNIQUE INDEX idx_tenant_invites_token_hash ON tenant_invites(token_hash)`,
 	`CREATE TABLE tenant_identity_providers (
 		id TEXT PRIMARY KEY,
 		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

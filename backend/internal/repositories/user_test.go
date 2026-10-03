@@ -202,3 +202,31 @@ func TestUserRepository_List_DatabaseError(t *testing.T) {
 	appErr := errors.GetAppError(err)
 	require.Equal(t, "list_users", appErr.Operation)
 }
+
+func TestUserRepository_MarkEmailVerified(t *testing.T) {
+	pg := newTestDB(t)
+	repo := ProvideUserRepository(pg)
+	ctx := testCtx()
+	user := seedUser(t, pg, "verify@test.com")
+
+	require.NoError(t, repo.MarkEmailVerified(ctx, user.ID))
+	got, err := repo.GetOneByID(ctx, user.ID)
+	require.NoError(t, err)
+	require.True(t, got.EmailVerified)
+}
+
+func TestUserRepository_MarkEmailVerified_NotFound(t *testing.T) {
+	pg := newTestDB(t)
+	repo := ProvideUserRepository(pg)
+
+	err := repo.MarkEmailVerified(testCtx(), "00000000-0000-7000-8000-000000000099")
+	requireNotFound(t, err)
+}
+
+func TestUserRepository_MarkEmailVerified_DatabaseError(t *testing.T) {
+	pg := closedTestDB(t)
+	repo := ProvideUserRepository(pg)
+
+	err := repo.MarkEmailVerified(testCtx(), "00000000-0000-7000-8000-000000000099")
+	requireDatabaseErr(t, err)
+}

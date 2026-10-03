@@ -92,10 +92,13 @@ func (a *auditCapture) RecordRequired(ctx context.Context, p domains.AuditRecord
 func (a *auditCapture) Shutdown(context.Context) error { return nil }
 
 type userTestRepo struct {
-	users    map[string]*models.User
-	byEmail  map[string]*models.User
-	created  []*models.User
-	password map[string]string
+	users     map[string]*models.User
+	byEmail   map[string]*models.User
+	created   []*models.User
+	password  map[string]string
+	getErr    error
+	createErr error
+	markErr   error
 }
 
 func newUserTestRepo() *userTestRepo {
@@ -124,6 +127,9 @@ func (r *userTestRepo) seed(email, password string) *models.User {
 }
 
 func (r *userTestRepo) MarkEmailVerified(_ context.Context, userID string) error {
+	if r.markErr != nil {
+		return r.markErr
+	}
 	u, ok := r.users[userID]
 	if !ok {
 		return errors.NotFoundError("User", nil)
@@ -145,6 +151,9 @@ func (r *userTestRepo) UpdatePasswordHash(_ context.Context, userID, passwordHas
 }
 
 func (r *userTestRepo) CreateWithPasswordHash(_ context.Context, user *models.User, passwordHash string) error {
+	if r.createErr != nil {
+		return r.createErr
+	}
 	user.EmailLower = user.Email
 	r.users[user.ID] = user
 	r.byEmail[user.EmailLower] = user
@@ -170,6 +179,9 @@ func (r *userTestRepo) GetOneByID(_ context.Context, id string) (*models.User, e
 }
 
 func (r *userTestRepo) GetByEmailLower(_ context.Context, emailLower string) (*models.User, error) {
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
 	u, ok := r.byEmail[emailLower]
 	if !ok {
 		return nil, errors.NotFoundError("User", nil)

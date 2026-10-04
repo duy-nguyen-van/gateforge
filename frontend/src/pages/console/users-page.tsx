@@ -15,6 +15,7 @@ import { ConsolePageHeader } from '@/components/layout/console-page-header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AddMemberDialog } from '@/features/admin/add-member-dialog'
+import { InvitationsSection } from '@/features/admin/invitations-section'
 import { displayUserName, formatUserStatus } from '@/features/admin/admin-utils'
 import { ConsolePagination } from '@/features/admin/console-pagination'
 import {
@@ -67,7 +68,7 @@ export function UsersPage() {
         title="Users"
         description="Manage identities across all tenants."
         actions={
-          <Button type="button" title="User must already be registered" onClick={() => setAddMemberOpen(true)}>
+          <Button type="button" onClick={() => setAddMemberOpen(true)}>
             <UserPlusIcon className="h-4 w-4" aria-hidden />
             Add member
           </Button>
@@ -202,6 +203,8 @@ export function UsersPage() {
           />
         ) : null}
       </div>
+
+      <InvitationsSection />
 
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} />
 

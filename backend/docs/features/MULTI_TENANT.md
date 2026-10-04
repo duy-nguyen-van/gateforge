@@ -71,6 +71,8 @@ Platform-wide admin is separate: `users.is_platform_admin` — see [AUTHORIZATIO
 
 Delivery uses `EMAIL_PROVIDER` (`ses`, `resend`, or local `mailpit`). A send failure is logged with a masked address and does not remove the membership or invite. The add-member API still returns 204. A user who is already a member is not emailed again.
 
+`GET /admin/invites` lists every pending invite for the Users page, including ones past their expiry (those rows report status `expired`) and the organization name. `GET /admin/tenants/{tenantId}/invites` is the same list for one organization. `POST /admin/tenants/{tenantId}/invites/{inviteId}/resend` rotates the link, extends the expiry, and sends `member_invite` again. The list does not include the invite token.
+
 ## JWT claims (dashboard API)
 
 HS256 access token (`internal/auth/jwt.go`):

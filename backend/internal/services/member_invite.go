@@ -17,6 +17,7 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -315,6 +316,102 @@ func (s *adminService) inviteNewMember(ctx context.Context, tenant *models.Tenan
 		)
 	}
 	return nil
+}
+
+func (s *adminService) ListInvites(ctx context.Context, pr *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListInvites", nil,
+		func(ctx context.Context) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+			if s.invites == nil {
+				page := &dtos.Pageable{Page: 1, PageSize: constants.DefaultPageSize, Total: 0}
+				return []*dtos.AdminTenantInviteResponse{}, page, nil
+			}
+			listed, err := s.invites.ListPending(ctx, pr)
+			if err != nil {
+				return nil, nil, err
+			}
+			rows, pageable := mapAdminInvites(listed)
+			return rows, pageable, nil
+		})
+}
+
+func (s *adminService) ListTenantInvites(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListTenantInvites",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+			return s.listTenantInvites(ctx, tenantID, pr)
+		})
+}
+
+func (s *adminService) listTenantInvites(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	if _, err := s.tenants.GetByID(ctx, tenantID); err != nil {
+		return nil, nil, err
+	}
+	if s.invites == nil {
+		page := &dtos.Pageable{Page: 1, PageSize: constants.DefaultPageSize, Total: 0}
+		return []*dtos.AdminTenantInviteResponse{}, page, nil
+	}
+	page, err := s.invites.ListPendingByTenant(ctx, tenantID, pr)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, pageable := mapAdminInvites(page)
+	return rows, pageable, nil
+}
+
+func mapAdminInvites(page *dtos.DataResponse[models.TenantInvite]) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable) {
+	now := time.Now().UTC()
+	out := make([]*dtos.AdminTenantInviteResponse, 0, len(page.Data))
+	for i := range page.Data {
+		invite := &page.Data[i]
+		status := invite.Status
+		if status == constants.TenantInviteStatusPending && !now.Before(invite.ExpiresAt) {
+			status = "expired"
+		}
+		tenantName := ""
+		if invite.Tenant != nil {
+			tenantName = invite.Tenant.Name
+		}
+		out = append(out, &dtos.AdminTenantInviteResponse{
+			ID:         invite.ID,
+			Email:      invite.Email,
+			Role:       invite.Role,
+			Status:     status,
+			TenantID:   invite.TenantID,
+			TenantName: tenantName,
+			CreatedAt:  invite.CreatedAt,
+			ExpiresAt:  invite.ExpiresAt,
+		})
+	}
+	return out, page.Pageable
+}
+
+func (s *adminService) ResendTenantInvite(ctx context.Context, tenantID, inviteID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.ResendTenantInvite",
+		[]attribute.KeyValue{
+			attribute.String("tenant_id", tenantID),
+			attribute.String("invite_id", inviteID),
+		},
+		func(ctx context.Context) error {
+			return s.resendTenantInvite(ctx, tenantID, inviteID)
+		})
+}
+
+func (s *adminService) resendTenantInvite(ctx context.Context, tenantID, inviteID string) error {
+	if s.invites == nil {
+		return errors.NotFoundError("Tenant invite", nil)
+	}
+	tenant, err := s.tenants.GetByID(ctx, tenantID)
+	if err != nil {
+		return err
+	}
+	invite, err := s.invites.GetByID(ctx, inviteID)
+	if err != nil {
+		return err
+	}
+	if invite.TenantID != tenantID || invite.Status != constants.TenantInviteStatusPending {
+		return errors.NotFoundError("Tenant invite", nil)
+	}
+	return s.inviteNewMember(ctx, tenant, invite.Email, invite.Role)
 }
 
 func (s *adminService) memberInviteURL(token string) string {

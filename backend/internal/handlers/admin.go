@@ -406,6 +406,66 @@ func (h *AdminHandler) AddMember(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+// ListInvites godoc
+// @Summary List pending organization invites
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} object{meta=dtos.Meta,data=[]dtos.AdminTenantInviteResponse}
+// @Router /admin/invites [get]
+func (h *AdminHandler) ListInvites(c echo.Context) error {
+	invites, pageable, err := h.adminService.ListInvites(c.Request().Context(), pageableFromQuery(c))
+	if err != nil {
+		return h.HandleError(c, err)
+	}
+	return h.SuccessResponse(c, "Invites retrieved successfully", invites, pageable)
+}
+
+// ListTenantInvites godoc
+// @Summary List pending organization invites
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param tenantId path string true "Tenant UUID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} object{meta=dtos.Meta,data=[]dtos.AdminTenantInviteResponse}
+// @Router /admin/tenants/{tenantId}/invites [get]
+func (h *AdminHandler) ListTenantInvites(c echo.Context) error {
+	tenantID := c.Param("tenantId")
+	if tenantID == "" {
+		return h.HandleError(c, errors.ValidationError("tenantId is required", nil))
+	}
+	invites, pageable, err := h.adminService.ListTenantInvites(c.Request().Context(), tenantID, pageableFromQuery(c))
+	if err != nil {
+		return h.HandleError(c, err)
+	}
+	return h.SuccessResponse(c, "Tenant invites retrieved successfully", invites, pageable)
+}
+
+// ResendTenantInvite godoc
+// @Summary Resend a pending organization invite
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param tenantId path string true "Tenant UUID"
+// @Param inviteId path string true "Invite UUID"
+// @Success 204
+// @Router /admin/tenants/{tenantId}/invites/{inviteId}/resend [post]
+func (h *AdminHandler) ResendTenantInvite(c echo.Context) error {
+	tenantID := c.Param("tenantId")
+	inviteID := c.Param("inviteId")
+	if tenantID == "" || inviteID == "" {
+		return h.HandleError(c, errors.ValidationError("tenantId and inviteId are required", nil))
+	}
+	if err := h.adminService.ResendTenantInvite(c.Request().Context(), tenantID, inviteID); err != nil {
+		return h.HandleError(c, err)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
 // RemoveMember godoc
 // @Summary Remove a user from a tenant
 // @Tags Admin

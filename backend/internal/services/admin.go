@@ -47,6 +47,9 @@ type AdminService interface {
 	ListIdentityProviders(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminIdentityProviderResponse, *dtos.Pageable, error)
 	ConfigureIdentityProvider(ctx context.Context, tenantID, providerID string, req *dtos.PatchIdentityProviderRequest, actorType constants.AuditActorType) error
 	AddMemberByEmail(ctx context.Context, tenantID, email, role string) error
+	ListInvites(ctx context.Context, pr *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error)
+	ListTenantInvites(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error)
+	ResendTenantInvite(ctx context.Context, tenantID, inviteID string) error
 	RemoveMember(ctx context.Context, tenantID, userID string) error
 	ListAuditLogs(ctx context.Context, filters dtos.AdminAuditLogListParams, pr *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error)
 	ListLoginHistory(ctx context.Context, filters dtos.AdminLoginHistoryListParams, pr *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error)

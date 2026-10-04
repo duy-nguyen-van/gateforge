@@ -245,6 +245,17 @@ export interface AdminTenantMemberResponse {
   joined_at: string
 }
 
+export interface AdminTenantInviteResponse {
+  id: string
+  email: string
+  role: string
+  status: string
+  tenant_id: string
+  tenant_name: string
+  created_at: string
+  expires_at: string
+}
+
 export interface AdminClientResponse {
   id: string
   tenant_id: string

@@ -72,7 +72,14 @@ func (stubAdminAuditService) ConfigureIdentityProvider(context.Context, string, 
 func (stubAdminAuditService) AddMemberByEmail(context.Context, string, string, string) error {
 	return nil
 }
-func (stubAdminAuditService) RemoveMember(context.Context, string, string) error { return nil }
+func (stubAdminAuditService) ListInvites(context.Context, *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return []*dtos.AdminTenantInviteResponse{}, &dtos.Pageable{Page: 1, PageSize: 20, Total: 0}, nil
+}
+func (stubAdminAuditService) ListTenantInvites(context.Context, string, *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return []*dtos.AdminTenantInviteResponse{}, &dtos.Pageable{Page: 1, PageSize: 20, Total: 0}, nil
+}
+func (stubAdminAuditService) ResendTenantInvite(context.Context, string, string) error { return nil }
+func (stubAdminAuditService) RemoveMember(context.Context, string, string) error       { return nil }
 func (stubAdminAuditService) ListAuditLogs(_ context.Context, _ dtos.AdminAuditLogListParams, _ *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
 	return []*dtos.AdminAuditLogResponse{
 		{ID: "00000000-0000-4000-8000-000000000010", Action: constants.AuditActionAuthLogin, Result: string(constants.AuditResultSuccess), ActorType: string(constants.AuditActorTypeUser)},

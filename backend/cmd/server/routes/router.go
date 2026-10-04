@@ -247,4 +247,7 @@ func registerAdminV1Routes(
 	adminGroup.GET("/tenants/:tenantId/members", adminHandler.ListTenantMembers)
 	adminGroup.POST("/tenants/:tenantId/members", adminHandler.AddMember)
 	adminGroup.DELETE("/tenants/:tenantId/members/:userId", adminHandler.RemoveMember)
+	adminGroup.GET("/invites", adminHandler.ListInvites)
+	adminGroup.GET("/tenants/:tenantId/invites", adminHandler.ListTenantInvites)
+	adminGroup.POST("/tenants/:tenantId/invites/:inviteId/resend", adminHandler.ResendTenantInvite)
 }

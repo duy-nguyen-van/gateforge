@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
+	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
 	"github.com/stretchr/testify/require"
@@ -39,6 +40,22 @@ func TestTenantInviteRepository_CreateGetAndSave(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, invite.ID, pending.ID)
 
+	byID, err := repo.GetByID(ctx, invite.ID)
+	require.NoError(t, err)
+	require.Equal(t, invite.EmailLower, byID.EmailLower)
+
+	listed, err := repo.ListPendingByTenant(ctx, tenant.ID, &dtos.PageableRequest{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), listed.Pageable.Total)
+	require.Equal(t, invite.ID, listed.Data[0].ID)
+	require.NotNil(t, listed.Data[0].Tenant)
+	require.Equal(t, "Acme", listed.Data[0].Tenant.Name)
+
+	all, err := repo.ListPending(ctx, &dtos.PageableRequest{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), all.Pageable.Total)
+	require.Equal(t, "Acme", all.Data[0].Tenant.Name)
+
 	invite.Status = constants.TenantInviteStatusAccepted
 	invite.Role = "admin"
 	invite.AcceptedUserID = &user.ID
@@ -52,6 +69,10 @@ func TestTenantInviteRepository_CreateGetAndSave(t *testing.T) {
 	missing, err := repo.FindPendingByEmailAndTenant(ctx, "new@example.com", tenant.ID)
 	require.NoError(t, err)
 	require.Nil(t, missing)
+
+	accepted, err := repo.ListPendingByTenant(ctx, tenant.ID, &dtos.PageableRequest{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	require.Equal(t, int64(0), accepted.Pageable.Total)
 }
 
 func TestTenantInviteRepository_NotFound(t *testing.T) {
@@ -59,6 +80,8 @@ func TestTenantInviteRepository_NotFound(t *testing.T) {
 	repo := ProvideTenantInviteRepository(pg)
 
 	_, err := repo.GetByTokenHash(testCtx(), "missing")
+	requireNotFound(t, err)
+	_, err = repo.GetByID(testCtx(), "00000000-0000-7000-8000-000000000099")
 	requireNotFound(t, err)
 
 	pending, err := repo.FindPendingByEmailAndTenant(testCtx(), "nobody@test.com", "00000000-0000-7000-8000-000000000099")
@@ -77,6 +100,12 @@ func TestTenantInviteRepository_DatabaseError(t *testing.T) {
 	_, err := repo.GetByTokenHash(ctx, "h")
 	requireDatabaseErr(t, err)
 	_, err = repo.FindPendingByEmailAndTenant(ctx, "a@test.com", invite.ID)
+	requireDatabaseErr(t, err)
+	_, err = repo.GetByID(ctx, invite.ID)
+	requireDatabaseErr(t, err)
+	_, err = repo.ListPendingByTenant(ctx, invite.ID, &dtos.PageableRequest{Page: 1, PageSize: 10})
+	requireDatabaseErr(t, err)
+	_, err = repo.ListPending(ctx, &dtos.PageableRequest{Page: 1, PageSize: 10})
 	requireDatabaseErr(t, err)
 }
 

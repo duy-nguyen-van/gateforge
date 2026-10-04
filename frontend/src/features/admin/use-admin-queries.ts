@@ -15,13 +15,16 @@ import {
   getAdminUser,
   listAdminAuditLogs,
   listAdminClients,
+  listAdminInvites,
   listAdminLoginHistory,
   listAdminTenants,
   listAdminUsers,
   listTenantIdentityProviders,
+  listTenantInvites,
   listTenantMembers,
   patchIdentityProvider,
   removeTenantMember,
+  resendTenantInvite,
   resetAdminUserPasskeys,
   resetAdminUserMFA,
   updateAdminTenant,
@@ -46,6 +49,8 @@ export const adminQueryKeys = {
   tenants: (params: AdminListParams) => ['admin', 'tenants', params] as const,
   tenant: (tenantId: string) => ['admin', 'tenant', tenantId] as const,
   tenantMembers: (tenantId: string, params: AdminListParams) => ['admin', 'tenant-members', tenantId, params] as const,
+  tenantInvites: (tenantId: string, params: AdminListParams) => ['admin', 'tenant-invites', tenantId, params] as const,
+  invites: (params: AdminListParams) => ['admin', 'invites', params] as const,
   clients: (params: AdminListParams) => ['admin', 'clients', params] as const,
   client: (clientId: string) => ['admin', 'client', clientId] as const,
   clientUsage: (clientId: string) => ['admin', 'client-usage', clientId] as const,
@@ -103,6 +108,22 @@ export function useTenantMembers(tenantId: string | null, params: AdminListParam
   return useQuery({
     queryKey: adminQueryKeys.tenantMembers(tenantId ?? '', params),
     queryFn: () => listTenantMembers(tenantId!, params),
+    enabled: Boolean(tenantId),
+  })
+}
+
+export function useAdminInvites(params: AdminListParams = {}, enabled = true) {
+  return useQuery({
+    queryKey: adminQueryKeys.invites(params),
+    queryFn: () => listAdminInvites(params),
+    enabled,
+  })
+}
+
+export function useTenantInvites(tenantId: string | null, params: AdminListParams = {}) {
+  return useQuery({
+    queryKey: adminQueryKeys.tenantInvites(tenantId ?? '', params),
+    queryFn: () => listTenantInvites(tenantId!, params),
     enabled: Boolean(tenantId),
   })
 }
@@ -223,6 +244,20 @@ export function useAddTenantMember() {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] })
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.tenant(tenantId) })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-members', tenantId] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-invites', tenantId] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] })
+    },
+  })
+}
+
+export function useResendTenantInvite() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ tenantId, inviteId }: { tenantId: string; inviteId: string }) =>
+      resendTenantInvite(tenantId, inviteId),
+    onSuccess: (_data, { tenantId }) => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'tenant-invites', tenantId] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] })
     },
   })
 }

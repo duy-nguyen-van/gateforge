@@ -77,6 +77,46 @@ func (r *stubInviteRepo) FindPendingByEmailAndTenant(_ context.Context, emailLow
 	return invite, nil
 }
 
+func (r *stubInviteRepo) GetByID(_ context.Context, id string) (*models.TenantInvite, error) {
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
+	for _, invite := range r.byEmail {
+		if invite.ID == id {
+			return invite, nil
+		}
+	}
+	return nil, errors.NotFoundError("Tenant invite", nil)
+}
+
+func (r *stubInviteRepo) ListPending(_ context.Context, pr *dtos.PageableRequest) (*dtos.DataResponse[models.TenantInvite], error) {
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
+	rows := make([]models.TenantInvite, 0)
+	for _, invite := range r.byEmail {
+		if invite.Status == constants.TenantInviteStatusPending {
+			rows = append(rows, *invite)
+		}
+	}
+	page, pageable := dtos.PaginateSlice(rows, pr)
+	return &dtos.DataResponse[models.TenantInvite]{Data: page, Pageable: pageable}, nil
+}
+
+func (r *stubInviteRepo) ListPendingByTenant(_ context.Context, tenantID string, pr *dtos.PageableRequest) (*dtos.DataResponse[models.TenantInvite], error) {
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
+	rows := make([]models.TenantInvite, 0)
+	for _, invite := range r.byEmail {
+		if invite.TenantID == tenantID && invite.Status == constants.TenantInviteStatusPending {
+			rows = append(rows, *invite)
+		}
+	}
+	page, pageable := dtos.PaginateSlice(rows, pr)
+	return &dtos.DataResponse[models.TenantInvite]{Data: page, Pageable: pageable}, nil
+}
+
 type inviteAuthStub struct {
 	failAuth bool
 	issueErr error
@@ -474,4 +514,65 @@ func TestAdminService_InviteNewMember_Branches(t *testing.T) {
 		svc.cfg.OIDCLoginPageURL = "http://bad host"
 		require.Equal(t, "http://bad host", svc.memberInviteURL("tok"))
 	})
+}
+
+func TestAdminService_ListAndResendTenantInvite(t *testing.T) {
+	tenantID := "tenant-invite"
+	tenantRepo := newAdminTenantTestRepo()
+	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Acme"}
+	otherID := "tenant-other"
+	tenantRepo.tenants[otherID] = &models.Tenant{BaseModel: models.BaseModel{ID: otherID}, Name: "Other"}
+	invites := newStubInviteRepo()
+	sender := new(MockEmailSender)
+	sender.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
+		return req.TemplateID == email.TemplateMemberInvite
+	})).Return(&email.EmailResponse{Status: "sent"}, nil).Twice()
+	svc := &adminService{
+		cfg:         &config.Config{OIDCLoginPageURL: "http://localhost:5173/login"},
+		tenants:     tenantRepo,
+		users:       newUserTestRepo(),
+		memberships: &stubMembershipRepo{byUser: map[string][]models.TenantMembership{}, active: map[string]map[string]bool{}},
+		audit:       &auditCapture{},
+		mail:        ProvideEmailService(sender),
+		invites:     invites,
+	}
+
+	require.NoError(t, svc.AddMemberByEmail(context.Background(), tenantID, "new@example.com", "member"))
+	rows, page, err := svc.ListTenantInvites(context.Background(), tenantID, &dtos.PageableRequest{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, "new@example.com", rows[0].Email)
+	require.Equal(t, "pending", rows[0].Status)
+	require.Equal(t, tenantID, rows[0].TenantID)
+	require.Equal(t, int64(1), page.Total)
+
+	invites.created[0].Tenant = &models.Tenant{Name: "Acme"}
+	all, _, err := svc.ListInvites(context.Background(), &dtos.PageableRequest{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	require.Len(t, all, 1)
+	require.Equal(t, "Acme", all[0].TenantName)
+
+	invites.created[0].ExpiresAt = time.Now().UTC().Add(-time.Hour)
+	rows, _, err = svc.ListTenantInvites(context.Background(), tenantID, &dtos.PageableRequest{Page: 1, PageSize: 20})
+	require.NoError(t, err)
+	require.Equal(t, "expired", rows[0].Status)
+
+	require.NoError(t, svc.ResendTenantInvite(context.Background(), tenantID, rows[0].ID))
+	require.True(t, invites.created[0].ExpiresAt.After(time.Now().UTC()))
+	sender.AssertExpectations(t)
+
+	err = svc.ResendTenantInvite(context.Background(), otherID, rows[0].ID)
+	require.Equal(t, errors.ErrorTypeNotFound, errors.GetAppError(err).Type)
+
+	invites.created[0].Status = constants.TenantInviteStatusAccepted
+	err = svc.ResendTenantInvite(context.Background(), tenantID, rows[0].ID)
+	require.Equal(t, errors.ErrorTypeNotFound, errors.GetAppError(err).Type)
+
+	svc.invites = nil
+	empty, emptyPage, err := svc.ListTenantInvites(context.Background(), tenantID, nil)
+	require.NoError(t, err)
+	require.Empty(t, empty)
+	require.Equal(t, int64(0), emptyPage.Total)
+	err = svc.ResendTenantInvite(context.Background(), tenantID, rows[0].ID)
+	require.Equal(t, errors.ErrorTypeNotFound, errors.GetAppError(err).Type)
 }

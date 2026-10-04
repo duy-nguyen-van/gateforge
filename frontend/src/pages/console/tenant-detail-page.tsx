@@ -12,6 +12,7 @@ import { ConsoleEmptyState, ConsoleErrorState, ConsoleLoadingState, ConsoleTable
 import { DeleteTenantDialog } from '@/features/admin/delete-tenant-dialog'
 import { EditTenantDialog } from '@/features/admin/edit-tenant-dialog'
 import { RemoveMemberDialog } from '@/features/admin/remove-member-dialog'
+import { InvitationsSection } from '@/features/admin/invitations-section'
 import { useConsolePagination } from '@/features/admin/use-console-pagination'
 import { useAdminTenant, useTenantMembers } from '@/features/admin/use-admin-queries'
 
@@ -106,7 +107,7 @@ export function TenantDetailPage() {
           ) : members.length === 0 ? (
             <ConsoleEmptyState
               title="No members"
-              description="Add an existing registered user to this tenant."
+              description="People who accept an invitation, or who already have an account, appear here."
             />
           ) : (
             <table className="w-full text-left text-sm">
@@ -161,6 +162,8 @@ export function TenantDetailPage() {
           ) : null}
         </div>
       </section>
+
+      <InvitationsSection tenantId={tenantId} />
 
       <EditTenantDialog open={editOpen} tenant={tenant} onOpenChange={setEditOpen} />
       <DeleteTenantDialog

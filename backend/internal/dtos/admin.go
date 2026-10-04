@@ -158,6 +158,18 @@ type AdminTenantMemberResponse struct {
 	JoinedAt  time.Time `json:"joined_at"`
 }
 
+// AdminTenantInviteResponse is a pending organization invite for the admin console.
+type AdminTenantInviteResponse struct {
+	ID         string    `json:"id"`
+	Email      string    `json:"email"`
+	Role       string    `json:"role"`
+	Status     string    `json:"status"`
+	TenantID   string    `json:"tenant_id"`
+	TenantName string    `json:"tenant_name"`
+	CreatedAt  time.Time `json:"created_at"`
+	ExpiresAt  time.Time `json:"expires_at"`
+}
+
 // AdminAddMemberRequest adds an existing user to a tenant.
 type AdminAddMemberRequest struct {
 	Email string `json:"email" validate:"required,email"`

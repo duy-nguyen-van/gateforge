@@ -37,6 +37,7 @@ import {
   type AdminCreateTenantRequest,
   type AdminUpdateTenantRequest,
   type AdminTenantMemberResponse,
+  type AdminTenantInviteResponse,
   type AdminClientResponse,
   type AdminCreateClientRequest,
   type AdminCreateClientResponse,
@@ -577,6 +578,30 @@ export async function listTenantIdentityProviders(tenantId: string, params: Pagi
   return apiFetch<AdminIdentityProviderResponse[]>(
     `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/identity-providers${buildPaginationQuery(params)}`,
     { method: 'GET' },
+    { auth: true },
+  )
+}
+
+export async function listAdminInvites(params: PaginationParams = {}) {
+  return apiFetch<AdminTenantInviteResponse[]>(
+    `/api/v1/admin/invites${buildPaginationQuery(params)}`,
+    { method: 'GET' },
+    { auth: true },
+  )
+}
+
+export async function listTenantInvites(tenantId: string, params: PaginationParams = {}) {
+  return apiFetch<AdminTenantInviteResponse[]>(
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/invites${buildPaginationQuery(params)}`,
+    { method: 'GET' },
+    { auth: true },
+  )
+}
+
+export async function resendTenantInvite(tenantId: string, inviteId: string) {
+  await apiFetchNoContent(
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/invites/${encodeURIComponent(inviteId)}/resend`,
+    { method: 'POST' },
     { auth: true },
   )
 }

@@ -233,6 +233,25 @@ definitions:
       total_users:
         type: integer
     type: object
+  dtos.AdminTenantInviteResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      tenant_name:
+        type: string
+    type: object
   dtos.AdminTenantMemberResponse:
     properties:
       email:
@@ -1026,6 +1045,36 @@ paths:
       summary: Get OAuth client usage metrics (platform admin)
       tags:
       - Admin
+  /admin/invites:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminTenantInviteResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List pending organization invites
+      tags:
+      - Admin
   /admin/login-history:
     get:
       parameters:
@@ -1290,6 +1339,64 @@ paths:
       security:
       - BearerAuth: []
       summary: Configure an upstream identity provider for a tenant (platform admin)
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/invites:
+    get:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminTenantInviteResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List pending organization invites
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/invites/{inviteId}/resend:
+    post:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Invite UUID
+        in: path
+        name: inviteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Resend a pending organization invite
       tags:
       - Admin
   /admin/tenants/{tenantId}/members:

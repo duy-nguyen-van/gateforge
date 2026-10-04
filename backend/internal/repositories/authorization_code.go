@@ -10,12 +10,15 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // AuthorizationCodeRepository persists OAuth2 authorization codes (PKCE).
 type AuthorizationCodeRepository interface {
 	Create(ctx context.Context, row *models.AuthorizationCode) error
 	TakeByCode(ctx context.Context, code string) (*models.AuthorizationCode, error)
+	// Consume deletes a live authorization code and returns it. Concurrent callers receive one row.
+	Consume(ctx context.Context, code string) (*models.AuthorizationCode, error)
 	DeleteByCode(ctx context.Context, code string) error
 }
 
@@ -45,6 +48,32 @@ func (r *authorizationCodeRepository) TakeByCode(ctx context.Context, code strin
 		}
 		return nil, errors.DatabaseError("Failed to load authorization code", err).
 			WithOperation("get_authorization_code").
+			WithResource("authorization_code")
+	}
+	return &row, nil
+}
+
+func (r *authorizationCodeRepository) Consume(ctx context.Context, code string) (*models.AuthorizationCode, error) {
+	var row models.AuthorizationCode
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		q := tx.Where("code = ? AND expires_at > ?", code, time.Now().UTC())
+		if r.db.Name() == "postgres" {
+			q = q.Clauses(clause.Locking{Strength: "UPDATE"})
+		}
+		if err := q.First(&row).Error; err != nil {
+			return err
+		}
+		res := tx.Unscoped().Where("code = ?", code).Delete(&models.AuthorizationCode{})
+		return res.Error
+	})
+	if err != nil {
+		if stderrors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.NotFoundError("Authorization code", err).
+				WithOperation("consume_authorization_code").
+				WithResource("authorization_code")
+		}
+		return nil, errors.DatabaseError("Failed to consume authorization code", err).
+			WithOperation("consume_authorization_code").
 			WithResource("authorization_code")
 	}
 	return &row, nil

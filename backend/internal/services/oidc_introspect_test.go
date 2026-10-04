@@ -23,7 +23,7 @@ func newOIDCIntrospectFixture(t *testing.T) (OIDCService, *auth.OIDCSigner, *stu
 	users := newUserTestRepo()
 	refresh := newRefreshTokenTestRepo()
 	memberships := &stubMembershipRepo{active: map[string]map[string]bool{}}
-	svc := ProvideOIDCService(cfg, signer, clients, newAuthCodeTestRepo(), users, refresh, memberships, &auditCapture{})
+	svc := ProvideOIDCService(cfg, signer, clients, newAuthCodeTestRepo(), users, refresh, memberships, &auditCapture{}, nil)
 	u := users.seed("introspect@example.com", "secret")
 	return svc, signer, clients, refresh, u
 }

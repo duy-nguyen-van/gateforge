@@ -5,7 +5,7 @@ $(foreach line,$(shell grep -E '^POSTGRES_' cmd/server/.env),$(eval $(line)))
 export POSTGRES_HOST POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB POSTGRES_SCHEMA
 endif
 
-.PHONY: lint mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage
+.PHONY: lint mocks tests test-services test-utils test-handlers test-repositories test-coverage test-coverage-html test-race test-verbose test-specific test-specific-verbose test-specific-coverage otel-up otel-down
 DB_DSN ?= postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable$(if $(POSTGRES_SCHEMA),&search_path=$(POSTGRES_SCHEMA))
 MIGRATION_DIR ?= file://cmd/migrations/sql
 DB_DEV_URL ?= docker://postgres/18/dev
@@ -14,7 +14,11 @@ bootstrap: container-up migrate-up up
 
 .PHONY: lint
 lint:
-	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.0 run ./... --config .golangci.yml
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./... --config .golangci.yml
+
+.PHONY: lint-fix
+lint-fix:
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 run ./... --config .golangci.yml --fix
 
 mocks:
 	mockery --case snake --dir ./repositories --all --output ./mocks/repositories
@@ -32,10 +36,16 @@ dep:
 	@go mod tidy
 
 container-up:
-	set -a && source cmd/server/.env && set +a && docker compose up -d
+	set -a && source cmd/server/.env && set +a && docker compose up -d postgres redis adminer mailpit
 
 container-down:
 	docker compose down
+
+otel-up:
+	docker compose up -d otel-collector jaeger
+
+otel-down:
+	docker compose stop otel-collector jaeger
 
 up:
 	cd cmd/server && go run main.go

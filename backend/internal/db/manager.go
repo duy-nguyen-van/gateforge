@@ -9,12 +9,14 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/logger"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
 )
 
 // DatabaseManager handles database connections with advanced features
@@ -24,6 +26,8 @@ type DatabaseManager struct {
 	healthStatus HealthStatus
 	mu           sync.RWMutex
 	metrics      *ConnectionMetrics
+	stop         chan struct{}
+	closeOnce    sync.Once
 }
 
 // HealthStatus represents the health status of the database connection
@@ -52,6 +56,7 @@ func NewDatabaseManager(cfg *config.Config) (*DatabaseManager, error) {
 	manager := &DatabaseManager{
 		config:  cfg,
 		metrics: &ConnectionMetrics{},
+		stop:    make(chan struct{}),
 		healthStatus: HealthStatus{
 			IsHealthy: false,
 		},
@@ -91,7 +96,7 @@ func (dm *DatabaseManager) connectWithRetry() error {
 				hub.WithScope(func(scope *sentry.Scope) {
 					scope.SetTag("operation", "database_connection")
 					scope.SetTag("attempt", fmt.Sprintf("%d", attempt))
-					scope.SetExtra("retry_count", attempt)
+					monitoring.SetScopeData(scope, "retry_count", attempt)
 					hub.CaptureException(err)
 				})
 			}
@@ -154,6 +159,20 @@ func (dm *DatabaseManager) connect() error {
 
 	if err := sqlDB.PingContext(ctx); err != nil {
 		return err
+	}
+
+	registerQueryDeadline(db, dm.config.DatabaseQueryTimeout)
+
+	if monitoring.IsOTelEnabled(*dm.config) {
+		pluginOpts := []tracing.Option{
+			tracing.WithDBSystem("postgresql"),
+		}
+		if !dm.config.OTelMetricsEnabled {
+			pluginOpts = append(pluginOpts, tracing.WithoutMetrics())
+		}
+		if err := db.Use(tracing.NewPlugin(pluginOpts...)); err != nil {
+			logger.Log.Warn("Failed to register GORM OpenTelemetry plugin", zap.Error(err))
+		}
 	}
 
 	dm.db = db
@@ -230,8 +249,13 @@ func (dm *DatabaseManager) startHealthCheck() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		dm.HealthCheck()
+	for {
+		select {
+		case <-dm.stop:
+			return
+		case <-ticker.C:
+			dm.HealthCheck()
+		}
 	}
 }
 
@@ -240,8 +264,13 @@ func (dm *DatabaseManager) startMetricsCollection() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		dm.updateMetrics()
+	for {
+		select {
+		case <-dm.stop:
+			return
+		case <-ticker.C:
+			dm.updateMetrics()
+		}
 	}
 }
 
@@ -276,6 +305,18 @@ func (dm *DatabaseManager) GetMetrics() ConnectionMetrics {
 
 // Close gracefully closes the database connection
 func (dm *DatabaseManager) Close() error {
+	if dm.stop == nil {
+		dm.stop = make(chan struct{})
+	}
+	var closeErr error
+	dm.closeOnce.Do(func() {
+		close(dm.stop)
+		closeErr = dm.closeDB()
+	})
+	return closeErr
+}
+
+func (dm *DatabaseManager) closeDB() error {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { selectTenant } from '@/api/client'
 import type { TenantSummary } from '@/api/types'
 import { useAuth } from '@/hooks/use-auth'
+import { authCardClassName } from '@/components/layout/auth-card'
 import { Button } from '@/components/ui/button'
 import { setTokens } from '@/auth/token-store'
 
@@ -43,7 +44,7 @@ export function SelectTenantForm({ tenants, selectionToken, rememberMe = false }
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className={`${authCardClassName} space-y-6`}>
       <div>
         <h1 className="text-2xl font-bold text-on-surface">Choose organization</h1>
         <p className="mt-2 text-sm text-on-surface-variant">

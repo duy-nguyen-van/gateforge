@@ -32,6 +32,8 @@ type UserRepository interface {
 	SetPlatformAdmin(ctx context.Context, userID string, isAdmin bool) error
 	UpdateStatus(ctx context.Context, userID string, status constants.UserStatus) error
 	UpdateProfile(ctx context.Context, userID string, patch UserProfilePatch) (*models.User, error)
+	UpdatePasswordHash(ctx context.Context, userID, passwordHash string) error
+	MarkEmailVerified(ctx context.Context, userID string) error
 	List(ctx context.Context, tenantID, search string, pr *dtos.PageableRequest) (*dtos.DataResponse[models.User], error)
 }
 
@@ -169,6 +171,40 @@ func (r *userRepository) UpdateProfile(ctx context.Context, userID string, patch
 			WithContext("user_id", userID)
 	}
 	return r.GetOneByID(ctx, userID)
+}
+
+func (r *userRepository) MarkEmailVerified(ctx context.Context, userID string) error {
+	res := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("email_verified", true)
+	if res.Error != nil {
+		return errors.DatabaseError("Failed to mark email verified", res.Error).
+			WithOperation("mark_email_verified").
+			WithResource("user").
+			WithContext("user_id", userID)
+	}
+	if res.RowsAffected == 0 {
+		return errors.NotFoundError("User", nil).
+			WithOperation("mark_email_verified").
+			WithResource("user").
+			WithContext("user_id", userID)
+	}
+	return nil
+}
+
+func (r *userRepository) UpdatePasswordHash(ctx context.Context, userID, passwordHash string) error {
+	res := r.db.WithContext(ctx).Model(&models.PasswordCredential{}).Where("user_id = ?", userID).Update("password_hash", passwordHash)
+	if res.Error != nil {
+		return errors.DatabaseError("Failed to update password", res.Error).
+			WithOperation("update_password").
+			WithResource("user").
+			WithContext("user_id", userID)
+	}
+	if res.RowsAffected == 0 {
+		return errors.NotFoundError("Password credential", nil).
+			WithOperation("update_password").
+			WithResource("user").
+			WithContext("user_id", userID)
+	}
+	return nil
 }
 
 func (r *userRepository) SetPlatformAdmin(ctx context.Context, userID string, isAdmin bool) error {

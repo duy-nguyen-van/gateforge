@@ -1,8 +1,10 @@
-import { Navigate, Route, Routes } from 'react-router'
+import { Route, Routes } from 'react-router'
 
 import { AuthLayout } from '@/components/layout/auth-layout'
 import { ConsoleLayout } from '@/components/layout/console-layout'
+import { ForgotPasswordForm } from '@/features/login/forgot-password-form'
 import { LoginForm } from '@/features/login/login-form'
+import { ResetPasswordForm } from '@/features/login/reset-password-form'
 import { MfaChallengeForm } from '@/features/mfa/mfa-challenge-form'
 import { RegisterForm } from '@/features/register/register-form'
 import { AuditLogsPage } from '@/pages/console/audit-logs-page'
@@ -15,24 +17,39 @@ import { TenantsPage } from '@/pages/console/tenants-page'
 import { TenantDetailPage } from '@/pages/console/tenant-detail-page'
 import { UsersPage } from '@/pages/console/users-page'
 import { FederationCompletePage } from '@/pages/federation-complete-page'
-import { HomePage } from '@/pages/home-page'
 import { LogoutPage } from '@/pages/logout-page'
 import { ProfilePage } from '@/pages/profile-page'
 import { SecurityPage } from '@/pages/security-page'
 import { SelectTenantPage } from '@/pages/select-tenant-page'
-import { GuestRoute, ProtectedRoute, AdminRoute } from '@/routes/guards'
+import { GuestRoute, ProtectedRoute, AdminRoute, RootRedirect } from '@/routes/guards'
 
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<RootRedirect />} />
 
       <Route element={<GuestRoute />}>
         <Route
           path="/login"
           element={
-            <AuthLayout variant="revamp">
+            <AuthLayout>
               <LoginForm />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <AuthLayout>
+              <ForgotPasswordForm />
+            </AuthLayout>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <AuthLayout>
+              <ResetPasswordForm />
             </AuthLayout>
           }
         />
@@ -47,7 +64,7 @@ export function AppRoutes() {
         <Route
           path="/login/federation/complete"
           element={
-            <AuthLayout variant="revamp">
+            <AuthLayout>
               <FederationCompletePage />
             </AuthLayout>
           }
@@ -66,7 +83,7 @@ export function AppRoutes() {
       <Route
         path="/select-tenant"
         element={
-          <AuthLayout variant="revamp">
+          <AuthLayout>
             <SelectTenantPage />
           </AuthLayout>
         }
@@ -91,7 +108,7 @@ export function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<RootRedirect />} />
     </Routes>
   )
 }

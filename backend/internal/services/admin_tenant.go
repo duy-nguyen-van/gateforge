@@ -9,10 +9,21 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func (s *adminService) GetTenantByID(ctx context.Context, tenantID string) (*dtos.AdminTenantResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.GetTenantByID",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) (*dtos.AdminTenantResponse, error) {
+			return s.getTenantByID(ctx, tenantID)
+		})
+}
+
+func (s *adminService) getTenantByID(ctx context.Context, tenantID string) (*dtos.AdminTenantResponse, error) {
 	tenant, err := s.tenants.GetByID(ctx, tenantID)
 	if err != nil {
 		return nil, err
@@ -25,6 +36,13 @@ func (s *adminService) GetTenantByID(ctx context.Context, tenantID string) (*dto
 }
 
 func (s *adminService) CreateTenant(ctx context.Context, req *dtos.AdminCreateTenantRequest) (*dtos.AdminTenantResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.CreateTenant", nil,
+		func(ctx context.Context) (*dtos.AdminTenantResponse, error) {
+			return s.createTenant(ctx, req)
+		})
+}
+
+func (s *adminService) createTenant(ctx context.Context, req *dtos.AdminCreateTenantRequest) (*dtos.AdminTenantResponse, error) {
 	if req == nil {
 		return nil, errors.ValidationError("Request body is required", nil)
 	}
@@ -52,7 +70,7 @@ func (s *adminService) CreateTenant(ctx context.Context, req *dtos.AdminCreateTe
 		return nil, err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminTenantCreate,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -61,12 +79,22 @@ func (s *adminService) CreateTenant(ctx context.Context, req *dtos.AdminCreateTe
 		ResourceID:   tenant.ID,
 		ResourceName: tenant.Name,
 		NewValue:     map[string]any{"name": tenant.Name, "domain": tenant.Domain},
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	return dtos.NewAdminTenantResponse(tenant, 0), nil
 }
 
 func (s *adminService) UpdateTenant(ctx context.Context, tenantID string, req *dtos.AdminUpdateTenantRequest) (*dtos.AdminTenantResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.UpdateTenant",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) (*dtos.AdminTenantResponse, error) {
+			return s.updateTenant(ctx, tenantID, req)
+		})
+}
+
+func (s *adminService) updateTenant(ctx context.Context, tenantID string, req *dtos.AdminUpdateTenantRequest) (*dtos.AdminTenantResponse, error) {
 	if req == nil {
 		return nil, errors.ValidationError("Request body is required", nil)
 	}
@@ -106,7 +134,7 @@ func (s *adminService) UpdateTenant(ctx context.Context, tenantID string, req *d
 		return nil, err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminTenantUpdate,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -116,7 +144,9 @@ func (s *adminService) UpdateTenant(ctx context.Context, tenantID string, req *d
 		ResourceName: updated.Name,
 		OldValue:     map[string]any{"name": existing.Name, "domain": existing.Domain},
 		NewValue:     map[string]any{"name": updated.Name, "domain": updated.Domain},
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	userCount, err := s.tenants.CountUsersByTenantID(ctx, tenantID)
 	if err != nil {
@@ -126,6 +156,14 @@ func (s *adminService) UpdateTenant(ctx context.Context, tenantID string, req *d
 }
 
 func (s *adminService) DeleteTenant(ctx context.Context, tenantID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.DeleteTenant",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) error {
+			return s.deleteTenant(ctx, tenantID)
+		})
+}
+
+func (s *adminService) deleteTenant(ctx context.Context, tenantID string) error {
 	if tenantID == s.cfg.DefaultTenantID {
 		return errors.ValidationError("The default tenant cannot be deleted", nil)
 	}
@@ -137,7 +175,7 @@ func (s *adminService) DeleteTenant(ctx context.Context, tenantID string) error 
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminTenantDelete,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -146,11 +184,21 @@ func (s *adminService) DeleteTenant(ctx context.Context, tenantID string) error 
 		ResourceID:   tenantID,
 		ResourceName: existing.Name,
 		OldValue:     map[string]any{"name": existing.Name, "domain": existing.Domain},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) ListTenantMembers(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminTenantMemberResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListTenantMembers",
+		[]attribute.KeyValue{attribute.String("tenant_id", tenantID)},
+		func(ctx context.Context) ([]*dtos.AdminTenantMemberResponse, *dtos.Pageable, error) {
+			return s.listTenantMembers(ctx, tenantID, pr)
+		})
+}
+
+func (s *adminService) listTenantMembers(ctx context.Context, tenantID string, pr *dtos.PageableRequest) ([]*dtos.AdminTenantMemberResponse, *dtos.Pageable, error) {
 	if _, err := s.tenants.GetByID(ctx, tenantID); err != nil {
 		return nil, nil, err
 	}

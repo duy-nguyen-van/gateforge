@@ -4,7 +4,9 @@ import { PencilIcon } from 'lucide-react'
 import { updateProfile } from '@/api/client'
 import { ApiError } from '@/api/types'
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
@@ -88,8 +90,8 @@ export function ProfilePage() {
   }
 
   const personalFields: ProfileField[] = [
-    { label: 'First name', value: profile.first_name || '—' },
-    { label: 'Last name', value: profile.last_name || '—' },
+    { label: 'First name', value: profile.first_name || 'Not set' },
+    { label: 'Last name', value: profile.last_name || 'Not set' },
   ]
 
   const accountFields: ProfileField[] = [
@@ -103,43 +105,27 @@ export function ProfilePage() {
 
   return (
     <div>
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Profile</h1>
-          <p className="mt-1 text-on-surface-variant">Manage your GateForge identity profile and account details.</p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-3">
-          {isEditing ? (
+      <ConsolePageHeader
+        title="Profile"
+        description="Manage your GateForge identity profile and account details."
+        actions={
+          isEditing ? (
             <>
-              <button
-                type="button"
-                onClick={cancelEdit}
-                disabled={isSaving}
-                className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-bold text-on-surface ghost-border transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={isSaving}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                form="profile-form"
-                disabled={isSaving || !isDirty || !firstName.trim()}
-                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
+              </Button>
+              <Button type="submit" form="profile-form" disabled={isSaving || !isDirty || !firstName.trim()}>
                 {isSaving ? 'Saving…' : 'Save changes'}
-              </button>
+              </Button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={startEdit}
-              className="flex items-center gap-2 rounded-xl bg-surface-container-high px-5 py-2.5 text-sm font-bold text-on-surface ghost-border transition-opacity hover:opacity-90"
-            >
+            <Button type="button" variant="outline" onClick={startEdit}>
               <PencilIcon className="h-4 w-4" aria-hidden />
               Edit
-            </button>
-          )}
-        </div>
-      </header>
+            </Button>
+          )
+        }
+      />
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
         <div className="flex items-center gap-4 border-b border-surface-container px-8 py-6">

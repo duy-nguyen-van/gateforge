@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"net/http"
 	"time"
 
+	"github.com/gateforge-iam/gateforge-iam/internal/cache"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/db"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
@@ -13,16 +15,18 @@ import (
 // HealthHandler handles health check requests
 type HealthHandler struct {
 	BaseHandler
-	cfg *config.Config
-	db  *db.PostgresDB
+	cfg   *config.Config
+	db    *db.PostgresDB
+	cache cache.Cache
 }
 
 // NewHealthHandler creates a new health handler
-func ProvideHealthHandler(cfg *config.Config, db *db.PostgresDB) *HealthHandler {
+func ProvideHealthHandler(cfg *config.Config, database *db.PostgresDB, shared cache.Cache) *HealthHandler {
 	return &HealthHandler{
 		BaseHandler: *NewBaseHandler(),
 		cfg:         cfg,
-		db:          db,
+		db:          database,
+		cache:       shared,
 	}
 }
 
@@ -44,6 +48,37 @@ func (h *HealthHandler) HealthCheck(c echo.Context) error {
 
 	response := h.SuccessResponse(c, "Service is healthy", healthResponse, nil)
 	return response
+}
+
+// Ready godoc
+// @Summary Readiness check
+// @Description Ping Postgres and Redis
+// @Tags Health
+// @Produce json
+// @Success 200 {object} object{meta=dtos.Meta,data=dtos.HealthResponse}
+// @Failure 500 {object} object{meta=dtos.Meta}
+// @Router /health/ready [get]
+func (h *HealthHandler) Ready(c echo.Context) error {
+	ctx := c.Request().Context()
+	if h.db == nil || h.db.DB == nil || h.cache == nil {
+		return c.NoContent(http.StatusServiceUnavailable)
+	}
+	sqlDB, err := h.db.DB.DB()
+	if err != nil {
+		return c.NoContent(http.StatusServiceUnavailable)
+	}
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return c.NoContent(http.StatusServiceUnavailable)
+	}
+	if err := h.cache.Ping(ctx); err != nil {
+		return c.NoContent(http.StatusServiceUnavailable)
+	}
+	return h.SuccessResponse(c, "Service is ready", dtos.HealthResponse{
+		Status:    "ready",
+		Timestamp: time.Now().UTC(),
+		Version:   h.cfg.AppVersion,
+		Service:   h.cfg.AppName,
+	}, nil)
 }
 
 // DatabaseHealthCheck godoc

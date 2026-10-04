@@ -2,10 +2,11 @@ import { ShieldIcon, UserCheckIcon } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { MfaAvatarPreviewStack } from '@/components/avatars/default-avatar'
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
 import {
   ConsoleEmptyState,
   ConsoleErrorState,
-  ConsoleLoadingState,
+  ConsoleTableSkeleton,
 } from '@/features/admin/console-state'
 import { useAdminStats, useTenantIdentityProviders } from '@/features/admin/use-admin-queries'
 
@@ -19,37 +20,27 @@ export function DashboardPage() {
 
   return (
     <div>
-      <header className="mb-10 flex items-end justify-between">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Systems Overview</h1>
-          <p className="mt-1 font-body text-on-surface-variant">Enterprise identity management and global access state.</p>
-        </div>
-        <div className="flex gap-3">
-          <div className="flex items-center gap-2 rounded-xl bg-surface-container px-4 py-2">
-            <span className="h-2 w-2 animate-pulse rounded-circle bg-green-500" />
-            <span className="font-label text-sm font-semibold text-on-surface">Global Status: Optimal</span>
-          </div>
-        </div>
-      </header>
+      <ConsolePageHeader
+        title="Overview"
+        description="Live counts of users, sessions, and MFA enrollment."
+      />
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 grid grid-cols-2 gap-6 lg:col-span-8">
           {statsQuery.isLoading ? (
-            <div className="col-span-2">
-              <ConsoleLoadingState label="Loading dashboard stats…" />
-            </div>
+            <p className="col-span-2 text-sm text-on-surface-variant">Loading dashboard stats…</p>
           ) : statsQuery.isError ? (
             <div className="col-span-2">
               <ConsoleErrorState message="Could not load dashboard statistics." />
             </div>
           ) : stats ? (
             <>
-              <div className="flex min-h-[160px] flex-col justify-between rounded-full bg-surface-container-lowest p-6 shadow-sm ghost-border">
+              <div className="flex min-h-[160px] flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-sm ghost-border">
                 <div className="flex items-start justify-between">
                   <span className="rounded-lg bg-primary-container p-2 text-primary-dim">
                     <UserCheckIcon className="h-5 w-5" aria-hidden />
                   </span>
-                  <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-bold text-green-600">
+                  <span className="rounded-full bg-success-container px-2 py-0.5 text-xs font-bold text-on-success-container">
                     {stats.total_users.toLocaleString()} users
                   </span>
                 </div>
@@ -63,7 +54,7 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              <div className="flex min-h-[160px] flex-col justify-between rounded-full bg-surface-container-lowest p-6 shadow-sm ghost-border">
+              <div className="flex min-h-[160px] flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-sm ghost-border">
                 <div className="flex items-start justify-between">
                   <span className="rounded-lg bg-primary-container p-2 text-primary-dim">
                     <ShieldIcon className="h-5 w-5" aria-hidden />
@@ -87,7 +78,7 @@ export function DashboardPage() {
             </>
           ) : null}
 
-          <div className="col-span-2 rounded-full bg-surface-container-lowest p-8 shadow-sm ghost-border">
+          <div className="col-span-2 rounded-xl bg-surface-container-lowest p-8 shadow-sm ghost-border">
             <div className="mb-4">
               <h4 className="font-headline text-xl font-bold">Authentication Trends</h4>
               <p className="text-sm text-on-surface-variant">Session frequency vs. risk score</p>
@@ -100,7 +91,7 @@ export function DashboardPage() {
         </div>
 
         <div className="col-span-12 space-y-6 lg:col-span-4">
-          <div className="relative h-full overflow-hidden rounded-full bg-surface-container-high p-6 shadow-sm">
+          <div className="relative h-full overflow-hidden rounded-xl bg-surface-container-high p-6 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <h4 className="font-headline text-xl font-extrabold tracking-tight">Security Alerts</h4>
             </div>
@@ -120,7 +111,7 @@ export function DashboardPage() {
         </div>
 
         <div className="col-span-12">
-          <div className="overflow-hidden rounded-full bg-surface-container-lowest shadow-sm ghost-border">
+          <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm ghost-border">
             <div className="flex items-center justify-between border-b border-surface-container px-8 py-6">
               <h4 className="font-headline text-lg font-bold">Identity Provider Health</h4>
               <Link to="/console/identity-providers" className="text-xs font-bold text-primary">
@@ -129,9 +120,7 @@ export function DashboardPage() {
             </div>
             <div className="overflow-x-auto">
               {providersQuery.isLoading ? (
-                <div className="px-8 py-8">
-                  <ConsoleLoadingState label="Loading providers…" />
-                </div>
+                <ConsoleTableSkeleton columns={4} />
               ) : providersQuery.isError ? (
                 <div className="px-8 py-8">
                   <ConsoleErrorState message="Could not load identity providers." />
@@ -176,7 +165,9 @@ export function DashboardPage() {
                         <td className="px-8 py-5">
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              p.enabled ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                              p.enabled
+                                ? 'bg-success-container text-on-success-container'
+                                : 'bg-warning-container text-on-warning-container'
                             }`}
                           >
                             {p.enabled ? 'Enabled' : 'Disabled'}

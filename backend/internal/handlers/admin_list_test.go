@@ -119,6 +119,33 @@ func TestAdminHandler_AddMember(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, rec.Code)
 }
 
+func TestAdminHandler_ListAndResendTenantInvites(t *testing.T) {
+	h := ProvideAdminHandler(stubAdminListService{}, validator.New())
+	e := echo.New()
+
+	req := httptest.NewRequest(http.MethodGet, "/admin/invites", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	require.NoError(t, h.ListInvites(c))
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	req = httptest.NewRequest(http.MethodGet, "/admin/tenants/"+testTenantID+"/invites", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	c.SetParamNames("tenantId")
+	c.SetParamValues(testTenantID)
+	require.NoError(t, h.ListTenantInvites(c))
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	req = httptest.NewRequest(http.MethodPost, "/admin/tenants/"+testTenantID+"/invites/invite-1/resend", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	c.SetParamNames("tenantId", "inviteId")
+	c.SetParamValues(testTenantID, "invite-1")
+	require.NoError(t, h.ResendTenantInvite(c))
+	require.Equal(t, http.StatusNoContent, rec.Code)
+}
+
 func TestAdminHandler_RemoveMember(t *testing.T) {
 	h := ProvideAdminHandler(stubAdminListService{}, validator.New())
 	e := echo.New()

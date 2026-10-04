@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	stderrors "errors"
+	"strings"
 	"testing"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
@@ -60,11 +61,12 @@ func TestEmailService_SendWelcomeEmail(t *testing.T) {
 					Status:    "sent",
 				}
 				m.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
-					return req.Subject == "Welcome to My Echo App!" &&
+					return req.Subject == "Welcome to GateForge" &&
+						req.TemplateID == email.TemplateWelcome &&
 						len(req.To) == 1 &&
 						req.To[0] == "john.doe@example.com" &&
-						req.TextBody != "" &&
-						req.HTMLBody != ""
+						strings.Contains(req.TextBody, "John Doe") &&
+						strings.Contains(req.HTMLBody, "GateForge")
 				})).Return(response, nil)
 			},
 			expectedError: false,
@@ -131,12 +133,12 @@ func TestEmailService_SendPasswordResetEmail(t *testing.T) {
 					Status:    "sent",
 				}
 				m.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
-					return req.Subject == "Password Reset Request" &&
+					return req.Subject == "Reset your GateForge password" &&
+						req.TemplateID == email.TemplatePasswordReset &&
 						len(req.To) == 1 &&
 						req.To[0] == "john.doe@example.com" &&
-						req.TextBody != "" &&
-						req.HTMLBody != "" &&
-						contains(req.TextBody, "reset-token-123")
+						strings.Contains(req.TextBody, "reset-token-123") &&
+						strings.Contains(req.HTMLBody, "reset-token-123")
 				})).Return(response, nil)
 			},
 			expectedError: false,
@@ -206,10 +208,11 @@ func TestEmailService_SendNotificationEmail(t *testing.T) {
 				}
 				m.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
 					return req.Subject == "Test Notification" &&
+						req.TemplateID == email.TemplateNotification &&
 						len(req.To) == 1 &&
 						req.To[0] == "john.doe@example.com" &&
-						req.TextBody == "This is a test notification message" &&
-						req.HTMLBody != ""
+						strings.Contains(req.TextBody, "This is a test notification message") &&
+						strings.Contains(req.HTMLBody, "This is a test notification message")
 				})).Return(response, nil)
 			},
 			expectedError: false,
@@ -257,19 +260,22 @@ func TestEmailService_SendNotificationEmail(t *testing.T) {
 	}
 }
 
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > len(substr) && (s[:len(substr)] == substr ||
-			s[len(s)-len(substr):] == substr ||
-			containsSubstring(s, substr))))
-}
+func TestEmailService_SendMemberAddedEmail(t *testing.T) {
+	t.Run("nil sender is a no-op", func(t *testing.T) {
+		require.NoError(t, EmailService{}.SendMemberAddedEmail(context.Background(), "a@example.com", "Acme", "member", "http://localhost:5173/login", "mem-1"))
+	})
 
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	t.Run("sends template with idempotency key", func(t *testing.T) {
+		sender := new(MockEmailSender)
+		sender.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
+			return req.TemplateID == email.TemplateMemberAdded &&
+				req.IdempotencyKey == "member-added/mem-1" &&
+				req.To[0] == "a@example.com" &&
+				strings.Contains(req.TextBody, "Acme")
+		})).Return(&email.EmailResponse{Status: "sent"}, nil)
+
+		err := ProvideEmailService(sender).SendMemberAddedEmail(context.Background(), "a@example.com", "Acme", "member", "http://localhost:5173/login", "mem-1")
+		require.NoError(t, err)
+		sender.AssertExpectations(t)
+	})
 }

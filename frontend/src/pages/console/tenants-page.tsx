@@ -1,41 +1,62 @@
-import { ChevronRightIcon, PlusIcon } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronRightIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { CreateTenantDialog } from '@/features/admin/create-tenant-dialog'
 import { ConsolePagination } from '@/features/admin/console-pagination'
-import { ConsoleEmptyState, ConsoleErrorState, ConsoleLoadingState } from '@/features/admin/console-state'
+import { ConsoleEmptyState, ConsoleErrorState, ConsoleTableSkeleton } from '@/features/admin/console-state'
 import { useConsolePagination } from '@/features/admin/use-console-pagination'
+import { useSlashFocus } from '@/features/admin/use-slash-focus'
 import { useAdminTenants } from '@/features/admin/use-admin-queries'
 
 export function TenantsPage() {
   const navigate = useNavigate()
   const [createOpen, setCreateOpen] = useState(false)
-  const { page, setPage, pageSize, queryParams } = useConsolePagination()
-  const tenantsQuery = useAdminTenants(queryParams)
+  const [search, setSearch] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  useSlashFocus(searchRef)
+  const { page, setPage, pageSize, resetPage, queryParams } = useConsolePagination()
+
+  useEffect(() => {
+    resetPage()
+  }, [search, resetPage])
+
+  const tenantsQuery = useAdminTenants({ search, ...queryParams })
   const tenants = tenantsQuery.data?.data ?? []
   const meta = tenantsQuery.data?.meta
 
   return (
     <div>
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Tenant Management</h1>
-          <p className="mt-1 text-on-surface-variant">Multi-tenant isolation and federation boundaries.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
-        >
-          <PlusIcon className="h-4 w-4" aria-hidden />
-          New Tenant
-        </button>
-      </header>
+      <ConsolePageHeader
+        title="Tenants"
+        description="Organization boundaries for users and identity providers."
+        actions={
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <PlusIcon className="h-4 w-4" aria-hidden />
+            New tenant
+          </Button>
+        }
+      />
+
+      <div className="relative mb-6 w-full max-w-md">
+        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" aria-hidden />
+        <Input
+          ref={searchRef}
+          type="search"
+          aria-label="Search tenants"
+          placeholder="Search tenants"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="pl-10"
+        />
+      </div>
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
         {tenantsQuery.isLoading ? (
-          <ConsoleLoadingState />
+          <ConsoleTableSkeleton columns={6} />
         ) : tenantsQuery.isError ? (
           <div className="p-6">
             <ConsoleErrorState message="Could not load tenants." />
@@ -61,8 +82,8 @@ export function TenantsPage() {
                   onClick={() => navigate(`/console/tenants/${t.id}`)}
                 >
                   <td className="px-6 py-4 font-mono text-xs font-bold text-primary">{t.id.slice(0, 8)}…</td>
-                  <td className="px-6 py-4 font-semibold">{t.name || '—'}</td>
-                  <td className="px-6 py-4 text-on-surface-variant">{t.domain || '—'}</td>
+                  <td className="px-6 py-4 font-semibold">{t.name || 'Not set'}</td>
+                  <td className="px-6 py-4 text-on-surface-variant">{t.domain || 'Not set'}</td>
                   <td className="px-6 py-4 font-mono text-xs">{t.user_count.toLocaleString()}</td>
                   <td className="px-6 py-4 text-on-surface-variant">{new Date(t.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4">

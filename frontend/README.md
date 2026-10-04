@@ -12,7 +12,7 @@ React + TypeScript SPA for the [backend](../backend) identity service.
 
 ## Prerequisites
 
-- Node.js 26+
+- Node.js 26.10+
 - Running `backend` API on `http://localhost:3000`
 
 ## Setup

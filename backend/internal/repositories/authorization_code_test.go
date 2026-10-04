@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -77,4 +78,39 @@ func TestAuthorizationCodeRepository_Create_DatabaseError(t *testing.T) {
 
 	err := repo.Create(testCtx(), row)
 	requireDatabaseErr(t, err)
+}
+
+func TestAuthorizationCodeRepository_Consume_Concurrent(t *testing.T) {
+	pg := newTestDB(t)
+	repo := ProvideAuthorizationCodeRepository(pg)
+	ctx := testCtx()
+	tenant := seedTenant(t, pg, "Org", "org.test")
+	user := seedUser(t, pg, "u@test.com")
+	row := &models.AuthorizationCode{
+		BaseModel:     models.NewBaseModel(),
+		Code:          "once",
+		TenantID:      tenant.ID,
+		OAuthClientID: "app",
+		UserID:        user.ID,
+		ExpiresAt:     futureTime(),
+	}
+	require.NoError(t, repo.Create(ctx, row))
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	ok := 0
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := repo.Consume(ctx, "once")
+			if err == nil {
+				mu.Lock()
+				ok++
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	require.Equal(t, 1, ok)
 }

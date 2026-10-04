@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -57,6 +58,22 @@ func (c *memCache) Exists(_ context.Context, key string) (bool, error) {
 	return ok, nil
 }
 
+func (c *memCache) Increment(_ context.Context, key string, _ time.Duration) (int64, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	n := int64(1)
+	if raw, ok := c.data[key]; ok {
+		parsed, err := strconv.ParseInt(raw, 10, 64)
+		if err == nil {
+			n = parsed + 1
+		}
+	}
+	c.data[key] = strconv.FormatInt(n, 10)
+	return n, nil
+}
+
+func (c *memCache) Ping(context.Context) error { return nil }
+
 func (c *memCache) Close() error { return nil }
 
 type auditCapture struct {
@@ -67,11 +84,21 @@ func (a *auditCapture) Record(_ context.Context, p domains.AuditRecordParams) {
 	a.params = append(a.params, p)
 }
 
+func (a *auditCapture) RecordRequired(ctx context.Context, p domains.AuditRecordParams) error {
+	a.Record(ctx, p)
+	return nil
+}
+
+func (a *auditCapture) Shutdown(context.Context) error { return nil }
+
 type userTestRepo struct {
-	users    map[string]*models.User
-	byEmail  map[string]*models.User
-	created  []*models.User
-	password map[string]string
+	users     map[string]*models.User
+	byEmail   map[string]*models.User
+	created   []*models.User
+	password  map[string]string
+	getErr    error
+	createErr error
+	markErr   error
 }
 
 func newUserTestRepo() *userTestRepo {
@@ -99,7 +126,34 @@ func (r *userTestRepo) seed(email, password string) *models.User {
 	return u
 }
 
+func (r *userTestRepo) MarkEmailVerified(_ context.Context, userID string) error {
+	if r.markErr != nil {
+		return r.markErr
+	}
+	u, ok := r.users[userID]
+	if !ok {
+		return errors.NotFoundError("User", nil)
+	}
+	u.EmailVerified = true
+	return nil
+}
+
+func (r *userTestRepo) UpdatePasswordHash(_ context.Context, userID, passwordHash string) error {
+	u, ok := r.users[userID]
+	if !ok {
+		return errors.NotFoundError("User", nil)
+	}
+	if u.PasswordCredential == nil {
+		u.PasswordCredential = &models.PasswordCredential{}
+	}
+	u.PasswordCredential.PasswordHash = passwordHash
+	return nil
+}
+
 func (r *userTestRepo) CreateWithPasswordHash(_ context.Context, user *models.User, passwordHash string) error {
+	if r.createErr != nil {
+		return r.createErr
+	}
 	user.EmailLower = user.Email
 	r.users[user.ID] = user
 	r.byEmail[user.EmailLower] = user
@@ -125,6 +179,9 @@ func (r *userTestRepo) GetOneByID(_ context.Context, id string) (*models.User, e
 }
 
 func (r *userTestRepo) GetByEmailLower(_ context.Context, emailLower string) (*models.User, error) {
+	if r.getErr != nil {
+		return nil, r.getErr
+	}
 	u, ok := r.byEmail[emailLower]
 	if !ok {
 		return nil, errors.NotFoundError("User", nil)
@@ -234,6 +291,41 @@ func (r *refreshTokenTestRepo) RevokeAllValidForUser(_ context.Context, userID s
 	return nil
 }
 
+func (r *refreshTokenTestRepo) Rotate(_ context.Context, oldHash string, newRT *models.RefreshToken) (repositories.RefreshRotationStatus, error) {
+	rt, ok := r.byHash[oldHash]
+	if !ok || !rt.ExpiresAt.After(time.Now().UTC()) {
+		return repositories.RefreshRotationInvalid, nil
+	}
+	if rt.Revoked {
+		for _, row := range r.byID {
+			if row.FamilyID == rt.FamilyID {
+				row.Revoked = true
+			}
+		}
+		return repositories.RefreshRotationReuse, nil
+	}
+	if newRT.OAuthClientID != "" && newRT.OAuthClientID != rt.OAuthClientID {
+		return repositories.RefreshRotationInvalid, nil
+	}
+	rt.Revoked = true
+	if newRT.FamilyID == "" {
+		newRT.FamilyID = rt.FamilyID
+	}
+	if newRT.UserID == "" {
+		newRT.UserID = rt.UserID
+	}
+	if newRT.TenantID == "" {
+		newRT.TenantID = rt.TenantID
+	}
+	if newRT.Scope == "" {
+		newRT.Scope = rt.Scope
+	}
+	if newRT.OAuthClientID == "" {
+		newRT.OAuthClientID = rt.OAuthClientID
+	}
+	return repositories.RefreshRotationOK, r.Create(context.Background(), newRT)
+}
+
 func (r *refreshTokenTestRepo) RevokeAndCreate(_ context.Context, oldID string, newRT *models.RefreshToken) error {
 	if err := r.RevokeByID(context.Background(), oldID); err != nil {
 		return err
@@ -313,6 +405,15 @@ func newAuthCodeTestRepo() *authCodeTestRepo {
 func (r *authCodeTestRepo) Create(_ context.Context, row *models.AuthorizationCode) error {
 	r.byCode[row.Code] = row
 	return nil
+}
+
+func (r *authCodeTestRepo) Consume(_ context.Context, code string) (*models.AuthorizationCode, error) {
+	row, ok := r.byCode[code]
+	if !ok || !row.ExpiresAt.After(time.Now().UTC()) {
+		return nil, errors.NotFoundError("Authorization code", nil)
+	}
+	delete(r.byCode, code)
+	return row, nil
 }
 
 func (r *authCodeTestRepo) TakeByCode(_ context.Context, code string) (*models.AuthorizationCode, error) {

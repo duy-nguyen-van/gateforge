@@ -99,6 +99,13 @@ func (r *errAuthCodeRepo) Create(ctx context.Context, row *models.AuthorizationC
 	return r.authCodeTestRepo.Create(ctx, row)
 }
 
+func (r *errAuthCodeRepo) Consume(ctx context.Context, code string) (*models.AuthorizationCode, error) {
+	if r.deleteErr != nil {
+		return nil, r.deleteErr
+	}
+	return r.authCodeTestRepo.Consume(ctx, code)
+}
+
 func (r *errAuthCodeRepo) DeleteByCode(ctx context.Context, code string) error {
 	if r.deleteErr != nil {
 		return r.deleteErr
@@ -351,7 +358,7 @@ func TestOIDCService_Authorize_AuthCodeCreateError(t *testing.T) {
 	authCodes := &errAuthCodeRepo{authCodeTestRepo: newAuthCodeTestRepo(), createErr: context.Canceled}
 	users := newUserTestRepo()
 	memberships := &stubMembershipRepo{active: map[string]map[string]bool{}}
-	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, newRefreshTokenTestRepo(), memberships, &auditCapture{})
+	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, newRefreshTokenTestRepo(), memberships, &auditCapture{}, nil)
 
 	u := users.seed("fail@example.com", "secret")
 	memberships.active[u.ID] = map[string]bool{"tenant-1": true}
@@ -429,7 +436,7 @@ func TestOIDCService_AuthorizationCodeToken_DeleteCodeError(t *testing.T) {
 	clients := &stubClientRepo{byClientID: map[string]*models.Client{}}
 	authCodes := &errAuthCodeRepo{authCodeTestRepo: newAuthCodeTestRepo(), deleteErr: context.Canceled}
 	users := newUserTestRepo()
-	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, newRefreshTokenTestRepo(), &stubMembershipRepo{active: map[string]map[string]bool{}}, &auditCapture{})
+	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, newRefreshTokenTestRepo(), &stubMembershipRepo{active: map[string]map[string]bool{}}, &auditCapture{}, nil)
 
 	u := users.seed("del@example.com", "secret")
 	clientRecordID := models.NewBaseModel().ID
@@ -462,7 +469,7 @@ func TestOIDCService_AuthorizationCodeToken_PersistRefreshError(t *testing.T) {
 	authCodes := newAuthCodeTestRepo()
 	refresh := &errRefreshCreateRepo{refreshTokenTestRepo: newRefreshTokenTestRepo(), createErr: context.Canceled}
 	users := newUserTestRepo()
-	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, refresh, &stubMembershipRepo{active: map[string]map[string]bool{}}, &auditCapture{})
+	svc := ProvideOIDCService(cfg, signer, clients, authCodes, users, refresh, &stubMembershipRepo{active: map[string]map[string]bool{}}, &auditCapture{}, nil)
 
 	u := users.seed("refresh@example.com", "secret")
 	clientRecordID := models.NewBaseModel().ID
@@ -553,7 +560,7 @@ func TestUserService_AuthenticateUser_RepoError(t *testing.T) {
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
 	memberships := &stubMembershipRepo{active: map[string]map[string]bool{}}
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 	_, err = svc.AuthenticateUser(context.Background(), &dtos.LoginRequest{Email: "x@example.com", Password: "p"})
 	require.Error(t, err)
 }
@@ -577,10 +584,10 @@ func TestUserService_Register_MembershipCreateError(t *testing.T) {
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
 	tenantCtx := ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), tenantCtx, cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), tenantCtx, cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	_, err = svc.Register(context.Background(), &dtos.RegisterRequest{
-		Email: "new@example.com", Password: "password123", TenantID: cfg.DefaultTenantID,
+		Email: "new@example.com", Password: "correct-horse-1", TenantID: cfg.DefaultTenantID,
 	}, "")
 	require.Error(t, err)
 }
@@ -665,7 +672,7 @@ func (r *errFedIdentityRepo) Create(context.Context, *models.FederatedIdentity) 
 
 func TestPlatformAdminBootstrap_CountError(t *testing.T) {
 	repo := &errBootstrapCountRepo{stubBootstrapUserRepo: &stubBootstrapUserRepo{users: map[string]*models.User{}, byEmail: map[string]*models.User{}, promoted: map[string]bool{}}}
-	b := ProvidePlatformAdminBootstrap(&config.Config{BootstrapAdminEmail: "a@example.com", BootstrapAdminPassword: "password123"}, repo, &stubBootstrapMembershipRepo{})
+	b := ProvidePlatformAdminBootstrap(&config.Config{BootstrapAdminEmail: "a@example.com", BootstrapAdminPassword: "correct-horse-1"}, repo, &stubBootstrapMembershipRepo{})
 	require.Error(t, b.Run(context.Background()))
 }
 
@@ -680,7 +687,7 @@ func (r *errBootstrapCountRepo) CountPlatformAdmins(context.Context) (int64, err
 func TestPlatformAdminBootstrap_GetUserNonNotFoundError(t *testing.T) {
 	repo := &errBootstrapGetRepo{stubBootstrapUserRepo: &stubBootstrapUserRepo{users: map[string]*models.User{}, byEmail: map[string]*models.User{}, promoted: map[string]bool{}}}
 	b := ProvidePlatformAdminBootstrap(&config.Config{
-		DefaultTenantID: "t1", BootstrapAdminEmail: "a@example.com", BootstrapAdminPassword: "password123",
+		DefaultTenantID: "t1", BootstrapAdminEmail: "a@example.com", BootstrapAdminPassword: "correct-horse-1",
 	}, repo, &stubBootstrapMembershipRepo{})
 	require.Error(t, b.Run(context.Background()))
 }
@@ -733,7 +740,7 @@ func TestUserService_IssueAccessAndRefresh_Error(t *testing.T) {
 	cfg := testConfig()
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	svc := ProvideUserService(users, memberships, refresh, ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, refresh, ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 	_, err = svc.IssueTokensForUser(context.Background(), u, "tenant-1")
 	require.Error(t, err)
 }
@@ -757,7 +764,7 @@ func TestUserService_BuildTenantSelection_ListError(t *testing.T) {
 	cfg.DefaultTenantID = ""
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 	_, sel, err := svc.CompleteAuth(context.Background(), u, TenantResolveInput{UserID: u.ID})
 	require.Error(t, err)
 	require.Nil(t, sel)
@@ -911,7 +918,7 @@ func TestUserService_ListMemberships_Error(t *testing.T) {
 	cfg := testConfig()
 	tokenSvc, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 	_, err = svc.ListMemberships(context.Background(), u.ID)
 	require.Error(t, err)
 }
@@ -929,7 +936,7 @@ func TestPlatformAdminBootstrap_EnsureMembershipError(t *testing.T) {
 	repo := &stubBootstrapUserRepo{users: map[string]*models.User{}, byEmail: map[string]*models.User{}, promoted: map[string]bool{}}
 	memberships := &errBootstrapMembershipCreateRepo{}
 	b := ProvidePlatformAdminBootstrap(&config.Config{
-		DefaultTenantID: "t1", BootstrapAdminEmail: "admin@example.com", BootstrapAdminPassword: "password123",
+		DefaultTenantID: "t1", BootstrapAdminEmail: "admin@example.com", BootstrapAdminPassword: "correct-horse-1",
 	}, repo, memberships)
 	require.Error(t, b.Run(context.Background()))
 }
@@ -958,7 +965,11 @@ func (brokenMemCache) Set(context.Context, string, string, time.Duration) error 
 }
 func (brokenMemCache) Delete(context.Context, string) error         { return nil }
 func (brokenMemCache) Exists(context.Context, string) (bool, error) { return false, nil }
-func (brokenMemCache) Close() error                                 { return nil }
+func (brokenMemCache) Increment(context.Context, string, time.Duration) (int64, error) {
+	return 0, context.Canceled
+}
+func (brokenMemCache) Ping(context.Context) error { return context.Canceled }
+func (brokenMemCache) Close() error               { return nil }
 
 func TestOIDCService_VerifyPKCE_EmptyVerifier(t *testing.T) {
 	require.False(t, verifyPKCE("", "challenge", "S256"))

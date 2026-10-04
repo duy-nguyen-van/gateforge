@@ -1,16 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { BriefcaseIcon, Loader2Icon } from 'lucide-react'
+import { Loader2Icon, MailIcon } from 'lucide-react'
 import { useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router'
 
 import { federationStartUrl, federationCompleteReturnTo, listFederationProviders } from '@/api/client'
 import { ApiError } from '@/api/types'
 import { useAuth } from '@/hooks/use-auth'
 import { loginSchema, type LoginFormValues } from '@/auth/schemas'
+import { authCardClassName } from '@/components/layout/auth-card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { SocialLoginGrid } from '@/features/login/social-provider-icons'
+import { InviteAcceptForm } from '@/features/login/invite-accept-form'
 import { PasskeyLoginButton } from '@/features/webauthn/passkey-login'
 
 const defaultTenantId = import.meta.env.VITE_DEFAULT_TENANT_ID ?? '00000000-0000-0000-0000-000000000001'
@@ -19,6 +25,7 @@ export function LoginForm() {
   const { login } = useAuth()
   const [searchParams] = useSearchParams()
   const returnTo = searchParams.get('return_to') ?? undefined
+  const inviteToken = searchParams.get('invite') ?? ''
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showEmailForm, setShowEmailForm] = useState(false)
@@ -53,11 +60,15 @@ export function LoginForm() {
     }
   }
 
+  if (inviteToken) {
+    return <InviteAcceptForm token={inviteToken} />
+  }
+
   return (
-    <div className="rounded-xl bg-surface-container-lowest p-8 shadow-[0_32px_64px_-12px_rgba(42,52,57,0.08)] ring-1 ring-on-surface/5 md:p-10">
+    <div className={authCardClassName}>
       <div className="mb-8 text-center">
-        <h2 className="mb-2 font-headline text-2xl font-bold text-on-surface">Welcome Back</h2>
-        <p className="text-sm text-on-surface-variant">Secure biometric authentication is recommended.</p>
+        <h2 className="mb-2 font-headline text-2xl font-semibold text-on-surface">Sign in</h2>
+        <p className="text-sm text-on-surface-variant">Use a passkey, or sign in with your work email.</p>
       </div>
 
       {error ? (
@@ -73,90 +84,85 @@ export function LoginForm() {
         onEmailRequired={() => setShowEmailForm(true)}
       />
 
-      <div className="relative mb-2 flex items-center py-4">
-        <div className="flex-grow border-t border-surface-container" />
-        <span className="mx-4 flex-shrink text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-          Or continue with
-        </span>
-        <div className="flex-grow border-t border-surface-container" />
-      </div>
-
-      <div className="space-y-4">
-        <button
+      <div className="mt-4 space-y-4">
+        <Button
           type="button"
+          variant="outline"
+          className="h-11 w-full"
           onClick={() => setShowEmailForm((open) => !open)}
-          className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-transparent bg-surface-container-low font-medium text-on-surface transition-colors hover:border-outline-variant/30"
         >
-          <BriefcaseIcon className="h-5 w-5 text-primary" aria-hidden />
-          Institutional Email / SSO
-        </button>
+          <MailIcon className="h-5 w-5" aria-hidden />
+          Sign in with email
+        </Button>
 
         {showEmailForm ? (
           <form className="space-y-4 border-t border-surface-container pt-4" onSubmit={form.handleSubmit(onSubmit)}>
-            <div>
-              <label htmlFor="email" className="mb-2 block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                Institutional Email
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="email">Work email</Label>
+              <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="architect@gateforge.io"
-                className="w-full rounded-lg border-none bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-outline/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
+                placeholder="name@company.com"
                 {...form.register('email')}
               />
               {form.formState.errors.email ? (
-                <p className="mt-1 text-sm text-destructive">{form.formState.errors.email.message}</p>
+                <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
               ) : null}
             </div>
-            <div>
-              <label htmlFor="password" className="mb-2 block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                Password
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 type="password"
                 autoComplete="current-password"
-                placeholder="••••••••••••"
-                className="w-full rounded-lg border-none bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-outline/50 focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary"
                 {...form.register('password')}
               />
               {form.formState.errors.password ? (
-                <p className="mt-1 text-sm text-destructive">{form.formState.errors.password.message}</p>
+                <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
               ) : null}
             </div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-on-primary-fixed font-headline text-sm font-bold tracking-wide text-surface shadow-md transition-all hover:bg-inverse-surface disabled:opacity-60"
-            >
+            <div className="flex items-center gap-2">
+              <Controller
+                name="remember_me"
+                control={form.control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="remember_me"
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                )}
+              />
+              <Label htmlFor="remember_me">Remember me</Label>
+            </div>
+            <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
               {isSubmitting ? <Loader2Icon className="h-4 w-4 animate-spin" /> : null}
               Sign in
-            </button>
+            </Button>
           </form>
         ) : null}
       </div>
 
-      <SocialLoginGrid providers={federationLinks} />
+      {federationLinks.length > 0 ? (
+        <div className="mt-6">
+          <div className="relative mb-4 flex items-center">
+            <div className="flex-grow border-t border-surface-container" />
+            <span className="mx-4 text-xs font-medium text-on-surface-variant">Or continue with</span>
+            <div className="flex-grow border-t border-surface-container" />
+          </div>
+          <SocialLoginGrid providers={federationLinks} />
+        </div>
+      ) : null}
 
-      <div className="mt-10 flex flex-col items-center gap-4">
-        <a href="#" className="text-sm font-medium text-primary hover:underline underline-offset-4">
-          Need help accessing your account?
-        </a>
-        <p className="max-w-[280px] text-center text-[12px] text-on-surface-variant">
-          By continuing, you agree to GateForge&apos;s <br />
-          <a href="#" className="font-semibold text-on-surface transition-colors hover:text-primary">
-            Terms of Service
-          </a>{' '}
-          &amp;{' '}
-          <a href="#" className="font-semibold text-on-surface transition-colors hover:text-primary">
-            Privacy Policy
-          </a>
-        </p>
-        <p className="text-center text-[11px] text-on-surface-variant">
-          New deployment?{' '}
-          <Link to="/register" className="font-bold text-primary hover:underline underline-offset-4">
-            Request access
+      <div className="mt-8 flex flex-col items-center gap-3 text-sm">
+        <Link to="/forgot-password" className="font-medium text-primary hover:underline underline-offset-4">
+          Forgot password
+        </Link>
+        <p className="text-on-surface-variant">
+          Need an account?{' '}
+          <Link to="/register" className="font-semibold text-primary hover:underline underline-offset-4">
+            Create account
           </Link>
         </p>
       </div>

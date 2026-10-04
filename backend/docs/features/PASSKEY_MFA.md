@@ -115,6 +115,7 @@ MFA `code` rules: 6 digits → TOTP; otherwise recovery code.
 | `WEBAUTHN_RP_ORIGINS` | Allowed origins (comma-separated) |
 | `WEBAUTHN_SESSION_TTL` | Ceremony session TTL |
 | `MFA_ENCRYPTION_KEY` | TOTP secret encryption (falls back to `JWT_SECRET`) |
+| TOTP issuer | Authenticator apps show **GateForge**. This does not follow `APP_NAME`. |
 | `MFA_PENDING_TICKET_TTL` | MFA ticket TTL |
 | `MFA_RECOVERY_CODE_COUNT` | Codes generated per request |
 
@@ -123,6 +124,7 @@ MFA `code` rules: 6 digits → TOTP; otherwise recovery code.
 - `frontend/src/features/webauthn/passkey-login.tsx`, `passkey-register.tsx`
 - `frontend/src/features/mfa/mfa-challenge-form.tsx`, `totp-setup.tsx`
 - `frontend/src/pages/security-page.tsx`
+- `frontend/src/features/admin/admin-mfa-enrollment.tsx` — console gate when admin APIs return `ADMIN_MFA_REQUIRED`
 
 ## Testing
 

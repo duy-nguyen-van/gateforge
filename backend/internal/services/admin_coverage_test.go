@@ -2,12 +2,17 @@ package services
 
 import (
 	"context"
+	"strings"
 	"testing"
 
+	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
+	"github.com/gateforge-iam/gateforge-iam/internal/integration/email"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -155,4 +160,81 @@ func TestAdminService_AddMemberByEmail_Success(t *testing.T) {
 	require.NoError(t, svc.AddMemberByEmail(context.Background(), tenantID, "member@example.com", ""))
 	require.Len(t, memberships.byUser[u.ID], 1)
 	require.Equal(t, constants.AuditActionAdminMemberAdd, audit.params[0].Action)
+}
+
+func TestAdminService_AddMemberByEmail_SendsEmail(t *testing.T) {
+	tenantRepo := newAdminTenantTestRepo()
+	tenantID := "tenant-mail"
+	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Acme"}
+	users := newUserTestRepo()
+	u := users.seed("member@example.com", "secret")
+	memberships := &stubMembershipRepo{byUser: map[string][]models.TenantMembership{}, active: map[string]map[string]bool{}}
+	sender := new(MockEmailSender)
+	sender.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
+		return len(req.To) == 1 &&
+			req.To[0] == "member@example.com" &&
+			req.TemplateID == email.TemplateMemberAdded &&
+			strings.HasPrefix(req.IdempotencyKey, "member-added/") &&
+			strings.Contains(req.TextBody, "Acme") &&
+			strings.Contains(req.TextBody, "admin") &&
+			strings.Contains(req.HTMLBody, "http://localhost:5173/login")
+	})).Return(&email.EmailResponse{Status: "sent"}, nil)
+
+	svc := &adminService{
+		cfg:         &config.Config{OIDCLoginPageURL: "http://localhost:5173/login"},
+		tenants:     tenantRepo,
+		users:       users,
+		memberships: memberships,
+		audit:       &auditCapture{},
+		mail:        ProvideEmailService(sender),
+	}
+	require.NoError(t, svc.AddMemberByEmail(context.Background(), tenantID, "member@example.com", "admin"))
+	require.Len(t, memberships.byUser[u.ID], 1)
+	sender.AssertExpectations(t)
+}
+
+func TestAdminService_AddMemberByEmail_SignInURLFallback(t *testing.T) {
+	tenantRepo := newAdminTenantTestRepo()
+	tenantID := "tenant-mail-fallback"
+	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Acme"}
+	users := newUserTestRepo()
+	users.seed("member@example.com", "secret")
+	memberships := &stubMembershipRepo{byUser: map[string][]models.TenantMembership{}, active: map[string]map[string]bool{}}
+	sender := new(MockEmailSender)
+	sender.On("SendEmail", mock.Anything, mock.MatchedBy(func(req email.EmailRequest) bool {
+		return strings.Contains(req.HTMLBody, "http://localhost:3000/login")
+	})).Return(&email.EmailResponse{Status: "sent"}, nil)
+
+	svc := &adminService{
+		cfg:         &config.Config{AppBaseURL: "http://localhost:3000"},
+		tenants:     tenantRepo,
+		users:       users,
+		memberships: memberships,
+		audit:       &auditCapture{},
+		mail:        ProvideEmailService(sender),
+	}
+	require.NoError(t, svc.AddMemberByEmail(context.Background(), tenantID, "member@example.com", ""))
+	sender.AssertExpectations(t)
+}
+
+func TestAdminService_AddMemberByEmail_EmailFailureKeepsMembership(t *testing.T) {
+	tenantRepo := newAdminTenantTestRepo()
+	tenantID := "tenant-mail-fail"
+	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Acme"}
+	users := newUserTestRepo()
+	u := users.seed("member@example.com", "secret")
+	memberships := &stubMembershipRepo{byUser: map[string][]models.TenantMembership{}, active: map[string]map[string]bool{}}
+	sender := new(MockEmailSender)
+	sender.On("SendEmail", mock.Anything, mock.Anything).Return(nil, assert.AnError)
+
+	svc := &adminService{
+		tenants:     tenantRepo,
+		users:       users,
+		memberships: memberships,
+		audit:       &auditCapture{},
+		mail:        ProvideEmailService(sender),
+	}
+	require.NoError(t, svc.AddMemberByEmail(context.Background(), tenantID, "member@example.com", ""))
+	require.Len(t, memberships.byUser[u.ID], 1)
+	sender.AssertExpectations(t)
 }

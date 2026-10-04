@@ -15,6 +15,24 @@ definitions:
       token_type:
         type: string
     type: object
+  dtos.AcceptMemberInviteRequest:
+    properties:
+      first_name:
+        maxLength: 100
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+      password:
+        maxLength: 128
+        minLength: 12
+        type: string
+      token:
+        type: string
+    required:
+    - password
+    - token
+    type: object
   dtos.AdminAddMemberRequest:
     properties:
       email:
@@ -215,6 +233,25 @@ definitions:
       total_users:
         type: integer
     type: object
+  dtos.AdminTenantInviteResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      tenant_name:
+        type: string
+    type: object
   dtos.AdminTenantMemberResponse:
     properties:
       email:
@@ -336,6 +373,13 @@ definitions:
       tenant_id:
         type: string
     type: object
+  dtos.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   dtos.HealthResponse:
     properties:
       service:
@@ -424,6 +468,15 @@ definitions:
         type: string
     required:
     - code
+    type: object
+  dtos.MemberInvitePreview:
+    properties:
+      email:
+        type: string
+      organization_name:
+        type: string
+      role:
+        type: string
     type: object
   dtos.Meta:
     description: Metadata for pagination
@@ -527,13 +580,25 @@ definitions:
       password:
         example: secretpassword
         maxLength: 128
-        minLength: 8
+        minLength: 12
         type: string
       tenant_id:
         type: string
     required:
     - email
     - password
+    type: object
+  dtos.ResetPasswordRequest:
+    properties:
+      new_password:
+        maxLength: 128
+        minLength: 12
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
     type: object
   dtos.TenantSelectRequest:
     properties:
@@ -980,6 +1045,36 @@ paths:
       summary: Get OAuth client usage metrics (platform admin)
       tags:
       - Admin
+  /admin/invites:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminTenantInviteResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List pending organization invites
+      tags:
+      - Admin
   /admin/login-history:
     get:
       parameters:
@@ -1244,6 +1339,64 @@ paths:
       security:
       - BearerAuth: []
       summary: Configure an upstream identity provider for a tenant (platform admin)
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/invites:
+    get:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/dtos.AdminTenantInviteResponse'
+                type: array
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List pending organization invites
+      tags:
+      - Admin
+  /admin/tenants/{tenantId}/invites/{inviteId}/resend:
+    post:
+      parameters:
+      - description: Tenant UUID
+        in: path
+        name: tenantId
+        required: true
+        type: string
+      - description: Invite UUID
+        in: path
+        name: inviteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Resend a pending organization invite
       tags:
       - Admin
   /admin/tenants/{tenantId}/members:
@@ -1547,6 +1700,40 @@ paths:
       summary: List enabled federation sign-in methods for a tenant
       tags:
       - Auth
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      - application/json
+      description: Always returns 200 so callers cannot tell whether the email exists
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.RefreshTokenRequest'
+      - description: Email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.ForgotPasswordRequest'
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Request a password reset
+      tags:
+      - Auth
+      - Auth
   /health/database:
     get:
       consumes:
@@ -1585,6 +1772,31 @@ paths:
                 $ref: '#/definitions/dtos.Meta'
             type: object
       summary: Database Connection Metrics
+      tags:
+      - Health
+  /health/ready:
+    get:
+      description: Ping Postgres and Redis
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.HealthResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Readiness check
       tags:
       - Health
   /internal/tenants/{tenantId}/identity-providers/{provider}:
@@ -1644,6 +1856,59 @@ paths:
       summary: Token introspection endpoint (RFC 7662)
       tags:
       - OIDC
+  /invites/accept:
+    post:
+      consumes:
+      - application/json
+      description: Creates the user when they do not exist, adds the membership, and
+        returns a session. If the existing account has MFA enabled, `data` is MFALoginChallengeResponse
+        instead of LoginResponse.
+      parameters:
+      - description: Invite acceptance
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.AcceptMemberInviteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'When MFA is off: LoginResponse and iam_session cookie. When
+            MFA is on: MFALoginChallengeResponse.'
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.LoginResponse'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Accept an organization invite
+      tags:
+      - Auth
+  /invites/preview:
+    get:
+      parameters:
+      - description: Invite token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/dtos.MemberInvitePreview'
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Preview an organization invite
+      tags:
+      - Auth
   /login:
     post:
       consumes:
@@ -2052,6 +2317,8 @@ paths:
     post:
       consumes:
       - application/json
+      - application/json
+      description: Always returns 200 so callers cannot tell whether the email exists
       parameters:
       - description: Refresh token
         in: body
@@ -2059,21 +2326,26 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dtos.RefreshTokenRequest'
+      - description: Email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.ForgotPasswordRequest'
       produces:
+      - application/json
       - application/json
       responses:
         "200":
           description: OK
           schema:
             properties:
-              data:
-                $ref: '#/definitions/dtos.LoginResponse'
               meta:
                 $ref: '#/definitions/dtos.Meta'
             type: object
-      summary: Exchange refresh token for a new access token (and rotated refresh
-        token)
+      summary: Request a password reset
       tags:
+      - Auth
       - Auth
   /register:
     post:
@@ -2099,6 +2371,37 @@ paths:
                 $ref: '#/definitions/dtos.Meta'
             type: object
       summary: Register a new user
+      tags:
+      - Auth
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token and new password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dtos.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              meta:
+                $ref: '#/definitions/dtos.Meta'
+            type: object
+      summary: Reset a password with a one-time token
       tags:
       - Auth
   /tenants/select:

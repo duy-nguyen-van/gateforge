@@ -53,9 +53,9 @@
 @theme inline {
   --radius-sm: 0.125rem;
   --radius-md: 0.25rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.5rem;
-  --radius-full: 0.75rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -101,6 +101,12 @@
   --color-error: var(--error);
   --color-error-container: var(--error-container);
   --color-on-error: var(--on-error);
+  --color-success: var(--success);
+  --color-success-container: var(--success-container);
+  --color-on-success-container: var(--on-success-container);
+  --color-warning: var(--warning);
+  --color-warning-container: var(--warning-container);
+  --color-on-warning-container: var(--on-warning-container);
   --color-inverse-surface: var(--inverse-surface);
 
   --font-headline: Manrope, ui-sans-serif, system-ui, sans-serif;
@@ -157,34 +163,80 @@
   --error: oklch(0.58 0.22 27);
   --error-container: oklch(0.85 0.08 27);
   --on-error: oklch(0.99 0.003 247);
+  --success: oklch(0.42 0.12 150);
+  --success-container: oklch(0.94 0.04 150);
+  --on-success-container: oklch(0.32 0.08 150);
+  --warning: oklch(0.48 0.11 75);
+  --warning-container: oklch(0.95 0.04 85);
+  --on-warning-container: oklch(0.38 0.08 70);
   --inverse-surface: oklch(0.2 0.04 265);
 }
 
 .dark {
-  --background: oklch(0.18 0.02 265);
+  --background: oklch(0.16 0.02 265);
   --foreground: oklch(0.96 0.006 250);
-  --card: oklch(0.22 0.025 265);
+  --card: oklch(0.24 0.025 265);
   --card-foreground: oklch(0.96 0.006 250);
-  --primary: oklch(0.7 0.14 265);
-  --primary-foreground: oklch(0.18 0.02 265);
-  --on-primary: oklch(0.18 0.02 265);
-  --muted: oklch(0.22 0.025 265);
-  --muted-foreground: oklch(0.7 0.02 260);
-  --border: oklch(0.32 0.03 265);
-  --input: oklch(0.22 0.025 265);
-  --surface: oklch(0.18 0.02 265);
+  --popover: oklch(0.24 0.025 265);
+  --popover-foreground: oklch(0.96 0.006 250);
+  --primary: oklch(0.72 0.18 265);
+  --primary-foreground: oklch(0.16 0.02 265);
+  --secondary: oklch(0.32 0.03 265);
+  --secondary-foreground: oklch(0.96 0.006 250);
+  --muted: oklch(0.28 0.025 265);
+  --muted-foreground: oklch(0.72 0.02 260);
+  --accent: oklch(0.32 0.05 265);
+  --accent-foreground: oklch(0.9 0.04 265);
+  --destructive: oklch(0.65 0.18 25);
+  --border: oklch(0.4 0.03 265);
+  --input: oklch(0.28 0.025 265);
+  --ring: oklch(0.72 0.18 265);
+  --surface: oklch(0.16 0.02 265);
   --on-surface: oklch(0.96 0.006 250);
-  --on-surface-variant: oklch(0.7 0.02 260);
-  --surface-container-low: oklch(0.22 0.025 265);
-  --surface-container-lowest: oklch(0.2 0.02 265);
-  --primary-container: oklch(0.3 0.08 265);
-  --on-primary-container: oklch(0.85 0.06 265);
-  --outline-variant: oklch(0.32 0.03 265);
+  --on-surface-variant: oklch(0.72 0.02 260);
+  --surface-container: oklch(0.28 0.025 265);
+  --surface-container-low: oklch(0.2 0.025 265);
+  --surface-container-high: oklch(0.32 0.03 265);
+  --surface-container-highest: oklch(0.36 0.03 265);
+  --surface-container-lowest: oklch(0.24 0.025 265);
+  --surface-variant: oklch(0.32 0.03 265);
+  --surface-bright: oklch(0.24 0.025 265);
+  --surface-dim: oklch(0.16 0.02 265);
+  --primary-container: oklch(0.32 0.1 265);
+  --primary-dim: oklch(0.62 0.18 265);
+  --on-primary: oklch(0.16 0.02 265);
+  --on-primary-fixed: oklch(0.96 0.006 250);
+  --on-primary-container: oklch(0.85 0.08 265);
+  --secondary-container: oklch(0.28 0.03 260);
+  --on-secondary-container: oklch(0.88 0.02 260);
+  --tertiary-container: oklch(0.32 0.04 290);
+  --on-tertiary-container: oklch(0.88 0.03 290);
+  --outline: oklch(0.62 0.02 260);
+  --outline-variant: oklch(0.4 0.03 265);
+  --error: oklch(0.72 0.16 25);
+  --error-container: oklch(0.32 0.08 25);
+  --on-error: oklch(0.18 0.02 265);
+  --success: oklch(0.75 0.12 150);
+  --success-container: oklch(0.28 0.05 150);
+  --on-success-container: oklch(0.86 0.06 150);
+  --warning: oklch(0.8 0.1 85);
+  --warning-container: oklch(0.32 0.05 75);
+  --on-warning-container: oklch(0.9 0.05 85);
+  --inverse-surface: oklch(0.96 0.006 250);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+
+  html {
+    color-scheme: light;
+    background: var(--background);
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -217,27 +269,11 @@
   }
 
   .ghost-border {
-    border: 1px solid oklch(0.92 0.01 255 / 40%);
+    border: 1px solid color-mix(in oklab, var(--outline-variant) 70%, transparent);
   }
 
   .rounded-circle {
     border-radius: 9999px;
-  }
-
-  .glass-panel {
-    background: oklch(1 0 0 / 70%);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .dot-grid {
-    background-image: radial-gradient(oklch(0.92 0.01 255) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-
-  .bg-grid-pattern {
-    background-image: radial-gradient(circle at 1px 1px, oklch(0.92 0.01 255) 1px, transparent 0);
-    background-size: 40px 40px;
   }
 
   .console-page-enter {
@@ -392,61 +428,6 @@
   }
 }
 
-@keyframes gateforge-loader-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.72);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes gateforge-loader-breathe {
-  0%,
-  100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0 transparent);
-  }
-
-  50% {
-    transform: scale(1.06);
-    filter: drop-shadow(0 0 12px color-mix(in oklab, var(--primary) 35%, transparent));
-  }
-}
-
-@keyframes gateforge-loader-ring {
-  0% {
-    opacity: 0.55;
-    transform: scale(0.85);
-  }
-
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(1.45);
-  }
-}
-
-.gateforge-loader {
-  animation: gateforge-loader-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.gateforge-loader-mark {
-  animation: gateforge-loader-breathe 1.6s ease-in-out 420ms infinite;
-}
-
-.gateforge-loader-ring {
-  pointer-events: none;
-  position: absolute;
-  inset: -10%;
-  border-radius: 9999px;
-  border: 1.5px solid color-mix(in oklab, var(--primary) 40%, transparent);
-  animation: gateforge-loader-ring 1.6s ease-out 420ms infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .console-page-enter,
   .console-modal-scrim,
@@ -456,10 +437,7 @@
   .console-drawer-panel,
   .console-drawer-panel.is-leaving,
   .content-soft-in,
-  .alert-soft-life,
-  .gateforge-loader,
-  .gateforge-loader-mark,
-  .gateforge-loader-ring {
+  .alert-soft-life {
     animation: none;
   }
 

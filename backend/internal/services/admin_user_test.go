@@ -19,6 +19,8 @@ type adminUserTestRepo struct {
 	users map[string]*models.User
 }
 
+func (r *adminUserTestRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
+func (r *adminUserTestRepo) MarkEmailVerified(context.Context, string) error          { return nil }
 func (r *adminUserTestRepo) CreateWithPasswordHash(context.Context, *models.User, string) error {
 	return nil
 }
@@ -112,6 +114,10 @@ func (s *adminUserSvcStub) IssueTokensForUser(context.Context, *models.User, str
 func (s *adminUserSvcStub) Login(context.Context, *dtos.LoginRequest, string) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
 	return nil, nil, nil
 }
+func (s *adminUserSvcStub) ForgotPassword(context.Context, string) error { return nil }
+func (s *adminUserSvcStub) ResetPassword(context.Context, string, string) error {
+	return nil
+}
 func (s *adminUserSvcStub) Refresh(context.Context, *dtos.RefreshTokenRequest) (*dtos.LoginResponse, error) {
 	return nil, nil
 }
@@ -196,6 +202,11 @@ type adminAuditCapture struct {
 func (a *adminAuditCapture) Record(_ context.Context, p domains.AuditRecordParams) {
 	a.params = append(a.params, p)
 }
+func (a *adminAuditCapture) RecordRequired(ctx context.Context, p domains.AuditRecordParams) error {
+	a.Record(ctx, p)
+	return nil
+}
+func (a *adminAuditCapture) Shutdown(context.Context) error { return nil }
 
 func newAdminUserTestService(users *adminUserTestRepo) (*adminService, *adminSessionStub, *adminUserSvcStub, *adminWebauthnStub, *adminAuditCapture) {
 	return newAdminUserTestServiceWithMFA(users, nil, nil)

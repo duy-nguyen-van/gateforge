@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   CheckCircle2Icon,
   CircleXIcon,
-  ListFilterIcon,
   SearchIcon,
   ShieldIcon,
   UserCheckIcon,
@@ -12,14 +11,19 @@ import {
 } from 'lucide-react'
 
 import { DefaultAvatar } from '@/components/avatars/default-avatar'
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { AddMemberDialog } from '@/features/admin/add-member-dialog'
+import { InvitationsSection } from '@/features/admin/invitations-section'
 import { displayUserName, formatUserStatus } from '@/features/admin/admin-utils'
 import { ConsolePagination } from '@/features/admin/console-pagination'
 import {
   ConsoleEmptyState,
   ConsoleErrorState,
-  ConsoleLoadingState,
+  ConsoleTableSkeleton,
 } from '@/features/admin/console-state'
+import { useSlashFocus } from '@/features/admin/use-slash-focus'
 import { RemoveMemberDialog } from '@/features/admin/remove-member-dialog'
 import { UserDetailDrawer } from '@/features/admin/user-detail-drawer'
 import { useConsolePagination } from '@/features/admin/use-console-pagination'
@@ -33,6 +37,8 @@ type RemoveTarget = {
 
 export function UsersPage() {
   const [search, setSearch] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  useSlashFocus(searchRef)
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null)
   const [detailUserId, setDetailUserId] = useState<string | null>(null)
@@ -58,25 +64,20 @@ export function UsersPage() {
 
   return (
     <div>
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">User Management</h1>
-          <p className="mt-1 text-on-surface-variant">Manage identities across all tenants.</p>
-        </div>
-        <button
-          type="button"
-          title="User must already be registered"
-          onClick={() => setAddMemberOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
-        >
-          <UserPlusIcon className="h-4 w-4" aria-hidden />
-          Add member
-        </button>
-      </header>
+      <ConsolePageHeader
+        title="Users"
+        description="Manage identities across all tenants."
+        actions={
+          <Button type="button" onClick={() => setAddMemberOpen(true)}>
+            <UserPlusIcon className="h-4 w-4" aria-hidden />
+            Add member
+          </Button>
+        }
+      />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {statsQuery.isLoading ? (
-          <ConsoleLoadingState label="Loading stats…" />
+          <p className="text-sm text-on-surface-variant">Loading stats…</p>
         ) : statsQuery.isError ? (
           <div className="col-span-full">
             <ConsoleErrorState message="Could not load user statistics." />
@@ -98,20 +99,21 @@ export function UsersPage() {
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
         <div className="flex items-center justify-between border-b border-surface-container px-6 py-4">
           <div className="relative w-full max-w-md">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-outline" aria-hidden />
-            <input
-              type="text"
-              placeholder="Search users..."
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" aria-hidden />
+            <Input
+              ref={searchRef}
+              type="search"
+              aria-label="Search users"
+              placeholder="Search users"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-full border-none bg-surface-container-low py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-primary"
+              className="pl-10"
             />
           </div>
-          <ListFilterIcon className="h-5 w-5 text-on-surface-variant" aria-hidden />
         </div>
 
         {usersQuery.isLoading ? (
-          <ConsoleLoadingState />
+          <ConsoleTableSkeleton columns={5} />
         ) : usersQuery.isError ? (
           <div className="p-6">
             <ConsoleErrorState message="Could not load users. Ensure your account has platform admin access." />
@@ -150,7 +152,7 @@ export function UsersPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                          isActive ? 'bg-green-50 text-green-700' : 'bg-error-container/30 text-error'
+                          isActive ? 'bg-success-container text-on-success-container' : 'bg-error-container text-error'
                         }`}
                       >
                         {formatUserStatus(u.status)}
@@ -158,7 +160,7 @@ export function UsersPage() {
                     </td>
                     <td className="px-6 py-4">
                       {u.mfa_enabled ? (
-                        <CheckCircle2Icon className="h-5 w-5 text-green-600" aria-hidden />
+                        <CheckCircle2Icon className="h-5 w-5 text-success" aria-hidden />
                       ) : (
                         <CircleXIcon className="h-5 w-5 text-outline" aria-hidden />
                       )}
@@ -201,6 +203,8 @@ export function UsersPage() {
           />
         ) : null}
       </div>
+
+      <InvitationsSection />
 
       <AddMemberDialog open={addMemberOpen} onOpenChange={setAddMemberOpen} />
 

@@ -58,8 +58,8 @@ func (b *platformAdminBootstrap) Run(ctx context.Context) error {
 }
 
 func (b *platformAdminBootstrap) bootstrapFromCredentials(ctx context.Context, email, password string) error {
-	if len(password) < 8 {
-		return errors.ValidationError("BOOTSTRAP_ADMIN_PASSWORD must be at least 8 characters", nil)
+	if err := ValidatePassword(password); err != nil {
+		return errors.ValidationError("BOOTSTRAP_ADMIN_PASSWORD does not meet the password policy", err)
 	}
 
 	tenantID := b.cfg.DefaultTenantID

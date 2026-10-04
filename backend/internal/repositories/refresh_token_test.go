@@ -173,3 +173,44 @@ func TestRefreshTokenRepository_Create_DatabaseError(t *testing.T) {
 	err := repo.Create(testCtx(), rt)
 	requireDatabaseErr(t, err)
 }
+
+func TestRefreshTokenRepository_Rotate_ReuseRevokesFamily(t *testing.T) {
+	pg := newTestDB(t)
+	repo := ProvideRefreshTokenRepository(pg)
+	ctx := testCtx()
+	tenant := seedTenant(t, pg, "Org", "org.test")
+	user := seedUser(t, pg, "u@test.com")
+	client := seedClient(t, pg, tenant.ID, "app")
+	clientID := client.ID
+	original := &models.RefreshToken{
+		HardDeleteModel: models.HardDeleteModel{ID: models.NewBaseModel().ID},
+		TenantID:        tenant.ID,
+		UserID:          user.ID,
+		OAuthClientID:   client.ClientID,
+		TokenHash:       "hash-old",
+		ExpiresAt:       futureTime(),
+		ClientRecordID:  &clientID,
+	}
+	require.NoError(t, repo.Create(ctx, original))
+
+	next := &models.RefreshToken{
+		HardDeleteModel: models.HardDeleteModel{ID: models.NewBaseModel().ID},
+		TokenHash:       "hash-new",
+		ExpiresAt:       futureTime(),
+	}
+	status, err := repo.Rotate(ctx, "hash-old", next)
+	require.NoError(t, err)
+	require.Equal(t, RefreshRotationOK, status)
+
+	again := &models.RefreshToken{
+		HardDeleteModel: models.HardDeleteModel{ID: models.NewBaseModel().ID},
+		TokenHash:       "hash-reuse",
+		ExpiresAt:       futureTime(),
+	}
+	status, err = repo.Rotate(ctx, "hash-old", again)
+	require.NoError(t, err)
+	require.Equal(t, RefreshRotationReuse, status)
+
+	_, err = repo.FindValidByTokenHash(ctx, "hash-new")
+	requireNotFound(t, err)
+}

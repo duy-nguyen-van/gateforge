@@ -63,6 +63,15 @@ func (s errAdminService) ConfigureIdentityProvider(context.Context, string, stri
 func (s errAdminService) AddMemberByEmail(context.Context, string, string, string) error {
 	return s.withErr()
 }
+func (s errAdminService) ListInvites(context.Context, *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return nil, nil, s.withErr()
+}
+func (s errAdminService) ListTenantInvites(context.Context, string, *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return nil, nil, s.withErr()
+}
+func (s errAdminService) ResendTenantInvite(context.Context, string, string) error {
+	return s.withErr()
+}
 func (s errAdminService) RemoveMember(context.Context, string, string) error {
 	return s.withErr()
 }
@@ -152,6 +161,34 @@ func TestAdminHandler_serviceErrors(t *testing.T) {
 		require.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
 
+	t.Run("ListInvites", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		require.NoError(t, h.ListInvites(c))
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+
+	t.Run("ListTenantInvites", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.SetParamNames("tenantId")
+		c.SetParamValues(testTenantID)
+		require.NoError(t, h.ListTenantInvites(c))
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+
+	t.Run("ResendTenantInvite", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/", nil)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		c.SetParamNames("tenantId", "inviteId")
+		c.SetParamValues(testTenantID, "invite-1")
+		require.NoError(t, h.ResendTenantInvite(c))
+		require.Equal(t, http.StatusInternalServerError, rec.Code)
+	})
+
 	t.Run("RemoveMember", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodDelete, "/", nil)
 		rec := httptest.NewRecorder()
@@ -234,7 +271,7 @@ func TestAdminHandler_validationAndParamErrors(t *testing.T) {
 func TestAuthHandler_errorPaths(t *testing.T) {
 	t.Run("Register service error", func(t *testing.T) {
 		h := authHandler(&stubAuthUserService{registerErr: errors.InternalError("fail", nil)}, &stubAuthSessionService{}, &stubAuthMFAService{}, &stubAuthFederationService{})
-		c, rec := newJSONContext(http.MethodPost, "/", `{"email":"user@example.com","password":"secretpass"}`)
+		c, rec := newJSONContext(http.MethodPost, "/", `{"email":"user@example.com","password":"correct-horse-1"}`)
 		require.NoError(t, h.Register(c))
 		require.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
@@ -529,6 +566,22 @@ func TestAdminHandler_crudParamAndServiceErrors(t *testing.T) {
 		c.SetParamNames("tenantId")
 		c.SetParamValues("")
 		require.NoError(t, h.ListTenantMembers(c))
+		require.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("ListTenantInvites missing id", func(t *testing.T) {
+		c, rec := newJSONContext(http.MethodGet, "/", "")
+		c.SetParamNames("tenantId")
+		c.SetParamValues("")
+		require.NoError(t, h.ListTenantInvites(c))
+		require.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("ResendTenantInvite missing id", func(t *testing.T) {
+		c, rec := newJSONContext(http.MethodPost, "/", "")
+		c.SetParamNames("tenantId", "inviteId")
+		c.SetParamValues(testTenantID, "")
+		require.NoError(t, h.ResendTenantInvite(c))
 		require.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 

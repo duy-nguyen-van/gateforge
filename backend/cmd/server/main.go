@@ -27,6 +27,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func NewHTTPServer(lc fx.Lifecycle,
@@ -37,17 +39,36 @@ func NewHTTPServer(lc fx.Lifecycle,
 	adminHandler *handlers.AdminHandler,
 	webauthnHandler *handlers.WebauthnHandler,
 	mfaHandler *handlers.MFAHandler,
+	memberInviteHandler *handlers.MemberInviteHandler,
 	tokenService *auth.TokenService,
 	userRepo repositories.UserRepository,
 	cfg *config.Config,
-	db *db.PostgresDB,
+	database *db.PostgresDB,
+	shared cache.Cache,
+	totp repositories.UserMFATOTPRepository,
+	webauthn repositories.WebauthnCredentialRepository,
 ) *http.Server {
-	handler := routes.Router(authHandler, healthHandler, oidcHandler, tenantIdentityAdmin, adminHandler, webauthnHandler, mfaHandler, tokenService, userRepo, cfg)
+	handler := routes.Router(authHandler, healthHandler, oidcHandler, tenantIdentityAdmin, adminHandler, webauthnHandler, mfaHandler, memberInviteHandler, tokenService, userRepo, cfg, shared, totp, webauthn)
 
+	readTimeout := cfg.HTTPReadTimeout
+	writeTimeout := cfg.HTTPWriteTimeout
+	idleTimeout := cfg.HTTPIdleTimeout
+	if readTimeout <= 0 {
+		readTimeout = 30 * time.Second
+	}
+	if writeTimeout <= 0 {
+		writeTimeout = 30 * time.Second
+	}
+	if idleTimeout <= 0 {
+		idleTimeout = 60 * time.Second
+	}
 	srv := &http.Server{
 		Addr:              cfg.AppHTTPServer,
 		Handler:           handler,
 		ReadHeaderTimeout: time.Duration(cfg.AppRequestTimeout) * time.Second,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
 	}
 
 	lc.Append(fx.Hook{
@@ -80,9 +101,15 @@ func NewHTTPServer(lc fx.Lifecycle,
 			}
 
 			// Close database connections
-			if err := db.Close(); err != nil {
+			if err := database.Close(); err != nil {
 				logger.Sugar.Errorf("Database shutdown error: %v", err)
 				return err
+			}
+			if shared != nil {
+				if err := shared.Close(); err != nil {
+					logger.Sugar.Errorf("Cache shutdown error: %v", err)
+					return err
+				}
 			}
 
 			logger.Sugar.Info("Server shutdown completed")
@@ -115,10 +142,46 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
+	if err := cfg.Prepare(); err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid configuration: %v\n", err)
+		os.Exit(1)
+	}
 	// Initialize global logger before any middleware uses it
 	logger.Init(cfg.LogLevel, cfg.AppEnv.String())
 	monitoring.InitNewRelic(*cfg)
 	monitoring.InitSentry(*cfg)
+
+	otelProvider, err := monitoring.InitOpenTelemetry(*cfg)
+	if err != nil {
+		logger.Sugar.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+	}
+	defer func() {
+		if otelProvider == nil {
+			return
+		}
+		if err := otelProvider.Shutdown(context.Background()); err != nil {
+			logger.Sugar.Errorf("OpenTelemetry shutdown error: %v", err)
+		}
+	}()
+
+	if lp := otelProvider.LoggerProvider(); lp != nil {
+		monitoring.AttachOTelZapLogger(lp, []zapcore.Level{
+			zapcore.ErrorLevel,
+			zapcore.FatalLevel,
+			zapcore.PanicLevel,
+		})
+	}
+
+	if logger.Log != nil {
+		logger.Log = logger.Log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+			return zapcore.NewTee(core, monitoring.NewSentryCore(context.Background(), []zapcore.Level{
+				zapcore.ErrorLevel,
+				zapcore.FatalLevel,
+				zapcore.PanicLevel,
+			}))
+		}))
+		logger.Sugar = logger.Log.Sugar()
+	}
 
 	// Ensure all events are flushed before the program exits
 	defer monitoring.FlushSentry()
@@ -135,55 +198,70 @@ func main() {
 	}
 	time.Local = loc
 
+	startApplication(cfg)
+}
+
+func startApplication(cfg *config.Config) {
 	fx.New(
 		fx.Supply(cfg),
-		fx.Provide(
-			NewHTTPServer,
-			ProvideGormPostgres,
-			ProvideValidator,
-			auth.ProvideTokenService,
-			auth.ProvideOIDCSigner,
-			auth.ProvideWebAuthn,
-			auth.ProvideEphemeralStore,
-			cache.ProvideCache,
-			email.ProvideEmailSender,
-			storage.ProvideStorageAdapter,
-			repositories.ProvideUserRepository,
-			repositories.ProvideTenantMembershipRepository,
-			repositories.ProvideFederatedIdentityRepository,
-			repositories.ProvideTenantRepository,
-			repositories.ProvideTenantIdentityProviderRepository,
-			repositories.ProvideRefreshTokenRepository,
-			repositories.ProvideSessionRepository,
-			repositories.ProvideClientRepository,
-			repositories.ProvideAuthorizationCodeRepository,
-			repositories.ProvideWebauthnCredentialRepository,
-			repositories.ProvideUserMFATOTPRepository,
-			repositories.ProvideUserMFARecoveryCodeRepository,
-			repositories.ProvideAuditLogRepository,
-			services.ProvideAuditService,
-			services.ProvideEmailService,
-			services.ProvideMFAService,
-			services.ProvideWebauthnService,
-			services.ProvideTenantContextService,
-			services.ProvideUserService,
-			services.ProvideFederationService,
-			services.ProvideSessionService,
-			services.ProvideOIDCService,
-			services.ProvideAdminService,
-			services.ProvidePlatformAdminBootstrap,
-			handlers.ProvideHealthHandler,
-			handlers.ProvideAuthHandler,
-			handlers.ProvideWebauthnHandler,
-			handlers.ProvideMFAHandler,
-			handlers.ProvideTenantIdentityAdminHandler,
-			handlers.ProvideAdminHandler,
-			handlers.ProvideOIDCHandler,
-		),
+		applicationProviders(),
 		fx.Invoke(runPlatformAdminBootstrap),
+		fx.Invoke(func(services.RetentionService) {}),
 		fx.Invoke(func(*http.Server) {}),
 		fx.Invoke(func() { i18n.Init() }),
 	).Run()
+}
+
+func applicationProviders() fx.Option {
+	return fx.Provide(
+		NewHTTPServer,
+		ProvideGormPostgres,
+		ProvideValidator,
+		auth.ProvideTokenService,
+		auth.ProvideOIDCSigner,
+		auth.ProvideWebAuthn,
+		auth.ProvideEphemeralStore,
+		cache.ProvideCache,
+		email.ProvideEmailSender,
+		storage.ProvideStorageAdapter,
+		repositories.ProvideUserRepository,
+		repositories.ProvideTenantMembershipRepository,
+		repositories.ProvideTenantInviteRepository,
+		repositories.ProvideFederatedIdentityRepository,
+		repositories.ProvideTenantRepository,
+		repositories.ProvideTenantIdentityProviderRepository,
+		repositories.ProvideRefreshTokenRepository,
+		repositories.ProvideSessionRepository,
+		repositories.ProvideClientRepository,
+		repositories.ProvideAuthorizationCodeRepository,
+		repositories.ProvideWebauthnCredentialRepository,
+		repositories.ProvideUserMFATOTPRepository,
+		repositories.ProvideUserMFARecoveryCodeRepository,
+		repositories.ProvideAuditLogRepository,
+		services.ProvideAuditService,
+		services.ProvideEmailService,
+		services.ProvidePasswordResetMailer,
+		services.ProvideMFAService,
+		services.ProvideWebauthnService,
+		services.ProvideTenantContextService,
+		services.ProvideUserService,
+		services.ProvideFederationService,
+		services.ProvideSessionService,
+		services.ProvideOIDCService,
+		services.ProvideAdminService,
+		services.ProvideMemberInviteService,
+		handlers.ProvideMemberInviteHandler,
+		services.ProvidePlatformAdminBootstrap,
+		repositories.ProvideRetentionRepository,
+		services.ProvideRetentionService,
+		handlers.ProvideHealthHandler,
+		handlers.ProvideAuthHandler,
+		handlers.ProvideWebauthnHandler,
+		handlers.ProvideMFAHandler,
+		handlers.ProvideTenantIdentityAdminHandler,
+		handlers.ProvideAdminHandler,
+		handlers.ProvideOIDCHandler,
+	)
 }
 
 func runPlatformAdminBootstrap(bootstrap services.PlatformAdminBootstrap) error {

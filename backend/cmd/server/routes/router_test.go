@@ -22,7 +22,7 @@ func TestRouter_HealthCheckSmoke(t *testing.T) {
 	cfg.AppVersion = "test"
 	cfg.ServeEmbeddedFrontend = false
 
-	healthHandler := handlers.ProvideHealthHandler(cfg, nil)
+	healthHandler := handlers.ProvideHealthHandler(cfg, nil, nil)
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
 
@@ -34,9 +34,11 @@ func TestRouter_HealthCheckSmoke(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		tokenService,
 		nil,
 		cfg,
+		nil, nil, nil,
 	)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/", nil)
@@ -53,11 +55,11 @@ func TestRouter_SwaggerRegisteredInNonProduction(t *testing.T) {
 	cfg.AppEnv = config.EnvironmentDevelopment
 	cfg.ServeEmbeddedFrontend = false
 
-	healthHandler := handlers.ProvideHealthHandler(cfg, nil)
+	healthHandler := handlers.ProvideHealthHandler(cfg, nil, nil)
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, time.Hour)
 	require.NoError(t, err)
 
-	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, tokenService, nil, cfg)
+	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
 
 	found := false
 	for _, route := range e.Routes() {
@@ -76,11 +78,11 @@ func TestRouter_OIDCRoutesRegistered(t *testing.T) {
 	cfg.AppEnv = config.EnvironmentTest
 	cfg.ServeEmbeddedFrontend = false
 
-	healthHandler := handlers.ProvideHealthHandler(cfg, nil)
+	healthHandler := handlers.ProvideHealthHandler(cfg, nil, nil)
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, time.Hour)
 	require.NoError(t, err)
 
-	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, tokenService, nil, cfg)
+	e := Router(nil, healthHandler, nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
 
 	paths := map[string]bool{}
 	for _, route := range e.Routes() {

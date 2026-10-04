@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
@@ -20,11 +21,14 @@ import (
 
 // OIDCSigner issues and verifies OIDC access and ID tokens (RS256, kid in header).
 type OIDCSigner struct {
-	privateKey *rsa.PrivateKey
-	keyID      string
-	issuer     string
-	accessTTL  time.Duration
-	idTTL      time.Duration
+	privateKey    *rsa.PrivateKey
+	keyID         string
+	previous      *rsa.PrivateKey
+	previousKeyID string
+	issuer        string
+	accessTTL     time.Duration
+	idTTL         time.Duration
+	jwksJSON      []byte
 }
 
 // ProvideOIDCSigner loads RSA key from config or generates one in non-production when unset.
@@ -38,6 +42,13 @@ func ProvideOIDCSigner(cfg *config.Config) (*OIDCSigner, error) {
 	if err != nil {
 		return nil, err
 	}
+	var previous *rsa.PrivateKey
+	if strings.TrimSpace(cfg.OIDCPreviousPrivateKeyPEM) != "" {
+		previous, err = parseRSAPrivateKey([]byte(cfg.OIDCPreviousPrivateKeyPEM))
+		if err != nil {
+			return nil, fmt.Errorf("previous OIDC RSA key: %w", err)
+		}
+	}
 
 	accessTTL := cfg.OIDCAccessTTL
 	if accessTTL <= 0 {
@@ -48,13 +59,21 @@ func ProvideOIDCSigner(cfg *config.Config) (*OIDCSigner, error) {
 		idTTL = accessTTL
 	}
 
-	return &OIDCSigner{
-		privateKey: key,
-		keyID:      cfg.OIDCKeyID,
-		issuer:     issuer,
-		accessTTL:  accessTTL,
-		idTTL:      idTTL,
-	}, nil
+	signer := &OIDCSigner{
+		privateKey:    key,
+		keyID:         cfg.OIDCKeyID,
+		previous:      previous,
+		previousKeyID: cfg.OIDCPreviousKeyID,
+		issuer:        issuer,
+		accessTTL:     accessTTL,
+		idTTL:         idTTL,
+	}
+	raw, err := signer.marshalJWKS()
+	if err != nil {
+		return nil, err
+	}
+	signer.jwksJSON = raw
+	return signer, nil
 }
 
 func loadOrGenerateRSAKey(cfg *config.Config) (*rsa.PrivateKey, error) {
@@ -79,7 +98,7 @@ func loadOrGenerateRSAKey(cfg *config.Config) (*rsa.PrivateKey, error) {
 }
 
 func parseRSAPrivateKey(pemBytes []byte) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode(pemBytes)
+	block, _ := pem.Decode(normalizePEM(pemBytes))
 	if block == nil {
 		return nil, fmt.Errorf("OIDC RSA PEM: no PEM block")
 	}
@@ -103,6 +122,17 @@ func parseRSAPrivateKey(pemBytes []byte) (*rsa.PrivateKey, error) {
 	default:
 		return nil, fmt.Errorf("unsupported PEM type %q (expected RSA PRIVATE KEY or PRIVATE KEY)", block.Type)
 	}
+}
+
+// normalizePEM turns a one-line env value into PEM. Double-quoted .env values
+// often keep the two-character sequence \n instead of a real line break.
+func normalizePEM(pemBytes []byte) []byte {
+	s := strings.TrimSpace(string(pemBytes))
+	s = strings.Trim(s, `"'`)
+	if strings.Contains(s, `\n`) {
+		s = strings.ReplaceAll(s, `\n`, "\n")
+	}
+	return []byte(s)
 }
 
 // OIDCAccessClaims is the access token JWT payload (resource server / userinfo).
@@ -192,12 +222,7 @@ func (s *OIDCSigner) ParseAccessTokenOIDC(tokenString string) (*OIDCAccessClaims
 		jwt.WithValidMethods([]string{"RS256"}),
 		jwt.WithIssuer(s.issuer),
 	)
-	t, err := parser.ParseWithClaims(tokenString, &OIDCAccessClaims{}, func(t *jwt.Token) (interface{}, error) {
-		if t.Method != jwt.SigningMethodRS256 {
-			return nil, fmt.Errorf("unexpected signing method")
-		}
-		return &s.privateKey.PublicKey, nil
-	})
+	t, err := parser.ParseWithClaims(tokenString, &OIDCAccessClaims{}, s.verificationKey)
 	if err != nil {
 		return nil, err
 	}
@@ -226,23 +251,48 @@ type JWK struct {
 	E   string `json:"e"`
 }
 
-// MarshalJWKS returns the JWKS JSON for this signer's public key.
-func (s *OIDCSigner) MarshalJWKS() ([]byte, error) {
-	pub := s.privateKey.PublicKey
-	n := base64.RawURLEncoding.EncodeToString(pub.N.Bytes())
-	eBytes := big.NewInt(int64(pub.E)).Bytes()
-	e := base64.RawURLEncoding.EncodeToString(eBytes)
-	resp := JWKSResponse{
-		Keys: []JWK{{
-			Kty: "RSA",
-			Kid: s.keyID,
-			Use: "sig",
-			Alg: "RS256",
-			N:   n,
-			E:   e,
-		}},
+func (s *OIDCSigner) verificationKey(t *jwt.Token) (interface{}, error) {
+	if t.Method != jwt.SigningMethodRS256 {
+		return nil, fmt.Errorf("unexpected signing method")
 	}
-	return json.Marshal(resp)
+	kid, _ := t.Header["kid"].(string)
+	if s.previous != nil && kid != "" && kid == s.previousKeyID {
+		return &s.previous.PublicKey, nil
+	}
+	if kid == "" || kid == s.keyID {
+		return &s.privateKey.PublicKey, nil
+	}
+	return nil, fmt.Errorf("unknown signing key")
+}
+
+// MarshalJWKS returns the precomputed JWKS JSON for the active and previous public keys.
+func (s *OIDCSigner) MarshalJWKS() ([]byte, error) {
+	if len(s.jwksJSON) > 0 {
+		out := make([]byte, len(s.jwksJSON))
+		copy(out, s.jwksJSON)
+		return out, nil
+	}
+	return s.marshalJWKS()
+}
+
+func (s *OIDCSigner) marshalJWKS() ([]byte, error) {
+	keys := []JWK{publicJWK(s.privateKey, s.keyID)}
+	if s.previous != nil && s.previousKeyID != "" {
+		keys = append(keys, publicJWK(s.previous, s.previousKeyID))
+	}
+	return json.Marshal(JWKSResponse{Keys: keys})
+}
+
+func publicJWK(key *rsa.PrivateKey, kid string) JWK {
+	pub := key.PublicKey
+	return JWK{
+		Kty: "RSA",
+		Kid: kid,
+		Use: "sig",
+		Alg: "RS256",
+		N:   base64.RawURLEncoding.EncodeToString(pub.N.Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pub.E)).Bytes()),
+	}
 }
 
 // AccessTokenHash computes the at_hash claim (first half of SHA-256 of access_token), base64url.

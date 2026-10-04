@@ -22,7 +22,7 @@ func CSRF(cfg *config.Config) echo.MiddlewareFunc {
 			p := c.Request().URL.Path
 			// Stateless JSON login/register/refresh use Bearer tokens; skip CSRF for these API routes.
 			// Note: OIDC browser login is a separate endpoint and should keep CSRF protection.
-			if p == "/api/v1/register" || p == "/api/v1/login" || p == "/api/v1/login/session" || p == "/api/v1/refresh" || p == "/api/v1/logout" {
+			if p == "/api/v1/register" || p == "/api/v1/login" || p == "/api/v1/login/session" || p == "/api/v1/refresh" || p == "/api/v1/logout" || p == "/api/v1/forgot-password" || p == "/api/v1/reset-password" || p == "/api/v1/invites/preview" || p == "/api/v1/invites/accept" {
 				return true
 			}
 			if strings.HasPrefix(p, "/api/v1/webauthn/") || strings.HasPrefix(p, "/api/v1/mfa/") {

@@ -22,7 +22,7 @@ React + TypeScript SPA for the [backend](../backend) identity service: login, re
 | Layouts + nav | `src/components/layout/` (`auth-layout`, `console-layout`, `console-nav.ts`, shells) |
 | Icons / brand / avatars | Lucide (`lucide-react` named imports), `brand/`, `avatars/` |
 | Feature modules | `src/features/login/`, `register/`, `mfa/`, `webauthn/`, `admin/` |
-| Route pages | `src/pages/` (home, profile, security, `console/*`, logout) |
+| Route pages | `src/pages/` (profile, security, `console/*`, logout) |
 | Utilities | `src/lib/utils.ts` |
 | Styles / tokens | `src/index.css` |
 | Vite config + proxy | `vite.config.ts` |
@@ -44,7 +44,6 @@ No page file. Feature forms wired directly in `src/routes/index.tsx`:
 ### Pattern B — Pages (routes → page → features/components)
 | Route | Guard | Page | Uses |
 |-------|-------|------|------|
-| `/` | — | `HomePage` | brand, icons (self-contained) |
 | `/settings/profile` | Protected | `ProfilePage` | `useAuth`, `DefaultAvatar` |
 | `/settings/security` | Protected | `SecurityPage` | `TotpSetupPanel`, `PasskeyRegisterPanel` |
 | `/console` | Protected + Admin | `DashboardPage` | admin queries, console-state |
@@ -55,7 +54,7 @@ No page file. Feature forms wired directly in `src/routes/index.tsx`:
 | `/console/audit-logs` | Protected + Admin | `AuditLogsPage` | placeholder / empty state |
 | `/logout` | Protected | `LogoutPage` | auth logout |
 
-Guest routes (`/login`, `/register`) use `GuestRoute`. Admin console routes nest `AdminRoute` inside `ProtectedRoute` + `ConsoleLayout`.
+`/` and unknown paths use `RootRedirect`: a signed-in platform admin goes to `/console`, any other signed-in user goes to `/settings/profile`, and a guest goes to `/login`. Guest routes (`/login`, `/register`) use `GuestRoute`. Admin console routes nest `AdminRoute` inside `ProtectedRoute` + `ConsoleLayout`.
 
 ## Key patterns
 

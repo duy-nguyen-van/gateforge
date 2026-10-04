@@ -21,7 +21,7 @@ function formatPasskeyDate(iso: string) {
   })
 }
 
-export function PasskeyRegisterPanel() {
+export function PasskeyRegisterPanel({ onEnrolled }: { onEnrolled?: () => void }) {
   const queryClient = useQueryClient()
   const passkeysQuery = useQuery({
     queryKey: passkeysQueryKey,
@@ -53,6 +53,7 @@ export function PasskeyRegisterPanel() {
       setDeviceName('')
       setShowAddForm(false)
       await queryClient.invalidateQueries({ queryKey: passkeysQueryKey })
+      onEnrolled?.()
     } catch (err) {
       setError(formatWebAuthnError(err, 'Passkey registration failed'))
     } finally {
@@ -65,8 +66,10 @@ export function PasskeyRegisterPanel() {
   return (
     <div className="space-y-4 rounded-xl border p-4">
       <div>
-        <h3 className="font-medium">Passkeys</h3>
-        <p className="text-sm text-muted-foreground">Register a passkey for passwordless sign-in.</p>
+        <h3 className="font-headline text-base font-bold text-on-surface">Passkey</h3>
+        <p className="text-sm text-on-surface-variant">
+          A passkey on this device also unlocks the console. You only need one factor.
+        </p>
       </div>
 
       {error ? (
@@ -84,7 +87,7 @@ export function PasskeyRegisterPanel() {
         <>
           <Alert variant="success">
             <AlertDescription className="flex items-center gap-2">
-              <CheckCircle2Icon className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+              <CheckCircle2Icon className="h-4 w-4 shrink-0 text-success" />
               {passkeys.length === 1
                 ? '1 passkey registered on this account.'
                 : `${passkeys.length} passkeys registered on this account.`}

@@ -26,7 +26,7 @@ Use `make -C performance token` only as a **capacity probe** (ramping arrival). 
 ## Prerequisites
 
 - `k6`
-- Go 1.26+
+- Go 1.27+
 - Docker (Postgres/Redis via the backend compose stack)
 
 Root shortcuts: `make performance-help`, `make performance-smoke`, `make performance-token-hold`, `make performance-passkey`, `make performance-oidc-e2e`, `make performance-rss`.

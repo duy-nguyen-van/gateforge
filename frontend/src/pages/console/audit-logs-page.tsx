@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { DownloadIcon } from 'lucide-react'
 
+import { ConsolePageHeader } from '@/components/layout/console-page-header'
+import { Input } from '@/components/ui/input'
 import {
   auditResultBadgeClass,
   formatAuditAction,
@@ -10,8 +11,9 @@ import { ConsolePagination } from '@/features/admin/console-pagination'
 import {
   ConsoleEmptyState,
   ConsoleErrorState,
-  ConsoleLoadingState,
+  ConsoleTableSkeleton,
 } from '@/features/admin/console-state'
+import { OrganizationFilter } from '@/features/admin/organization-filter'
 import { useConsolePagination } from '@/features/admin/use-console-pagination'
 import { useAdminAuditLogs } from '@/features/admin/use-admin-queries'
 
@@ -39,31 +41,24 @@ export function AuditLogsPage() {
 
   return (
     <div>
-      <header className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-surface">Audit Logs</h1>
-          <p className="mt-1 text-on-surface-variant">Immutable event trail for compliance and forensics.</p>
-        </div>
-        <div className="flex gap-3">
-          <button type="button" disabled className="flex items-center gap-2 rounded-xl bg-surface-container-highest/60 px-4 py-2 text-sm font-bold">
-            <DownloadIcon className="h-5 w-5" aria-hidden />
-            Export
-          </button>
-        </div>
-      </header>
+      <ConsolePageHeader
+        title="Audit logs"
+        description="Event trail for security review and forensics."
+      />
 
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <input
+        <Input
           type="text"
-          placeholder="Filter by action (e.g. auth.login)"
+          aria-label="Filter by action"
+          placeholder="Filter by action (for example auth.login)"
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary"
         />
         <select
+          aria-label="Filter by result"
           value={resultFilter}
           onChange={(e) => setResultFilter(e.target.value)}
-          className="rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary"
+          className="flex h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {RESULT_OPTIONS.map((opt) => (
             <option key={opt || 'all'} value={opt}>
@@ -71,18 +66,12 @@ export function AuditLogsPage() {
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          placeholder="Filter by tenant ID"
-          value={tenantFilter}
-          onChange={(e) => setTenantFilter(e.target.value)}
-          className="rounded-xl border-none bg-surface-container-low px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary"
-        />
+        <OrganizationFilter value={tenantFilter} onChange={setTenantFilter} />
       </div>
 
       <div className="overflow-hidden rounded-xl bg-surface-container-lowest ghost-border">
         {auditQuery.isLoading ? (
-          <ConsoleLoadingState label="Loading audit logs…" />
+          <ConsoleTableSkeleton columns={6} />
         ) : auditQuery.isError ? (
           <ConsoleErrorState message="Could not load audit logs." />
         ) : logs.length === 0 ? (
@@ -132,11 +121,11 @@ export function AuditLogsPage() {
                           )}
                         </>
                       ) : (
-                        <span className="text-on-surface-variant">—</span>
+                        <span className="text-on-surface-variant">Not set</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 font-mono text-xs text-on-surface-variant">
-                      {log.ip_address ?? '—'}
+                      {log.ip_address ?? 'Not set'}
                     </td>
                   </tr>
                 ))}

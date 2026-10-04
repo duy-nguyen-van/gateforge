@@ -3,7 +3,7 @@ package dtos
 // RegisterRequest is the body for POST /register.
 type RegisterRequest struct {
 	Email     string `json:"email" validate:"required,email" example:"user@example.com"`
-	Password  string `json:"password" validate:"required,min=8,max=128" example:"secretpassword"`
+	Password  string `json:"password" validate:"required,min=12,max=128" example:"secretpassword"`
 	FirstName string `json:"first_name,omitempty" validate:"omitempty,max=100"`
 	LastName  string `json:"last_name,omitempty" validate:"omitempty,max=100"`
 	TenantID  string `json:"tenant_id,omitempty" validate:"omitempty,uuid"`
@@ -62,4 +62,15 @@ type TenantSwitchRequest struct {
 // RefreshTokenRequest is the body for POST /refresh.
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+// ForgotPasswordRequest is the body for POST /forgot-password.
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// ResetPasswordRequest is the body for POST /reset-password.
+type ResetPasswordRequest struct {
+	Token       string `json:"token" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=12,max=128"`
 }

@@ -75,6 +75,10 @@ func (s *adminIdpTipStub) ListByTenant(context.Context, string) ([]models.Tenant
 type adminIdpAuditStub struct{}
 
 func (adminIdpAuditStub) Record(context.Context, domains.AuditRecordParams) {}
+func (adminIdpAuditStub) RecordRequired(context.Context, domains.AuditRecordParams) error {
+	return nil
+}
+func (adminIdpAuditStub) Shutdown(context.Context) error { return nil }
 
 func newAdminIdpTestService(tip *adminIdpTipStub) AdminService {
 	cfg := &config.Config{
@@ -87,7 +91,9 @@ func newAdminIdpTestService(tip *adminIdpTipStub) AdminService {
 		tip,
 		nil, nil, nil, nil,
 		adminIdpAuditStub{},
-		nil, nil,
+		nil, nil, nil,
+		EmailService{},
+		nil,
 	)
 }
 

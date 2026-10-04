@@ -1090,6 +1090,19 @@ export interface ErrorEnvelope {
 /**
  * 
  * @export
+ * @interface ForgotPasswordRequest
+ */
+export interface ForgotPasswordRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof ForgotPasswordRequest
+     */
+    email: string;
+}
+/**
+ * 
+ * @export
  * @interface HealthEnvelope
  */
 export interface HealthEnvelope {
@@ -1716,6 +1729,25 @@ export interface RegisterRequest {
      * @memberof RegisterRequest
      */
     tenant_id?: string;
+}
+/**
+ * 
+ * @export
+ * @interface ResetPasswordRequest
+ */
+export interface ResetPasswordRequest {
+    /**
+     * 
+     * @type {string}
+     * @memberof ResetPasswordRequest
+     */
+    token: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ResetPasswordRequest
+     */
+    new_password: string;
 }
 /**
  * 

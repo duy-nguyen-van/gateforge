@@ -21,6 +21,10 @@ import (
 type stubAuditService struct{}
 
 func (stubAuditService) Record(context.Context, domains.AuditRecordParams) {}
+func (stubAuditService) RecordRequired(context.Context, domains.AuditRecordParams) error {
+	return nil
+}
+func (stubAuditService) Shutdown(context.Context) error { return nil }
 
 type stubAdminAuditService struct{}
 
@@ -68,7 +72,14 @@ func (stubAdminAuditService) ConfigureIdentityProvider(context.Context, string, 
 func (stubAdminAuditService) AddMemberByEmail(context.Context, string, string, string) error {
 	return nil
 }
-func (stubAdminAuditService) RemoveMember(context.Context, string, string) error { return nil }
+func (stubAdminAuditService) ListInvites(context.Context, *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return []*dtos.AdminTenantInviteResponse{}, &dtos.Pageable{Page: 1, PageSize: 20, Total: 0}, nil
+}
+func (stubAdminAuditService) ListTenantInvites(context.Context, string, *dtos.PageableRequest) ([]*dtos.AdminTenantInviteResponse, *dtos.Pageable, error) {
+	return []*dtos.AdminTenantInviteResponse{}, &dtos.Pageable{Page: 1, PageSize: 20, Total: 0}, nil
+}
+func (stubAdminAuditService) ResendTenantInvite(context.Context, string, string) error { return nil }
+func (stubAdminAuditService) RemoveMember(context.Context, string, string) error       { return nil }
 func (stubAdminAuditService) ListAuditLogs(_ context.Context, _ dtos.AdminAuditLogListParams, _ *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
 	return []*dtos.AdminAuditLogResponse{
 		{ID: "00000000-0000-4000-8000-000000000010", Action: constants.AuditActionAuthLogin, Result: string(constants.AuditResultSuccess), ActorType: string(constants.AuditActorTypeUser)},
@@ -151,6 +162,10 @@ func (s *stubAuthUserService) IssueTokensForUser(_ context.Context, _ *models.Us
 }
 func (s *stubAuthUserService) Login(_ context.Context, _ *dtos.LoginRequest, _ string) (*dtos.LoginResponse, *dtos.TenantSelectionResponse, error) {
 	return nil, nil, nil
+}
+func (s *stubAuthUserService) ForgotPassword(context.Context, string) error { return nil }
+func (s *stubAuthUserService) ResetPassword(context.Context, string, string) error {
+	return nil
 }
 func (s *stubAuthUserService) Refresh(_ context.Context, _ *dtos.RefreshTokenRequest) (*dtos.LoginResponse, error) {
 	return &dtos.LoginResponse{AccessToken: "refreshed-access", RefreshToken: "refreshed-refresh", TokenType: "Bearer"}, nil
@@ -396,7 +411,8 @@ func (s *stubClientRepo) GetByID(context.Context, string) (*models.Client, error
 func (s *stubClientRepo) List(context.Context, string, *dtos.PageableRequest) (*dtos.DataResponse[models.Client], error) {
 	return nil, nil
 }
-func (s *stubClientRepo) Create(context.Context, *models.Client) error { return nil }
+func (s *stubClientRepo) UpdateSecretHash(context.Context, string, string) error { return nil }
+func (s *stubClientRepo) Create(context.Context, *models.Client) error           { return nil }
 func (s *stubClientRepo) Update(context.Context, string, repositories.ClientPatch) (*models.Client, error) {
 	return nil, nil
 }

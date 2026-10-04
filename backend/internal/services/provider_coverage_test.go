@@ -90,7 +90,7 @@ func (failingAuditRepo) Count(context.Context, repositories.AuditLogListFilters)
 
 func TestProvideAuditService_RecordWithContext(t *testing.T) {
 	testutil.InitLogger()
-	svc := ProvideAuditService(failingAuditRepo{})
+	svc := ProvideAuditService(failingAuditRepo{}, nil, nil)
 
 	ctx := request.NewAuditContextContext(context.Background(), request.AuditContext{
 		ActorID:       "actor-1",
@@ -115,7 +115,7 @@ func TestProvideAuditService_RecordWithContext(t *testing.T) {
 
 func TestProvideAuditService_RecordCreateError(t *testing.T) {
 	testutil.InitLogger()
-	svc := ProvideAuditService(failingAuditRepo{})
+	svc := ProvideAuditService(failingAuditRepo{}, nil, nil)
 	svc.Record(context.Background(), domains.AuditRecordParams{
 		Action: "logout",
 		Result: constants.AuditResultFailure,

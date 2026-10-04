@@ -9,6 +9,7 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,14 +40,22 @@ func TestAdminService_AddMemberByEmail_AlreadyMember(t *testing.T) {
 	users := newUserTestRepo()
 	u := users.seed("dup@example.com", "secret")
 	memberships := &stubMembershipRepo{active: map[string]map[string]bool{u.ID: {tenantID: true}}}
-	svc := &adminService{tenants: tenantRepo, users: users, memberships: memberships, audit: &auditCapture{}}
+	sender := new(MockEmailSender)
+	svc := &adminService{
+		tenants:     tenantRepo,
+		users:       users,
+		memberships: memberships,
+		audit:       &auditCapture{},
+		mail:        ProvideEmailService(sender),
+	}
 
 	require.NoError(t, svc.AddMemberByEmail(context.Background(), tenantID, "dup@example.com", ""))
 	require.Len(t, memberships.byUser[u.ID], 0)
+	sender.AssertNotCalled(t, "SendEmail", mock.Anything, mock.Anything)
 }
 
 func TestAdminService_CreateTenant_Validation(t *testing.T) {
-	svc := ProvideAdminService(testConfig(), nil, newAdminTenantTestRepo(), nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil)
+	svc := ProvideAdminService(testConfig(), nil, newAdminTenantTestRepo(), nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil, EmailService{}, nil)
 	_, err := svc.CreateTenant(context.Background(), nil)
 	require.Error(t, err)
 	_, err = svc.CreateTenant(context.Background(), &dtos.AdminCreateTenantRequest{Name: "  "})
@@ -83,7 +92,7 @@ func TestUserService_Login_Flow(t *testing.T) {
 	}
 	cfg := testConfig()
 	tokenSvc, _ := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
-	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{})
+	svc := ProvideUserService(users, memberships, newRefreshTokenTestRepo(), ProvideTenantContextService(cfg, &stubClientRepo{}, &stubTenantRepo{}, memberships), cfg, tokenSvc, &auditCapture{}, nil, nil, nil)
 
 	resp, sel, err := svc.Login(context.Background(), &dtos.LoginRequest{Email: "flow@example.com", Password: "secret123", TenantID: tenantID}, "")
 	require.NoError(t, err)

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
 
-export function TotpSetupPanel() {
+export function TotpSetupPanel({ onEnrolled }: { onEnrolled?: () => void }) {
   const { user, refreshProfile } = useAuth()
   const totpEnabled = user?.mfa_enabled ?? false
   const [secret, setSecret] = useState<string | null>(null)
@@ -43,6 +43,7 @@ export function TotpSetupPanel() {
       setSecret(null)
       setOtpauthUri(null)
       setCode('')
+      onEnrolled?.()
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Invalid verification code')
     } finally {
@@ -66,8 +67,10 @@ export function TotpSetupPanel() {
   return (
     <div className="space-y-4 rounded-xl border p-4">
       <div>
-        <h3 className="font-medium">Authenticator app (TOTP)</h3>
-        <p className="text-sm text-muted-foreground">Use Google Authenticator, 1Password, or similar apps.</p>
+        <h3 className="font-headline text-base font-bold text-on-surface">Authenticator app</h3>
+        <p className="text-sm text-on-surface-variant">
+          Google Authenticator, 1Password, or a similar app. The entry is named GateForge.
+        </p>
       </div>
 
       {error ? (
@@ -79,7 +82,7 @@ export function TotpSetupPanel() {
       {totpEnabled ? (
         <Alert variant="success">
           <AlertDescription className="flex items-center gap-2">
-            <CheckCircle2Icon className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+            <CheckCircle2Icon className="h-4 w-4 shrink-0 text-success" />
             Already set up — your authenticator app is active on this account.
           </AlertDescription>
         </Alert>

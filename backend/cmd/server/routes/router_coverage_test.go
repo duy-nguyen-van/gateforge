@@ -23,7 +23,7 @@ func testRouter(t *testing.T, cfg *config.Config) *echo.Echo {
 	testutil.InitLogger()
 	tokenService, err := auth.NewTokenService(cfg.JWTSecret, cfg.AppName, cfg.JWTAccessTTL)
 	require.NoError(t, err)
-	return Router(nil, handlers.ProvideHealthHandler(cfg, nil), nil, nil, nil, nil, nil, tokenService, nil, cfg)
+	return Router(nil, handlers.ProvideHealthHandler(cfg, nil, nil), nil, nil, nil, nil, nil, nil, tokenService, nil, cfg, nil, nil, nil)
 }
 
 func TestRouter_ProductionOmitsSwagger(t *testing.T) {
@@ -150,7 +150,7 @@ func TestSentryCaptureMiddleware_NoHubReturnsError(t *testing.T) {
 func TestRegisterGlobalMiddlewareChain(t *testing.T) {
 	cfg := testutil.TestConfig()
 	e := echo.New()
-	registerGlobalMiddleware(e, cfg)
+	registerGlobalMiddleware(e, cfg, nil)
 	e.GET("/ping", func(c echo.Context) error { return c.NoContent(http.StatusOK) })
 	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	rec := httptest.NewRecorder()

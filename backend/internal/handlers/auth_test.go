@@ -19,7 +19,7 @@ import (
 
 func TestAuthHandler_Register_success(t *testing.T) {
 	h := authHandler(&stubAuthUserService{}, &stubAuthSessionService{}, &stubAuthMFAService{}, &stubAuthFederationService{})
-	c, rec := newJSONContext(http.MethodPost, "/register", `{"email":"user@example.com","password":"secretpass"}`)
+	c, rec := newJSONContext(http.MethodPost, "/register", `{"email":"user@example.com","password":"correct-horse-1"}`)
 
 	err := h.Register(c)
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestAuthHandler_Login_success(t *testing.T) {
 
 func TestAuthHandler_Login_mfaRequired(t *testing.T) {
 	h := authHandler(&stubAuthUserService{}, &stubAuthSessionService{}, &stubAuthMFAService{hasMFA: true, ticket: "ticket-1"}, &stubAuthFederationService{})
-	c, rec := newJSONContext(http.MethodPost, "/login", `{"email":"user@example.com","password":"secretpass"}`)
+	c, rec := newJSONContext(http.MethodPost, "/login", `{"email":"user@example.com","password":"correct-horse-1"}`)
 
 	err := h.Login(c)
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestAuthHandler_Login_tenantSelection(t *testing.T) {
 		&stubAuthMFAService{},
 		&stubAuthFederationService{},
 	)
-	c, rec := newJSONContext(http.MethodPost, "/login", `{"email":"user@example.com","password":"secretpass"}`)
+	c, rec := newJSONContext(http.MethodPost, "/login", `{"email":"user@example.com","password":"correct-horse-1"}`)
 
 	err := h.Login(c)
 	require.NoError(t, err)
@@ -283,7 +283,7 @@ func TestAuthHandler_setSessionCookie_productionSecure(t *testing.T) {
 	cfg := handlerTestConfig()
 	cfg.AppEnv = config.EnvironmentProduction
 	h := ProvideAuthHandler(&stubAuthUserService{}, &stubAuthSessionService{}, &stubAuthMFAService{}, &stubAuthFederationService{}, stubAuditService{}, cfg, validator.New())
-	c, rec := newJSONContext(http.MethodPost, "/login", `{"email":"user@example.com","password":"secretpass"}`)
+	c, rec := newJSONContext(http.MethodPost, "/login", `{"email":"user@example.com","password":"correct-horse-1"}`)
 
 	err := h.Login(c)
 	require.NoError(t, err)

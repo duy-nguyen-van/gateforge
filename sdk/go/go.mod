@@ -1,6 +1,6 @@
 module github.com/gateforge-iam/gateforge-iam/sdk/go
 
-go 1.26.5
+go 1.27.1
 
 require github.com/gateforge-iam/gateforge-iam/sdk/go/openapi v0.0.0
 

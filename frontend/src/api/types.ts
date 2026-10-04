@@ -28,6 +28,19 @@ export interface RegisterRequest {
   last_name?: string
 }
 
+export interface MemberInvitePreview {
+  email: string
+  organization_name: string
+  role: string
+}
+
+export interface AcceptMemberInviteRequest {
+  token: string
+  password: string
+  first_name?: string
+  last_name?: string
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -230,6 +243,17 @@ export interface AdminTenantMemberResponse {
   role: string
   status: string
   joined_at: string
+}
+
+export interface AdminTenantInviteResponse {
+  id: string
+  email: string
+  role: string
+  status: string
+  tenant_id: string
+  tenant_name: string
+  created_at: string
+  expires_at: string
 }
 
 export interface AdminClientResponse {

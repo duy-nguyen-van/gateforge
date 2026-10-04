@@ -51,7 +51,8 @@ func TestAdminClient_NormalizeHelpers(t *testing.T) {
 	require.Error(t, err)
 
 	grants := normalizeGrantTypes([]string{"", "authorization_code", "authorization_code"})
-	require.Equal(t, defaultClientGrantTypes, grants)
+	require.Equal(t, []string{"authorization_code"}, grants)
+	require.Equal(t, defaultClientGrantTypes, normalizeGrantTypes(nil))
 
 	scopes := normalizeScopes([]string{"", "openid", "openid"})
 	require.Equal(t, []string{"openid"}, scopes)
@@ -102,7 +103,7 @@ func TestAdminService_DeleteTenant_Success(t *testing.T) {
 	tenantRepo := newAdminTenantTestRepo()
 	tenantID := "tenant-del"
 	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Delete Me"}
-	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil)
+	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil, EmailService{}, nil)
 
 	require.NoError(t, svc.DeleteTenant(context.Background(), tenantID))
 	_, ok := tenantRepo.tenants[tenantID]
@@ -209,7 +210,7 @@ func TestAdminService_UpdateTenant_AllFields(t *testing.T) {
 	tenantRepo := newAdminTenantTestRepo()
 	tenantID := "tenant-upd"
 	tenantRepo.tenants[tenantID] = &models.Tenant{BaseModel: models.BaseModel{ID: tenantID}, Name: "Old", Domain: "old.example.com"}
-	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil)
+	svc := ProvideAdminService(testConfig(), nil, tenantRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, &auditCapture{}, nil, nil, nil, EmailService{}, nil)
 
 	name := "New Name"
 	domain := "new.example.com"

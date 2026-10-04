@@ -142,6 +142,11 @@ type adminTenantAuditStub struct {
 func (a *adminTenantAuditStub) Record(_ context.Context, p domains.AuditRecordParams) {
 	a.last = p
 }
+func (a *adminTenantAuditStub) RecordRequired(ctx context.Context, p domains.AuditRecordParams) error {
+	a.Record(ctx, p)
+	return nil
+}
+func (a *adminTenantAuditStub) Shutdown(context.Context) error { return nil }
 
 func newAdminTenantTestService(tenants *adminTenantTestRepo, memberships *adminTenantMembershipStub) AdminService {
 	cfg := &config.Config{DefaultTenantID: "00000000-0000-0000-0000-000000000001"}
@@ -151,7 +156,9 @@ func newAdminTenantTestService(tenants *adminTenantTestRepo, memberships *adminT
 		memberships,
 		nil, nil, nil,
 		&adminTenantAuditStub{},
-		nil, nil,
+		nil, nil, nil,
+		EmailService{},
+		nil,
 	)
 }
 

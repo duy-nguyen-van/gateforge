@@ -23,9 +23,9 @@ export function formatAuditAction(action: string): string {
 }
 
 const auditResultStyles: Record<string, string> = {
-  success: 'bg-primary/15 text-primary',
-  failure: 'bg-error/15 text-error',
-  denied: 'bg-warning/15 text-warning',
+  success: 'bg-success-container text-on-success-container',
+  failure: 'bg-error-container text-error',
+  denied: 'bg-warning-container text-on-warning-container',
 }
 
 export function auditResultBadgeClass(result: string): string {

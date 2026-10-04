@@ -4,20 +4,24 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
+	"github.com/gateforge-iam/gateforge-iam/internal/cache"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
+	"github.com/gateforge-iam/gateforge-iam/internal/crypto"
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
-	"github.com/gateforge-iam/gateforge-iam/internal/logger"
 	"github.com/gateforge-iam/gateforge-iam/internal/models"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
-	"go.uber.org/zap"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // OIDCService implements authorization code + PKCE and OIDC token issuance.
@@ -39,6 +43,7 @@ type oidcService struct {
 	refreshTokens  repositories.RefreshTokenRepository
 	membershipRepo repositories.TenantMembershipRepository
 	audit          AuditService
+	clientCache    cache.Cache
 }
 
 // ProvideOIDCService wires Phase 2 OIDC.
@@ -51,6 +56,7 @@ func ProvideOIDCService(
 	refreshTokens repositories.RefreshTokenRepository,
 	membershipRepo repositories.TenantMembershipRepository,
 	audit AuditService,
+	clientCache cache.Cache,
 ) OIDCService {
 	return &oidcService{
 		cfg:            cfg,
@@ -61,6 +67,7 @@ func ProvideOIDCService(
 		refreshTokens:  refreshTokens,
 		membershipRepo: membershipRepo,
 		audit:          audit,
+		clientCache:    clientCache,
 	}
 }
 
@@ -71,9 +78,29 @@ func (s *oidcService) OpenIDIssuer() string {
 	return "http://localhost:3000"
 }
 
+func oauthFinishErr(code, description string) error {
+	if code == "" {
+		return nil
+	}
+	return fmt.Errorf("%s: %s", code, description)
+}
+
 // Authorize validates the OAuth2 request and returns a redirect URL with an authorization code.
 // userID is resolved by the handler from the browser session cookie (OIDC login at POST /oidc/login).
-func (s *oidcService) Authorize(ctx context.Context, userID string, q *dtos.AuthorizeQuery) (string, *domains.OAuthRedirectError) {
+func (s *oidcService) Authorize(ctx context.Context, userID string, q *dtos.AuthorizeQuery) (redirect string, oauthErr *domains.OAuthRedirectError) {
+	attrs := []attribute.KeyValue{attribute.String("user_id", userID)}
+	if q != nil {
+		attrs = append(attrs, attribute.String("client_id", q.ClientID))
+	}
+	ctx, span := monitoring.StartSpan(ctx, oidcTracer, "OIDCService.Authorize", attrs...)
+	defer func() {
+		code, desc := "", ""
+		if oauthErr != nil {
+			code, desc = oauthErr.Code, oauthErr.Description
+		}
+		monitoring.Finish(ctx, span, "OIDCService.Authorize", oauthFinishErr(code, desc))
+	}()
+
 	if q == nil {
 		return "", &domains.OAuthRedirectError{Code: constants.OAuthInvalidRequest, Description: "missing authorization request"}
 	}
@@ -161,10 +188,6 @@ func (s *oidcService) issueAuthorizationCode(
 ) (string, *domains.OAuthRedirectError) {
 	codeRaw, _, err := auth.NewOpaqueRefreshToken()
 	if err != nil {
-		logger.Log.Error("oidc authorize: issue code failed",
-			zap.String("operation", "oidc_authorize"),
-			zap.String("client_id", clientID),
-			zap.Error(err))
 		return "", &domains.OAuthRedirectError{Code: constants.OAuthServerError, Description: "failed to issue code", State: state}
 	}
 
@@ -184,20 +207,11 @@ func (s *oidcService) issueAuthorizationCode(
 	}
 
 	if err := s.authCodes.Create(ctx, row); err != nil {
-		logger.Log.Error("oidc authorize: persist authorization code failed",
-			zap.String("operation", "oidc_authorize"),
-			zap.String("client_id", clientID),
-			zap.String("user_id", userID),
-			zap.Error(err))
 		return "", &domains.OAuthRedirectError{Code: constants.OAuthServerError, Description: "failed to persist code", State: state}
 	}
 
 	u, err := url.Parse(redirectURI)
 	if err != nil {
-		logger.Log.Error("oidc authorize: parse redirect_uri failed",
-			zap.String("operation", "oidc_authorize"),
-			zap.String("client_id", clientID),
-			zap.Error(err))
 		return "", &domains.OAuthRedirectError{Code: constants.OAuthInvalidRequest, Description: "invalid redirect_uri", State: state}
 	}
 	q2 := u.Query()
@@ -206,10 +220,6 @@ func (s *oidcService) issueAuthorizationCode(
 		q2.Set("state", state)
 	}
 	u.RawQuery = q2.Encode()
-	logger.Log.Info("oidc authorization code issued",
-		zap.String("operation", "oidc_authorize"),
-		zap.String("client_id", clientID),
-		zap.String("user_id", userID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionOIDCAuthorize,
 		Result:       constants.AuditResultSuccess,
@@ -293,20 +303,40 @@ func verifyPKCE(verifier, challenge, method string) bool {
 }
 
 // AuthorizationCodeToken exchanges an authorization code for tokens (RFC 6749 + PKCE).
-func (s *oidcService) AuthorizationCodeToken(ctx context.Context, _ string, formClientID, clientSecret string, form url.Values) (*domains.OIDCTokenResponse, *domains.OAuthTokenError) {
-	if form.Get("grant_type") != "authorization_code" {
-		return nil, &domains.OAuthTokenError{Code: constants.OAuthUnsupportedGrantType, Description: "only authorization_code is supported"}
+func (s *oidcService) AuthorizationCodeToken(ctx context.Context, _ string, formClientID, clientSecret string, form url.Values) (resp *domains.OIDCTokenResponse, oauthErr *domains.OAuthTokenError) {
+	grant := form.Get("grant_type")
+	ctx, span := monitoring.StartSpan(ctx, oidcTracer, "OIDCService.Token",
+		attribute.String("client_id", formClientID),
+		attribute.String("grant_type", grant))
+	defer func() {
+		code, desc := "", ""
+		result := "success"
+		if oauthErr != nil {
+			code, desc = oauthErr.Code, oauthErr.Description
+			result = oauthErr.Code
+		}
+		monitoring.AddOIDCToken(ctx, grant, result)
+		monitoring.Finish(ctx, span, "OIDCService.Token", oauthFinishErr(code, desc))
+	}()
+
+	switch grant {
+	case "authorization_code":
+		return s.authorizationCodeGrant(ctx, formClientID, clientSecret, form)
+	case "refresh_token":
+		return s.refreshTokenGrant(ctx, formClientID, clientSecret, form)
+	default:
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthUnsupportedGrantType, Description: "unsupported grant_type"}
 	}
+}
+
+func (s *oidcService) authorizationCodeGrant(ctx context.Context, formClientID, clientSecret string, form url.Values) (*domains.OIDCTokenResponse, *domains.OAuthTokenError) {
 	code := strings.TrimSpace(form.Get("code"))
 	if code == "" {
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidRequest, Description: "code is required"}
 	}
 
-	row, err := s.authCodes.TakeByCode(ctx, code)
+	row, err := s.authCodes.Consume(ctx, code)
 	if err != nil {
-		logger.Log.Error("oidc token: take authorization code failed",
-			zap.String("operation", "oidc_token"),
-			zap.Error(err))
 		s.audit.Record(ctx, domains.AuditRecordParams{
 			Action:    constants.AuditActionOIDCTokenIssue,
 			Result:    constants.AuditResultFailure,
@@ -316,7 +346,6 @@ func (s *oidcService) AuthorizationCodeToken(ctx context.Context, _ string, form
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidGrant, Description: "invalid or expired authorization code"}
 	}
 
-	tenantID := row.TenantID
 	redirectURI := strings.TrimSpace(form.Get("redirect_uri"))
 	if redirectURI == "" {
 		redirectURI = row.RedirectURI
@@ -328,12 +357,12 @@ func (s *oidcService) AuthorizationCodeToken(ctx context.Context, _ string, form
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidGrant, Description: "redirect_uri does not match"}
 	}
 
-	client, err := s.clients.GetByClientID(ctx, row.OAuthClientID)
+	client, err := s.clientByID(ctx, row.OAuthClientID)
 	if err != nil {
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "client not found"}
 	}
 
-	if tokenErr := validateAuthorizationCodeClient(client, formClientID, clientSecret, form, row); tokenErr != nil {
+	if tokenErr := s.validateAuthorizationCodeClient(ctx, client, formClientID, clientSecret, form, row); tokenErr != nil {
 		return nil, tokenErr
 	}
 
@@ -344,18 +373,11 @@ func (s *oidcService) AuthorizationCodeToken(ctx context.Context, _ string, form
 		}
 	}
 
-	if err := s.authCodes.DeleteByCode(ctx, code); err != nil {
-		logger.Log.Error("oidc token: delete authorization code failed",
-			zap.String("operation", "oidc_token"),
-			zap.String("tenant_id", tenantID),
-			zap.Error(err))
-		return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to finalize authorization code"}
-	}
-
 	return s.issueTokensForAuthorizationCode(ctx, row, client)
 }
 
-func validateAuthorizationCodeClient(
+func (s *oidcService) validateAuthorizationCodeClient(
+	ctx context.Context,
 	client *models.Client,
 	formClientID, clientSecret string,
 	form url.Values,
@@ -372,7 +394,7 @@ func validateAuthorizationCodeClient(
 	if effectiveClientID != client.ClientID {
 		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "client_id does not match authorization code"}
 	}
-	if !publicClient && (client.ClientSecret == "" || clientSecret != client.ClientSecret) {
+	if !publicClient && (client.ClientSecret == "" || !s.clientSecretMatches(ctx, client, clientSecret)) {
 		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
 	}
 	if row.OAuthClientID != client.ClientID {
@@ -388,10 +410,6 @@ func (s *oidcService) issueTokensForAuthorizationCode(
 ) (*domains.OIDCTokenResponse, *domains.OAuthTokenError) {
 	u, err := s.users.GetOneByID(ctx, row.UserID)
 	if err != nil {
-		logger.Log.Error("oidc token: load user failed",
-			zap.String("operation", "oidc_token"),
-			zap.String("user_id", row.UserID),
-			zap.Error(err))
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to load user"}
 	}
 	if u.Status != constants.UserStatusActive {
@@ -403,11 +421,6 @@ func (s *oidcService) issueTokensForAuthorizationCode(
 
 	access, exp, err := s.oidc.SignAccessTokenOIDC(u.ID, audience, scope, client.ClientID)
 	if err != nil {
-		logger.Log.Error("oidc token: sign access token failed",
-			zap.String("operation", "oidc_token"),
-			zap.String("user_id", u.ID),
-			zap.String("client_id", client.ClientID),
-			zap.Error(err))
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to issue access token"}
 	}
 
@@ -433,10 +446,6 @@ func (s *oidcService) issueTokensForAuthorizationCode(
 	}
 	out.RefreshToken = refreshToken
 
-	logger.Log.Info("oidc tokens issued",
-		zap.String("operation", "oidc_token"),
-		zap.String("user_id", u.ID),
-		zap.String("client_id", client.ClientID))
 	s.audit.Record(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionOIDCTokenIssue,
 		Result:       constants.AuditResultSuccess,
@@ -471,11 +480,6 @@ func (s *oidcService) appendOpenIDToken(
 	}
 	idt, err := s.oidc.SignIDToken(u.ID, audience, row.Nonce, access, profile)
 	if err != nil {
-		logger.Log.Error("oidc token: sign id_token failed",
-			zap.String("operation", "oidc_token"),
-			zap.String("user_id", u.ID),
-			zap.String("client_id", client.ClientID),
-			zap.Error(err))
 		return &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to issue id_token"}
 	}
 	out.IDToken = idt
@@ -490,11 +494,6 @@ func (s *oidcService) persistRefreshToken(
 ) (string, *domains.OAuthTokenError) {
 	opaqueRefreshToken, refreshTokenHash, err := auth.NewOpaqueRefreshToken()
 	if err != nil {
-		logger.Log.Error("oidc token: new refresh token failed",
-			zap.String("operation", "oidc_token"),
-			zap.String("user_id", u.ID),
-			zap.String("client_id", client.ClientID),
-			zap.Error(err))
 		return "", &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to issue refresh token"}
 	}
 	recID := client.ID
@@ -503,16 +502,12 @@ func (s *oidcService) persistRefreshToken(
 		UserID:         u.ID,
 		OAuthClientID:  client.ClientID,
 		TokenHash:      refreshTokenHash,
+		Scope:          row.Scope,
 		Revoked:        false,
 		ExpiresAt:      time.Now().UTC().Add(s.cfg.JWTRefreshTTL),
 		ClientRecordID: &recID,
 	}
 	if err := s.refreshTokens.Create(ctx, rt); err != nil {
-		logger.Log.Error("oidc token: persist refresh token failed",
-			zap.String("operation", "oidc_token"),
-			zap.String("user_id", u.ID),
-			zap.String("client_id", client.ClientID),
-			zap.Error(err))
 		return "", &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to persist refresh token"}
 	}
 	return opaqueRefreshToken, nil
@@ -528,21 +523,23 @@ func scopeIncludes(scope, needle string) bool {
 }
 
 // UserInfo returns OIDC standard claims for a valid RS256 access token.
-func (s *oidcService) UserInfo(ctx context.Context, accessToken string) (map[string]any, *domains.OAuthTokenError) {
+func (s *oidcService) UserInfo(ctx context.Context, accessToken string) (resp map[string]any, oauthErr *domains.OAuthTokenError) {
+	ctx, span := monitoring.StartSpan(ctx, oidcTracer, "OIDCService.UserInfo")
+	defer func() {
+		code, desc := "", ""
+		if oauthErr != nil {
+			code, desc = oauthErr.Code, oauthErr.Description
+		}
+		monitoring.Finish(ctx, span, "OIDCService.UserInfo", oauthFinishErr(code, desc))
+	}()
+
 	claims, err := s.oidc.ParseAccessTokenOIDC(accessToken)
 	if err != nil {
-		logger.Log.Warn("oidc userinfo: invalid access token",
-			zap.String("operation", "oidc_userinfo"),
-			zap.Error(err))
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidToken, Description: "invalid or expired access token"}
 	}
 
 	u, err := s.users.GetOneByID(ctx, claims.Subject)
 	if err != nil {
-		logger.Log.Warn("oidc userinfo: subject not found",
-			zap.String("operation", "oidc_userinfo"),
-			zap.String("user_id", claims.Subject),
-			zap.Error(err))
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidToken, Description: "subject not found"}
 	}
 
@@ -564,7 +561,17 @@ func (s *oidcService) UserInfo(ctx context.Context, accessToken string) (map[str
 
 // Introspect implements RFC 7662 token introspection for OIDC access and refresh tokens.
 // Only confidential clients may call this endpoint.
-func (s *oidcService) Introspect(ctx context.Context, clientID, clientSecret, token, tokenTypeHint string) (*dtos.TokenIntrospectionResponse, *domains.OAuthTokenError) {
+func (s *oidcService) Introspect(ctx context.Context, clientID, clientSecret, token, tokenTypeHint string) (resp *dtos.TokenIntrospectionResponse, oauthErr *domains.OAuthTokenError) {
+	ctx, span := monitoring.StartSpan(ctx, oidcTracer, "OIDCService.Introspect",
+		attribute.String("client_id", clientID))
+	defer func() {
+		code, desc := "", ""
+		if oauthErr != nil {
+			code, desc = oauthErr.Code, oauthErr.Description
+		}
+		monitoring.Finish(ctx, span, "OIDCService.Introspect", oauthFinishErr(code, desc))
+	}()
+
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidRequest, Description: "token is required"}
@@ -609,12 +616,34 @@ func (s *oidcService) Introspect(ctx context.Context, clientID, clientSecret, to
 	return &dtos.TokenIntrospectionResponse{Active: false}, nil
 }
 
+func (s *oidcService) authenticateTokenClient(ctx context.Context, clientID, clientSecret string) (*models.Client, *domains.OAuthTokenError) {
+	clientID = strings.TrimSpace(clientID)
+	if clientID == "" {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "client authentication required"}
+	}
+	client, err := s.clientByID(ctx, clientID)
+	if err != nil {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
+	}
+	publicClient := client.IsPublic || strings.TrimSpace(client.ClientSecret) == ""
+	if publicClient {
+		if strings.TrimSpace(clientSecret) != "" {
+			return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
+		}
+		return client, nil
+	}
+	if !s.clientSecretMatches(ctx, client, clientSecret) {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
+	}
+	return client, nil
+}
+
 func (s *oidcService) authenticateConfidentialClient(ctx context.Context, clientID, clientSecret string) *domains.OAuthTokenError {
 	clientID = strings.TrimSpace(clientID)
 	if clientID == "" {
 		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "client authentication required"}
 	}
-	client, err := s.clients.GetByClientID(ctx, clientID)
+	client, err := s.clientByID(ctx, clientID)
 	if err != nil {
 		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
 	}
@@ -622,10 +651,175 @@ func (s *oidcService) authenticateConfidentialClient(ctx context.Context, client
 	if publicClient {
 		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "confidential client required"}
 	}
-	if clientSecret != client.ClientSecret {
+	if !s.clientSecretMatches(ctx, client, clientSecret) {
 		return &domains.OAuthTokenError{Code: constants.OAuthInvalidClient, Description: "invalid client credentials"}
 	}
 	return nil
+}
+
+func (s *oidcService) refreshTokenGrant(ctx context.Context, formClientID, clientSecret string, form url.Values) (*domains.OIDCTokenResponse, *domains.OAuthTokenError) {
+	raw := strings.TrimSpace(form.Get("refresh_token"))
+	if raw == "" {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidRequest, Description: "refresh_token is required"}
+	}
+	if strings.TrimSpace(formClientID) == "" {
+		formClientID = strings.TrimSpace(form.Get("client_id"))
+	}
+	client, authErr := s.authenticateTokenClient(ctx, formClientID, clientSecret)
+	if authErr != nil {
+		return nil, authErr
+	}
+	if !clientAllowsRefresh(client) {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthUnauthorizedClient, Description: "client is not allowed to use refresh_token"}
+	}
+
+	opaque, hash, err := auth.NewOpaqueRefreshToken()
+	if err != nil {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to issue refresh token"}
+	}
+	recID := client.ID
+	next := &models.RefreshToken{
+		TenantID:       client.TenantID,
+		OAuthClientID:  client.ClientID,
+		TokenHash:      hash,
+		Revoked:        false,
+		ExpiresAt:      time.Now().UTC().Add(s.cfg.JWTRefreshTTL),
+		ClientRecordID: &recID,
+	}
+	status, err := s.refreshTokens.Rotate(ctx, auth.HashOpaqueToken(raw), next)
+	if err != nil {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to rotate refresh token"}
+	}
+	if status == repositories.RefreshRotationReuse {
+		s.audit.Record(ctx, domains.AuditRecordParams{
+			Action:       constants.AuditActionOIDCRefreshReuse,
+			Result:       constants.AuditResultFailure,
+			ActorType:    constants.AuditActorTypeOAuthClient,
+			ActorID:      client.ClientID,
+			TenantID:     client.TenantID,
+			ResourceType: constants.AuditResourceTypeClient,
+			ResourceID:   client.ID,
+		})
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidGrant, Description: "refresh token reuse detected"}
+	}
+	if status != repositories.RefreshRotationOK {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidGrant, Description: "invalid or expired refresh token"}
+	}
+	if next.OAuthClientID != client.ClientID {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidGrant, Description: "refresh token was not issued to this client"}
+	}
+
+	u, err := s.users.GetOneByID(ctx, next.UserID)
+	if err != nil || u.Status != constants.UserStatusActive {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthInvalidGrant, Description: "user account is not active"}
+	}
+	scope := next.Scope
+	access, exp, err := s.oidc.SignAccessTokenOIDC(u.ID, client.ClientID, scope, client.ClientID)
+	if err != nil {
+		return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to issue access token"}
+	}
+	expiresIn := int64(time.Until(exp).Seconds())
+	if expiresIn < 0 {
+		expiresIn = 0
+	}
+	out := &domains.OIDCTokenResponse{
+		AccessToken:  access,
+		TokenType:    "Bearer",
+		ExpiresIn:    expiresIn,
+		Scope:        scope,
+		RefreshToken: opaque,
+	}
+	if scopeIncludes(scope, "openid") {
+		profile := &auth.OIDCUserClaims{
+			Email:         u.Email,
+			EmailVerified: u.EmailVerified,
+			Name:          strings.TrimSpace(u.FirstName + " " + u.LastName),
+			GivenName:     u.FirstName,
+			FamilyName:    u.LastName,
+		}
+		idt, idErr := s.oidc.SignIDToken(u.ID, client.ClientID, "", access, profile)
+		if idErr != nil {
+			return nil, &domains.OAuthTokenError{Code: constants.OAuthServerError, Description: "failed to issue id_token"}
+		}
+		out.IDToken = idt
+	}
+	s.audit.Record(ctx, domains.AuditRecordParams{
+		Action:       constants.AuditActionOIDCTokenIssue,
+		Result:       constants.AuditResultSuccess,
+		ActorType:    constants.AuditActorTypeOAuthClient,
+		ActorID:      client.ClientID,
+		TenantID:     client.TenantID,
+		ResourceType: constants.AuditResourceTypeClient,
+		ResourceID:   client.ID,
+		NewValue:     map[string]any{"user_id": u.ID, "grant_type": "refresh_token"},
+	})
+	return out, nil
+}
+
+func clientAllowsRefresh(client *models.Client) bool {
+	if client == nil || len(client.GrantTypes) == 0 {
+		return true
+	}
+	for _, grant := range client.GrantTypes {
+		if grant == "refresh_token" || grant == "authorization_code" {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *oidcService) clientSecretMatches(ctx context.Context, client *models.Client, presented string) bool {
+	ok, upgrade := crypto.VerifyClientSecret(s.cfg.ClientSecretPepper, client.ClientSecret, presented)
+	if !ok {
+		return false
+	}
+	if upgrade != "" {
+		if err := s.clients.UpdateSecretHash(ctx, client.ID, upgrade); err == nil {
+			client.ClientSecret = upgrade
+			s.storeClientCache(ctx, client)
+		}
+	}
+	return true
+}
+
+func (s *oidcService) clientByID(ctx context.Context, clientID string) (*models.Client, error) {
+	if s.clientCache != nil {
+		if raw, err := s.clientCache.Get(ctx, oauthClientCacheKey(clientID)); err == nil && raw != "" {
+			var cached models.Client
+			if json.Unmarshal([]byte(raw), &cached) == nil && cached.ClientID != "" {
+				return &cached, nil
+			}
+		}
+	}
+	client, err := s.clients.GetByClientID(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	s.storeClientCache(ctx, client)
+	return client, nil
+}
+
+func (s *oidcService) storeClientCache(ctx context.Context, client *models.Client) {
+	if s.clientCache == nil || client == nil {
+		return
+	}
+	raw, err := json.Marshal(client) //nolint:gosec // G117: cache stores the HMAC client-secret hash, not a plaintext secret
+	if err != nil {
+		return
+	}
+	_ = s.clientCache.Set(ctx, oauthClientCacheKey(client.ClientID), string(raw), 30*time.Second)
+}
+
+func oauthClientCacheKey(clientID string) string {
+	return "iam:oauth-client:" + clientID
+}
+
+// ForgetCachedClient drops a short-lived OAuth client cache entry.
+func (s *oidcService) ForgetCachedClient(ctx context.Context, clientID string) {
+	if s.clientCache == nil || clientID == "" {
+		return
+	}
+	_ = s.clientCache.Delete(ctx, oauthClientCacheKey(clientID))
 }
 
 func (s *oidcService) introspectAccessToken(token string) *dtos.TokenIntrospectionResponse {

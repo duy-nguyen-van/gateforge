@@ -184,6 +184,6 @@ func TestOIDCService_OpenIDIssuer_Default(t *testing.T) {
 	cfg.AppBaseURL = ""
 	signer, err := auth.ProvideOIDCSigner(cfg)
 	require.NoError(t, err)
-	svc := ProvideOIDCService(cfg, signer, &stubClientRepo{byClientID: map[string]*models.Client{}}, newAuthCodeTestRepo(), newUserTestRepo(), newRefreshTokenTestRepo(), &stubMembershipRepo{active: map[string]map[string]bool{}}, &auditCapture{})
+	svc := ProvideOIDCService(cfg, signer, &stubClientRepo{byClientID: map[string]*models.Client{}}, newAuthCodeTestRepo(), newUserTestRepo(), newRefreshTokenTestRepo(), &stubMembershipRepo{active: map[string]map[string]bool{}}, &auditCapture{}, nil)
 	require.Equal(t, "http://localhost:3000", svc.OpenIDIssuer())
 }

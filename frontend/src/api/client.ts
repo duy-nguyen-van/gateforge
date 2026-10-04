@@ -11,8 +11,10 @@ import { apiUrl } from '@/lib/utils'
 import {
   ApiError,
   type ApiEnvelope,
+  type AcceptMemberInviteRequest,
   type LoginRequest,
   type LoginResponse,
+  type MemberInvitePreview,
   type LoginResult,
   type MFAChallengeVerifyRequest,
   type MFARecoveryCodesResponse,
@@ -35,6 +37,7 @@ import {
   type AdminCreateTenantRequest,
   type AdminUpdateTenantRequest,
   type AdminTenantMemberResponse,
+  type AdminTenantInviteResponse,
   type AdminClientResponse,
   type AdminCreateClientRequest,
   type AdminCreateClientResponse,
@@ -194,8 +197,35 @@ export async function prefetchCsrfToken(): Promise<string | undefined> {
   return response.headers.get('X-CSRF-Token') ?? undefined
 }
 
+export async function forgotPassword(email: string) {
+  return apiFetch<Record<string, never>>('/api/v1/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  return apiFetch<Record<string, never>>('/api/v1/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password: newPassword }),
+  })
+}
+
 export async function registerUser(body: RegisterRequest) {
   return apiFetch<UserResponse>('/api/v1/register', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function previewMemberInvite(token: string) {
+  return apiFetch<MemberInvitePreview>(
+    `/api/v1/invites/preview?token=${encodeURIComponent(token)}`,
+  )
+}
+
+export async function acceptMemberInvite(body: AcceptMemberInviteRequest) {
+  return apiFetch<LoginResult>('/api/v1/invites/accept', {
     method: 'POST',
     body: JSON.stringify(body),
   })
@@ -548,6 +578,30 @@ export async function listTenantIdentityProviders(tenantId: string, params: Pagi
   return apiFetch<AdminIdentityProviderResponse[]>(
     `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/identity-providers${buildPaginationQuery(params)}`,
     { method: 'GET' },
+    { auth: true },
+  )
+}
+
+export async function listAdminInvites(params: PaginationParams = {}) {
+  return apiFetch<AdminTenantInviteResponse[]>(
+    `/api/v1/admin/invites${buildPaginationQuery(params)}`,
+    { method: 'GET' },
+    { auth: true },
+  )
+}
+
+export async function listTenantInvites(tenantId: string, params: PaginationParams = {}) {
+  return apiFetch<AdminTenantInviteResponse[]>(
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/invites${buildPaginationQuery(params)}`,
+    { method: 'GET' },
+    { auth: true },
+  )
+}
+
+export async function resendTenantInvite(tenantId: string, inviteId: string) {
+  await apiFetchNoContent(
+    `/api/v1/admin/tenants/${encodeURIComponent(tenantId)}/invites/${encodeURIComponent(inviteId)}/resend`,
+    { method: 'POST' },
     { auth: true },
   )
 }

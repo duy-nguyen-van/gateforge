@@ -8,7 +8,10 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/domains"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	apperrors "github.com/gateforge-iam/gateforge-iam/internal/errors"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var loginHistoryActions = []string{
@@ -19,6 +22,14 @@ var loginHistoryActions = []string{
 }
 
 func (s *adminService) GetUserByID(ctx context.Context, userID string) (*dtos.AdminUserDetailResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.GetUserByID",
+		[]attribute.KeyValue{attribute.String("user_id", userID)},
+		func(ctx context.Context) (*dtos.AdminUserDetailResponse, error) {
+			return s.getUserByID(ctx, userID)
+		})
+}
+
+func (s *adminService) getUserByID(ctx context.Context, userID string) (*dtos.AdminUserDetailResponse, error) {
 	u, err := s.users.GetOneByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -73,6 +84,14 @@ func (s *adminService) GetUserByID(ctx context.Context, userID string) (*dtos.Ad
 }
 
 func (s *adminService) DisableUser(ctx context.Context, actorUserID, targetUserID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.DisableUser",
+		[]attribute.KeyValue{attribute.String("user_id", targetUserID)},
+		func(ctx context.Context) error {
+			return s.disableUser(ctx, actorUserID, targetUserID)
+		})
+}
+
+func (s *adminService) disableUser(ctx context.Context, actorUserID, targetUserID string) error {
 	if actorUserID == targetUserID {
 		return apperrors.ForbiddenError("You cannot disable your own account", nil)
 	}
@@ -107,7 +126,7 @@ func (s *adminService) DisableUser(ctx context.Context, actorUserID, targetUserI
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminUserDisable,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -117,11 +136,21 @@ func (s *adminService) DisableUser(ctx context.Context, actorUserID, targetUserI
 		ResourceName: target.Email,
 		OldValue:     map[string]any{"status": string(oldStatus)},
 		NewValue:     map[string]any{"status": string(constants.UserStatusDisabled)},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) ForceLogoutUser(ctx context.Context, actorUserID, targetUserID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.ForceLogoutUser",
+		[]attribute.KeyValue{attribute.String("user_id", targetUserID)},
+		func(ctx context.Context) error {
+			return s.forceLogoutUser(ctx, actorUserID, targetUserID)
+		})
+}
+
+func (s *adminService) forceLogoutUser(ctx context.Context, actorUserID, targetUserID string) error {
 	target, err := s.users.GetOneByID(ctx, targetUserID)
 	if err != nil {
 		return err
@@ -134,7 +163,7 @@ func (s *adminService) ForceLogoutUser(ctx context.Context, actorUserID, targetU
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminUserForceLogout,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -142,11 +171,21 @@ func (s *adminService) ForceLogoutUser(ctx context.Context, actorUserID, targetU
 		ResourceType: constants.AuditResourceTypeUser,
 		ResourceID:   targetUserID,
 		ResourceName: target.Email,
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) ResetMFA(ctx context.Context, actorUserID, targetUserID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.ResetMFA",
+		[]attribute.KeyValue{attribute.String("user_id", targetUserID)},
+		func(ctx context.Context) error {
+			return s.resetMFA(ctx, actorUserID, targetUserID)
+		})
+}
+
+func (s *adminService) resetMFA(ctx context.Context, actorUserID, targetUserID string) error {
 	target, err := s.users.GetOneByID(ctx, targetUserID)
 	if err != nil {
 		return err
@@ -164,7 +203,7 @@ func (s *adminService) ResetMFA(ctx context.Context, actorUserID, targetUserID s
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminMFAReset,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -174,11 +213,21 @@ func (s *adminService) ResetMFA(ctx context.Context, actorUserID, targetUserID s
 		ResourceName: target.Email,
 		OldValue:     map[string]any{"mfa_enabled": mfaEnabled},
 		NewValue:     map[string]any{"mfa_enabled": false},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) ResetPasskeys(ctx context.Context, actorUserID, targetUserID string) error {
+	return monitoring.ObserveErr(ctx, adminTracer, "AdminService.ResetPasskeys",
+		[]attribute.KeyValue{attribute.String("user_id", targetUserID)},
+		func(ctx context.Context) error {
+			return s.resetPasskeys(ctx, actorUserID, targetUserID)
+		})
+}
+
+func (s *adminService) resetPasskeys(ctx context.Context, actorUserID, targetUserID string) error {
 	target, err := s.users.GetOneByID(ctx, targetUserID)
 	if err != nil {
 		return err
@@ -195,7 +244,7 @@ func (s *adminService) ResetPasskeys(ctx context.Context, actorUserID, targetUse
 		return err
 	}
 
-	s.audit.Record(ctx, domains.AuditRecordParams{
+	if err := s.audit.RecordRequired(ctx, domains.AuditRecordParams{
 		Action:       constants.AuditActionAdminPasskeyReset,
 		Result:       constants.AuditResultSuccess,
 		ActorType:    constants.AuditActorTypeUser,
@@ -205,11 +254,21 @@ func (s *adminService) ResetPasskeys(ctx context.Context, actorUserID, targetUse
 		ResourceName: target.Email,
 		OldValue:     map[string]any{"passkey_count": count},
 		NewValue:     map[string]any{"deleted_count": deleted},
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *adminService) GetClientUsage(ctx context.Context, clientID string) (*dtos.AdminClientUsageResponse, error) {
+	return monitoring.Observe(ctx, adminTracer, "AdminService.GetClientUsage",
+		[]attribute.KeyValue{attribute.String("client_id", clientID)},
+		func(ctx context.Context) (*dtos.AdminClientUsageResponse, error) {
+			return s.getClientUsage(ctx, clientID)
+		})
+}
+
+func (s *adminService) getClientUsage(ctx context.Context, clientID string) (*dtos.AdminClientUsageResponse, error) {
 	client, err := s.clients.GetByID(ctx, clientID)
 	if err != nil {
 		return nil, err
@@ -258,6 +317,14 @@ func (s *adminService) GetClientUsage(ctx context.Context, clientID string) (*dt
 }
 
 func (s *adminService) ListLoginHistory(ctx context.Context, filters dtos.AdminLoginHistoryListParams, pr *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
+	return monitoring.Observe2(ctx, adminTracer, "AdminService.ListLoginHistory",
+		[]attribute.KeyValue{attribute.String("tenant_id", filters.TenantID)},
+		func(ctx context.Context) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
+			return s.listLoginHistory(ctx, filters, pr)
+		})
+}
+
+func (s *adminService) listLoginHistory(ctx context.Context, filters dtos.AdminLoginHistoryListParams, pr *dtos.PageableRequest) ([]*dtos.AdminAuditLogResponse, *dtos.Pageable, error) {
 	result, err := s.auditLogs.List(ctx, repositories.AuditLogListFilters{
 		TenantID:  filters.TenantID,
 		ActionsIn: loginHistoryActions,

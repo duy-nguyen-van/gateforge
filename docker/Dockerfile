@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: frontend (+ local @gateforge/sdk)
-FROM node:26-alpine3.24 AS frontend-builder
+FROM node:26.10.0-alpine3.24 AS frontend-builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: backend
-FROM golang:1.26.5-alpine3.24 AS backend-builder
+FROM golang:1.27.1-alpine3.24 AS backend-builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     -o server ./cmd/server
 
 # Stage 3: runtime
-FROM alpine:3.23
+FROM alpine:3.24
 
 RUN apk --no-cache add ca-certificates wget && \
     adduser -D -s /bin/sh appuser
@@ -60,6 +60,6 @@ USER appuser
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health/ready || exit 1
 
 CMD ["./server"]

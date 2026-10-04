@@ -25,6 +25,27 @@ export function ConsoleErrorState({ message, action }: { message: string; action
   )
 }
 
+export function ConsoleTableSkeleton({ columns = 5, rows = 5 }: { columns?: number; rows?: number }) {
+  return (
+    <div className="px-6 py-4" role="status" aria-label="Loading">
+      <div className="mb-3 h-8 rounded-lg bg-surface-container" />
+      <div className="space-y-3">
+        {Array.from({ length: rows }, (_, row) => (
+          <div
+            key={row}
+            className="grid gap-3"
+            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+          >
+            {Array.from({ length: columns }, (_, column) => (
+              <div key={column} className="h-4 rounded bg-surface-container" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ConsoleEmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex min-h-[240px] flex-col items-center justify-center rounded-xl bg-surface-container-lowest p-8 text-center ghost-border">

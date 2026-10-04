@@ -71,6 +71,10 @@ func TestBaseConfigFromEnv(t *testing.T) {
 	t.Setenv("JWT_SECRET", "custom-secret-thirty-two-bytes-long!!")
 	t.Setenv("WEBAUTHN_RP_ORIGINS", "http://a.com, http://b.com")
 	t.Setenv("SERVE_EMBEDDED_FRONTEND", "false")
+	t.Setenv("EMAIL_PROVIDER", "")
+	t.Setenv("EMAIL_MAILPIT_BASE_URL", "")
+	t.Setenv("RESEND_API_KEY", "re_from_primary")
+	t.Setenv("EMAIL_RESEND_API_KEY", "re_from_alias")
 
 	cfg := baseConfigFromEnv(EnvironmentDevelopment)
 	require.Equal(t, "test-app", cfg.AppName)
@@ -78,6 +82,31 @@ func TestBaseConfigFromEnv(t *testing.T) {
 	require.Equal(t, "custom-secret-thirty-two-bytes-long!!", cfg.JWTSecret)
 	require.Equal(t, []string{"http://a.com", "http://b.com"}, cfg.WebauthnRPOrigins)
 	require.False(t, cfg.ServeEmbeddedFrontend)
+	require.Equal(t, "test-app", cfg.OTelServiceName)
+	require.True(t, cfg.OTelTracesEnabled)
+	require.Equal(t, "ses", cfg.EmailProvider)
+	require.Equal(t, "http://localhost:8025", cfg.MailpitBaseURL)
+	require.Equal(t, "re_from_primary", cfg.ResendAPIKey)
+}
+
+func TestBaseConfigFromEnv_OTel(t *testing.T) {
+	t.Setenv("APP_NAME", "from-app")
+	t.Setenv("OTEL_SERVICE_NAME", "")
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
+	t.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf")
+	t.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true")
+	t.Setenv("OTEL_TRACES_ENABLED", "false")
+	t.Setenv("OTEL_METRICS_ENABLED", "false")
+	t.Setenv("OTEL_LOGS_ENABLED", "false")
+
+	cfg := baseConfigFromEnv(EnvironmentDevelopment)
+	require.Equal(t, "from-app", cfg.OTelServiceName)
+	require.Equal(t, "localhost:4317", cfg.OTelExporterEndpoint)
+	require.Equal(t, "http/protobuf", cfg.OTelExporterProtocol)
+	require.True(t, cfg.OTelExporterInsecure)
+	require.False(t, cfg.OTelTracesEnabled)
+	require.False(t, cfg.OTelMetricsEnabled)
+	require.False(t, cfg.OTelLogsEnabled)
 }
 
 func TestBaseConfigFromEnv_ProductionDefaults(t *testing.T) {
@@ -174,4 +203,44 @@ func TestPopulateFromJSON_FileNotFound(t *testing.T) {
 	cfg := &Config{}
 	err := cfg.PopulateFromJSON("/nonexistent/path/creds.json")
 	require.Error(t, err)
+}
+
+func TestPrepare_ProductionGuards(t *testing.T) {
+	base := func() *Config {
+		return &Config{
+			AppEnv:             EnvironmentProduction,
+			JWTSecret:          "production-secret-at-least-32-characters",
+			MFAEncryptionKey:   "01234567890123456789012345678901",
+			ClientSecretPepper: "pepper",
+			JWTAccessTTL:       15 * time.Minute,
+			CORSAllowedOrigins: []string{"https://iam.example.com"},
+		}
+	}
+	require.NoError(t, base().Prepare())
+
+	cases := []struct {
+		name   string
+		mutate func(*Config)
+	}{
+		{"default jwt", func(c *Config) { c.JWTSecret = defaultJWTSecret }},
+		{"empty mfa", func(c *Config) { c.MFAEncryptionKey = "" }},
+		{"empty pepper", func(c *Config) { c.ClientSecretPepper = "" }},
+		{"long access ttl", func(c *Config) { c.JWTAccessTTL = 24 * time.Hour }},
+		{"empty cors", func(c *Config) { c.CORSAllowedOrigins = nil }},
+		{"wildcard cors", func(c *Config) { c.CORSAllowedOrigins = []string{"*"} }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := base()
+			tc.mutate(cfg)
+			require.Error(t, cfg.Prepare())
+		})
+	}
+}
+
+func TestPrepare_DevDefaults(t *testing.T) {
+	cfg := &Config{AppEnv: EnvironmentDevelopment}
+	require.NoError(t, cfg.Prepare())
+	require.NotEmpty(t, cfg.ClientSecretPepper)
+	require.Contains(t, cfg.CORSAllowedOrigins, "http://localhost:5173")
 }

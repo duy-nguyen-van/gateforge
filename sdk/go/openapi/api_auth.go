@@ -36,6 +36,20 @@ type AuthAPI interface {
 	ExchangeSessionExecute(r ApiExchangeSessionRequest) (*LoginResultEnvelope, *http.Response, error)
 
 	/*
+	ForgotPassword Request a password reset
+
+	Always returns 200 so callers cannot tell whether the email exists.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiForgotPasswordRequest
+	*/
+	ForgotPassword(ctx context.Context) ApiForgotPasswordRequest
+
+	// ForgotPasswordExecute executes the request
+	//  @return MetaOnlyEnvelope
+	ForgotPasswordExecute(r ApiForgotPasswordRequest) (*MetaOnlyEnvelope, *http.Response, error)
+
+	/*
 	Login Login (dashboard/API) with email and password
 
 	Sets the same iam_session cookie as OIDC so /authorize recognizes the browser without a second login. If the user has MFA (TOTP) enabled, `data` is MFALoginChallengeResponse (mfa_ticket) instead of LoginResponse; complete login with POST /api/v1/mfa/challenge/verify. When the user belongs to multiple tenants and no tenant context is provided, `data` is TenantSelectionResponse.
@@ -84,6 +98,18 @@ type AuthAPI interface {
 	// RegisterUserExecute executes the request
 	//  @return UserResponseEnvelope
 	RegisterUserExecute(r ApiRegisterUserRequest) (*UserResponseEnvelope, *http.Response, error)
+
+	/*
+	ResetPassword Reset a password with a one-time token
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@return ApiResetPasswordRequest
+	*/
+	ResetPassword(ctx context.Context) ApiResetPasswordRequest
+
+	// ResetPasswordExecute executes the request
+	//  @return MetaOnlyEnvelope
+	ResetPasswordExecute(r ApiResetPasswordRequest) (*MetaOnlyEnvelope, *http.Response, error)
 }
 
 // AuthAPIService AuthAPI service
@@ -182,6 +208,116 @@ func (a *AuthAPIService) ExchangeSessionExecute(r ApiExchangeSessionRequest) (*L
 			}
 					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
 					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiForgotPasswordRequest struct {
+	ctx context.Context
+	ApiService AuthAPI
+	forgotPasswordRequest *ForgotPasswordRequest
+}
+
+func (r ApiForgotPasswordRequest) ForgotPasswordRequest(forgotPasswordRequest ForgotPasswordRequest) ApiForgotPasswordRequest {
+	r.forgotPasswordRequest = &forgotPasswordRequest
+	return r
+}
+
+func (r ApiForgotPasswordRequest) Execute() (*MetaOnlyEnvelope, *http.Response, error) {
+	return r.ApiService.ForgotPasswordExecute(r)
+}
+
+/*
+ForgotPassword Request a password reset
+
+Always returns 200 so callers cannot tell whether the email exists.
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiForgotPasswordRequest
+*/
+func (a *AuthAPIService) ForgotPassword(ctx context.Context) ApiForgotPasswordRequest {
+	return ApiForgotPasswordRequest{
+		ApiService: a,
+		ctx: ctx,
+	}
+}
+
+// Execute executes the request
+//  @return MetaOnlyEnvelope
+func (a *AuthAPIService) ForgotPasswordExecute(r ApiForgotPasswordRequest) (*MetaOnlyEnvelope, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *MetaOnlyEnvelope
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.ForgotPassword")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/api/v1/forgot-password"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.forgotPasswordRequest == nil {
+		return localVarReturnValue, nil, reportError("forgotPasswordRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.forgotPasswordRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
 		}
 		return localVarReturnValue, localVarHTTPResponse, newErr
 	}
@@ -648,6 +784,124 @@ func (a *AuthAPIService) RegisterUserExecute(r ApiRegisterUserRequest) (*UserRes
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
+			var v ErrorEnvelope
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+					newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+					newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiResetPasswordRequest struct {
+	ctx context.Context
+	ApiService AuthAPI
+	resetPasswordRequest *ResetPasswordRequest
+}
+
+func (r ApiResetPasswordRequest) ResetPasswordRequest(resetPasswordRequest ResetPasswordRequest) ApiResetPasswordRequest {
+	r.resetPasswordRequest = &resetPasswordRequest
+	return r
+}
+
+func (r ApiResetPasswordRequest) Execute() (*MetaOnlyEnvelope, *http.Response, error) {
+	return r.ApiService.ResetPasswordExecute(r)
+}
+
+/*
+ResetPassword Reset a password with a one-time token
+
+ @param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ @return ApiResetPasswordRequest
+*/
+func (a *AuthAPIService) ResetPassword(ctx context.Context) ApiResetPasswordRequest {
+	return ApiResetPasswordRequest{
+		ApiService: a,
+		ctx: ctx,
+	}
+}
+
+// Execute executes the request
+//  @return MetaOnlyEnvelope
+func (a *AuthAPIService) ResetPasswordExecute(r ApiResetPasswordRequest) (*MetaOnlyEnvelope, *http.Response, error) {
+	var (
+		localVarHTTPMethod   = http.MethodPost
+		localVarPostBody     interface{}
+		formFiles            []formFile
+		localVarReturnValue  *MetaOnlyEnvelope
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthAPIService.ResetPassword")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/api/v1/reset-password"
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.resetPasswordRequest == nil {
+		return localVarReturnValue, nil, reportError("resetPasswordRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.resetPasswordRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 401 {
 			var v ErrorEnvelope
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {

@@ -16,7 +16,7 @@ func TestProvideEmailSender_SESInitFailure(t *testing.T) {
 		EmailProvider: constants.EmailProviderSES,
 		AWSSESRegion:  "",
 	}
-	sender, err := ProvideEmailSender(cfg)
+	sender, err := ProvideEmailSender(&cfg)
 	if err != nil {
 		require.Nil(t, sender)
 		require.Contains(t, err.Error(), "Failed to initialize SES email sender")

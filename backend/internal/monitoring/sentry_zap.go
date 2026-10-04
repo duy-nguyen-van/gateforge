@@ -67,22 +67,22 @@ func (c *SentryCore) Write(entry zapcore.Entry, fields []zap.Field) error {
 		for _, field := range fields {
 			if field.Key == "error" {
 				if err, ok := field.Interface.(error); ok {
-					scope.SetExtra("error_details", err.Error())
+					SetScopeData(scope, "error_details", err.Error())
 					hub.CaptureException(err)
 					continue
 				}
 			}
-			scope.SetExtra(field.Key, field.Interface)
+			SetScopeData(scope, field.Key, field.Interface)
 		}
 
 		scope.SetTag("logger", "zap")
 		scope.SetTag("log_level", entry.Level.String())
-		scope.SetExtra("timestamp", entry.Time.Format(time.RFC3339))
+		SetScopeData(scope, "timestamp", entry.Time.Format(time.RFC3339))
 
 		if entry.Caller.Defined {
-			scope.SetExtra("caller_file", entry.Caller.File)
-			scope.SetExtra("caller_line", entry.Caller.Line)
-			scope.SetExtra("caller_function", entry.Caller.Function)
+			SetScopeData(scope, "caller_file", entry.Caller.File)
+			SetScopeData(scope, "caller_line", entry.Caller.Line)
+			SetScopeData(scope, "caller_function", entry.Caller.Function)
 		}
 	})
 

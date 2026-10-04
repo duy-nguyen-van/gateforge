@@ -69,6 +69,26 @@ func (f *fakeCache) Exists(ctx context.Context, key string) (bool, error) {
 	return true, nil
 }
 
+func (f *fakeCache) Increment(_ context.Context, key string, window time.Duration) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	item, ok := f.items[key]
+	n := int64(1)
+	if ok {
+		var parsed int64
+		_, _ = fmt.Sscan(item.value, &parsed)
+		n = parsed + 1
+	}
+	expiry := time.Time{}
+	if window > 0 {
+		expiry = time.Now().Add(window)
+	}
+	f.items[key] = fakeCacheItem{value: fmt.Sprintf("%d", n), expiry: expiry}
+	return n, nil
+}
+
+func (f *fakeCache) Ping(context.Context) error { return nil }
+
 func (f *fakeCache) Close() error { return nil }
 
 func TestEphemeralStore_WebauthnRegistrationSession(t *testing.T) {

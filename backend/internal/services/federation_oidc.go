@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
@@ -14,6 +16,7 @@ import (
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/oauth2"
 )
 
@@ -82,9 +85,16 @@ func (p *oidcFederationProvider) loadTenantOAuth(ctx context.Context, tenantID s
 	}, clientID, nil
 }
 
+func withOTelHTTP(ctx context.Context) context.Context {
+	return context.WithValue(ctx, oauth2.HTTPClient, &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	})
+}
+
 func (p *oidcFederationProvider) lazyOIDC(ctx context.Context) (*oidc.Provider, error) {
 	p.oidcOnce.Do(func() {
-		p.oidcProv, p.oidcProvErr = oidc.NewProvider(ctx, p.spec.IssuerURL)
+		p.oidcProv, p.oidcProvErr = oidc.NewProvider(withOTelHTTP(ctx), p.spec.IssuerURL)
 	})
 	return p.oidcProv, p.oidcProvErr
 }
@@ -107,7 +117,7 @@ func (p *oidcFederationProvider) ExchangeAuthorizationCode(ctx context.Context, 
 		return nil, err
 	}
 
-	tok, err := oauthCfg.Exchange(ctx, code)
+	tok, err := oauthCfg.Exchange(withOTelHTTP(ctx), code)
 	if err != nil {
 		return nil, errors.ExternalServiceError(
 			fmt.Sprintf("%s token exchange failed", p.spec.DisplayName),

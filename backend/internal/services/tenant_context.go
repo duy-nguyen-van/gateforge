@@ -6,7 +6,10 @@ import (
 
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
 	"github.com/gateforge-iam/gateforge-iam/internal/repositories"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // TenantResolveInput carries hints for resolving the active tenant.
@@ -52,6 +55,18 @@ func ProvideTenantContextService(
 }
 
 func (s *tenantContextService) Resolve(ctx context.Context, in TenantResolveInput) (*TenantResolveResult, error) {
+	return monitoring.Observe(ctx, tenantCtxTracer, "TenantContextService.Resolve",
+		[]attribute.KeyValue{
+			attribute.String("user_id", in.UserID),
+			attribute.String("tenant_id", in.TenantIDParam),
+			attribute.String("client_id", in.OAuthClientID),
+		},
+		func(ctx context.Context) (*TenantResolveResult, error) {
+			return s.resolve(ctx, in)
+		})
+}
+
+func (s *tenantContextService) resolve(ctx context.Context, in TenantResolveInput) (*TenantResolveResult, error) {
 	tenantID := s.resolveTenantID(ctx, in)
 	if tenantID != "" {
 		if in.UserID != "" {
@@ -122,6 +137,17 @@ func (s *tenantContextService) resolveTenantID(ctx context.Context, in TenantRes
 }
 
 func (s *tenantContextService) ValidateMembership(ctx context.Context, userID, tenantID string) error {
+	return monitoring.ObserveErr(ctx, tenantCtxTracer, "TenantContextService.ValidateMembership",
+		[]attribute.KeyValue{
+			attribute.String("user_id", userID),
+			attribute.String("tenant_id", tenantID),
+		},
+		func(ctx context.Context) error {
+			return s.validateMembership(ctx, userID, tenantID)
+		})
+}
+
+func (s *tenantContextService) validateMembership(ctx context.Context, userID, tenantID string) error {
 	ok, err := s.memberships.ExistsActive(ctx, userID, tenantID)
 	if err != nil {
 		return err

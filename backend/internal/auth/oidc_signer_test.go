@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,6 +92,11 @@ func TestParseRSAPrivateKey_PKCS1AndPKCS8(t *testing.T) {
 	key8, err := parseRSAPrivateKey(pkcs8PEM)
 	require.NoError(t, err)
 	require.NotNil(t, key8)
+
+	escaped := strings.ReplaceAll(string(pkcs1PEM), "\n", `\n`)
+	keyEscaped, err := parseRSAPrivateKey([]byte(`"` + escaped + `"`))
+	require.NoError(t, err)
+	require.Equal(t, key1.N, keyEscaped.N)
 }
 
 func TestParseRSAPrivateKey_Errors(t *testing.T) {

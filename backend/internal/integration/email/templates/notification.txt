@@ -1,0 +1,6 @@
+{{define "subject"}}{{.Subject}}{{end}}
+{{define "text"}}{{.Subject}}
+
+{{.Message}}
+
+{{template "footer"}}{{end}}

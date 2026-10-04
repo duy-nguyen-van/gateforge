@@ -21,6 +21,8 @@ func newProfileTestUserRepo() *profileTestUserRepo {
 	return &profileTestUserRepo{users: map[string]*models.User{}}
 }
 
+func (r *profileTestUserRepo) UpdatePasswordHash(context.Context, string, string) error { return nil }
+func (r *profileTestUserRepo) MarkEmailVerified(context.Context, string) error          { return nil }
 func (r *profileTestUserRepo) CreateWithPasswordHash(_ context.Context, _ *models.User, _ string) error {
 	return nil
 }

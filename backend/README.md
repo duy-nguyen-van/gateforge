@@ -14,7 +14,7 @@ Go module: `github.com/gateforge-iam/gateforge-iam`
 - **Federation** — Google upstream OAuth (more IdPs planned)
 - **Multi-tenant** — Global users, `tenant_memberships`, tenant select/switch
 - **Platform admin** — Console APIs protected by `users.is_platform_admin`
-- **Observability** — Zap logging, Sentry, New Relic (optional)
+- **Observability** — Zap logging with `logger.From(ctx)` (trace correlation), optional OpenTelemetry, Sentry, New Relic (log forwarding)
 
 ## Documentation
 
@@ -26,12 +26,13 @@ Start at **[docs/README.md](docs/README.md)** — feature index, database tables
 | Manual testing | [docs/testing/](docs/testing/) — curl and Postman flows |
 | OpenAPI (`/api/v1`) | [docs/swagger.yaml](docs/swagger.yaml) |
 | Agent / layer map | [AGENTS.md](AGENTS.md) |
+| OpenTelemetry | [docs/OPENTELEMETRY.md](docs/OPENTELEMETRY.md) |
 
 ## Quick start
 
 ### Prerequisites
 
-- Go 1.26+
+- Go 1.27+
 - Docker (Postgres + Redis)
 - [Atlas CLI](https://atlasgo.io/) for migrations
 

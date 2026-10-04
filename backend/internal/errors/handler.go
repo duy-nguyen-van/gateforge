@@ -8,8 +8,9 @@ import (
 
 	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
-
 	"github.com/gateforge-iam/gateforge-iam/internal/logger"
+	"github.com/gateforge-iam/gateforge-iam/internal/monitoring"
+	"github.com/gateforge-iam/gateforge-iam/internal/request"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
@@ -224,14 +225,22 @@ func (h *ErrorHandler) logError(c echo.Context, appErr *AppError) {
 		fields = append(fields, zap.String("stack_trace", appErr.StackTrace))
 	}
 
+	log := logger.Log
+	if c != nil && c.Request() != nil {
+		log = logger.From(c.Request().Context())
+	}
+	if log == nil {
+		return
+	}
+
 	// Log with appropriate level
 	switch appErr.Type {
 	case ErrorTypeValidation, ErrorTypeNotFound, ErrorTypeUnauthorized, ErrorTypeForbidden:
-		logger.Log.Warn(appErr.Message, fields...)
+		log.Warn(appErr.Message, fields...)
 	case ErrorTypeInternal, ErrorTypeDatabase, ErrorTypeExternal, ErrorTypeCache:
-		logger.Log.Error(appErr.Message, fields...)
+		log.Error(appErr.Message, fields...)
 	default:
-		logger.Log.Error(appErr.Message, fields...)
+		log.Error(appErr.Message, fields...)
 	}
 }
 
@@ -248,22 +257,25 @@ func (h *ErrorHandler) reportToSentry(c echo.Context, appErr *AppError) {
 
 			// Set request context
 			if c != nil {
-				scope.SetExtra("path", c.Request().URL.Path)
-				scope.SetExtra("method", c.Request().Method)
-				scope.SetExtra("query", c.QueryParams())
-				scope.SetExtra("headers", c.Request().Header)
-				scope.SetExtra("user_agent", c.Request().UserAgent())
-				scope.SetExtra("ip", c.RealIP())
+				monitoring.SetScopeData(scope, "path", c.Request().URL.Path)
+				monitoring.SetScopeData(scope, "method", c.Request().Method)
+				monitoring.SetScopeData(scope, "query", c.QueryParams())
+				monitoring.SetScopeData(scope, "headers", monitoring.RedactedHeaders(c.Request().Header))
+				monitoring.SetScopeData(scope, "user_agent", c.Request().UserAgent())
+				monitoring.SetScopeData(scope, "ip", c.RealIP())
+				if cid, ok := request.CorrelationIDFromContext(c.Request().Context()); ok && cid != "" {
+					scope.SetTag("correlation_id", cid)
+				}
 			}
 
 			// Set error context
 			for k, v := range appErr.Context {
-				scope.SetExtra("error_context_"+k, v)
+				monitoring.SetScopeData(scope, "error_context_"+k, v)
 			}
 
 			// Set stack trace for debugging
 			if appErr.StackTrace != "" {
-				scope.SetExtra("stack_trace", appErr.StackTrace)
+				monitoring.SetScopeData(scope, "stack_trace", appErr.StackTrace)
 			}
 
 			// Capture the error

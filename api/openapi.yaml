@@ -371,6 +371,51 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/ErrorEnvelope"
+  "/api/v1/forgot-password":
+    post:
+      operationId: forgotPassword
+      tags:
+      - Auth
+      summary: Request a password reset
+      description: Always returns 200 so callers cannot tell whether the email exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MetaOnlyEnvelope"
+  "/api/v1/reset-password":
+    post:
+      operationId: resetPassword
+      tags:
+      - Auth
+      summary: Reset a password with a one-time token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ResetPasswordRequest"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/MetaOnlyEnvelope"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorEnvelope"
   "/api/v1/login":
     post:
       operationId: login
@@ -2452,6 +2497,26 @@ components:
         updated_at:
           type: string
           format: date-time
+    ForgotPasswordRequest:
+      type: object
+      required:
+      - email
+      properties:
+        email:
+          type: string
+          format: email
+    ResetPasswordRequest:
+      type: object
+      required:
+      - token
+      - new_password
+      properties:
+        token:
+          type: string
+        new_password:
+          type: string
+          minLength: 12
+          maxLength: 128
     RegisterRequest:
       type: object
       required:
@@ -2464,9 +2529,9 @@ components:
           example: user@example.com
         password:
           type: string
-          minLength: 8
+          minLength: 12
           maxLength: 128
-          example: secretpassword
+          example: correct-horse-1
         first_name:
           type: string
           maxLength: 100

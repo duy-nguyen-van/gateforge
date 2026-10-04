@@ -1,11 +1,8 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/gateforge-iam/gateforge-iam/internal/auth"
 	"github.com/gateforge-iam/gateforge-iam/internal/config"
-	"github.com/gateforge-iam/gateforge-iam/internal/constants"
 	"github.com/gateforge-iam/gateforge-iam/internal/dtos"
 	"github.com/gateforge-iam/gateforge-iam/internal/errors"
 	"github.com/gateforge-iam/gateforge-iam/internal/services"
@@ -160,15 +157,7 @@ func (h *MFAHandler) ChallengeVerify(c echo.Context) error {
 	if err != nil {
 		return h.HandleError(c, err)
 	}
-	c.SetCookie(&http.Cookie{
-		Name:     constants.SessionCookieName,
-		Value:    sid,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   h.cfg.AppEnv == config.EnvironmentProduction,
-		MaxAge:   int(ttl.Seconds()),
-	})
+	c.SetCookie(newSessionCookie(h.cfg.AppEnv == config.EnvironmentProduction, sid, int(ttl.Seconds())))
 	return h.SuccessResponse(c, "Login successful", out, nil)
 }
 

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/lib/pq"
@@ -64,6 +65,15 @@ func (r *adminClientTestRepo) List(_ context.Context, _ string, pr *dtos.Pageabl
 	}, nil
 }
 
+func (r *adminClientTestRepo) UpdateSecretHash(_ context.Context, id, secretHash string) error {
+	c, ok := r.clients[id]
+	if !ok {
+		return errors.NotFoundError("OAuth client", nil)
+	}
+	c.ClientSecret = secretHash
+	return nil
+}
+
 func (r *adminClientTestRepo) Create(_ context.Context, client *models.Client) error {
 	r.clients[client.ID] = client
 	return nil
@@ -113,14 +123,19 @@ func (r *adminClientTestRepo) ClientIDTaken(_ context.Context, tenantID, clientI
 }
 
 func newAdminClientTestService(tenants *adminTenantTestRepo, clients *adminClientTestRepo) AdminService {
-	cfg := &config.Config{DefaultTenantID: "00000000-0000-0000-0000-000000000001"}
+	cfg := &config.Config{
+		DefaultTenantID:    "00000000-0000-0000-0000-000000000001",
+		ClientSecretPepper: "dev-client-secret-pepper-not-for-production!!",
+	}
 	return ProvideAdminService(
 		cfg,
 		nil, tenants, clients, nil, nil, nil, nil,
 		&adminTenantMembershipStub{byTenant: map[string][]models.TenantMembership{}},
 		nil, nil, nil,
 		&adminTenantAuditStub{},
-		nil, nil,
+		nil, nil, nil,
+		EmailService{},
+		nil,
 	)
 }
 
@@ -235,7 +250,8 @@ func TestAdminService_UpdateClient_RotateSecret(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, updated.ClientSecretSet)
-	require.Equal(t, "new-secret", clientRepo.clients[id].ClientSecret)
+	require.True(t, strings.HasPrefix(clientRepo.clients[id].ClientSecret, "hmac-sha256:"))
+	require.NotEqual(t, "new-secret", clientRepo.clients[id].ClientSecret)
 }
 
 func TestAdminService_DeleteClient_BlocksDevClient(t *testing.T) {

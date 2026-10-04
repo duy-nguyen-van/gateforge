@@ -1,0 +1,9 @@
+{{define "subject"}}You were added to {{.OrgName}}{{end}}
+{{define "text"}}You were added to {{.OrgName}}.
+
+Your account now has the {{.Role}} role in this organization. Sign in to open it.
+
+Sign in:
+{{.CTAURL}}
+
+{{template "footer"}}{{end}}

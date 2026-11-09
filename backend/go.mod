@@ -15,7 +15,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/descope/virtualwebauthn v1.0.5
 	github.com/getsentry/sentry-go v0.50.0
-	github.com/getsentry/sentry-go/echo v0.44.1 // Echo v4; v0.45+ targets Echo v5
+	github.com/getsentry/sentry-go/echo v0.50.0 // Echo v4; v0.45+ targets Echo v5
 	github.com/go-playground/universal-translator v0.18.2
 	github.com/go-playground/validator/v10 v10.30.6
 	github.com/go-resty/resty/v2 v2.17.2
@@ -156,6 +156,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.20.4 // indirect
+	github.com/labstack/echo/v5 v5.2.0 // indirect
 	github.com/labstack/gommon v0.5.0 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20261101121723-be84dd9509a0 // indirect

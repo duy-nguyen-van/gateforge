@@ -18,10 +18,10 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	sentryecho "github.com/getsentry/sentry-go/echo"
+	echootel "github.com/labstack/echo-otel/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 func Router(
@@ -50,7 +50,8 @@ func Router(
 		if serviceName == "" {
 			serviceName = "gateforge-iam"
 		}
-		r.Use(otelecho.Middleware(serviceName))
+		// Server name is recorded as server.address. The process service name stays on the OTel resource.
+		r.Use(echootel.NewMiddleware(serviceName))
 	}
 
 	r.Use(sentryecho.New(sentryecho.Options{Repanic: true}))

@@ -29,6 +29,14 @@ alwaysApply: true
 - Don't over-engineer: no feature flags or backwards-compat shims for unused code
 - Three similar lines > premature abstraction
 
+## Definition of Done (new/changed code)
+New or changed behavior is unfinished until all of these pass:
+1. **Lint** — `make lint`
+2. **Tests** — add/update colocated `*_test.go` covering the new paths (success + representative errors); run scoped `go test` then `make tests`
+3. **Security** — satisfy `security-practices.mdc` (auth, CSRF, secrets, no PII/tokens in logs)
+4. **Coverage** — changed packages ≥ 90% statement coverage (see `skills/clean-architecture-testing/SKILL.md`)
+Do not claim the task done, open a PR, or skip these gates.
+
 ## Pre-commit
 - Run `make lint` and `make tests` before push
 - Run `make dep` after dependency edits

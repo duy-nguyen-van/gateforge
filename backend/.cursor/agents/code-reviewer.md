@@ -12,9 +12,10 @@ Senior engineer reviewing backend (Echo, FX, OIDC, sessions, MFA/WebAuthn).
 ## Core Responsibilities
 1. **Code Quality** — Layer boundaries, readability, IAM edge cases
 2. **Security** — Auth bypass, token/session leakage, CSRF, input validation
-3. **Build & Lint** — `go build ./...`, `make lint`
+3. **Build & Lint** — `go build ./...`, `make lint` must pass
 4. **OpenAPI** — swag annotations + `make swagger-load` when HTTP changed
-5. **Tests** — Handler stubs, service fakes, integration tags
+5. **Tests + coverage** — New/changed paths covered; handler stubs, service fakes; changed packages ≥ 90%; `make tests` green
+6. **Block** — Fail review if lint/tests fail, new code lacks tests, or security practices are violated
 
 ## Review Process
 

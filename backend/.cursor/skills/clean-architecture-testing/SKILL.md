@@ -59,12 +59,17 @@ Layer boundaries and import rules: **`.cursor/rules/go-layering.mdc`**. Test mec
 
 5. Full suite (CI-like): **`make tests`**; CI also runs `go test -race -coverprofile=coverage.out ./...` (`.github/workflows/ci.yml`).
 
-## Checklist before merge
+## Checklist before merge (required)
 
-- [ ] New/changed **services/handlers** have unit tests with fakes/stubs.
+- [ ] **Lint** — `make lint` passes.
+- [ ] New/changed **services/handlers** have unit tests with fakes/stubs covering the added paths.
 - [ ] Persistence-sensitive behavior has **integration** coverage **or** justified unit-level DB mocks.
 - [ ] Changed packages report **≥ 90%** coverage when measured with `-cover` on that package.
+- [ ] **Security** — touched paths satisfy `security-practices.mdc`.
+- [ ] `make tests` passes (race + coverage).
 - [ ] `//go:build integration` preserved on slow tests; default `./...` remains quick.
+
+Do not mark the change done if any box is unchecked.
 
 ## Additional resources
 

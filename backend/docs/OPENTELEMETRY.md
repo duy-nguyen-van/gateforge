@@ -7,7 +7,7 @@ Instrumentation is off when `OTEL_EXPORTER_OTLP_ENDPOINT` is empty (same as an e
 ## Architecture
 
 ```text
-HTTP (otelecho) → Observe(service method) → GORM / Redis / otelhttp child spans
+HTTP (echo-otel) → Observe(service method) → GORM / Redis / otelhttp child spans
                      ↓
             logger.From(ctx)  →  correlation_id + trace_id + span_id
                      ↓
@@ -23,7 +23,7 @@ Init order in `cmd/server/main.go`:
 5. Sentry zap core (error+)
 6. `defer` OTel `Shutdown` + `FlushSentry`
 
-Middleware order in `cmd/server/routes/router.go`: **otelecho (if enabled) → Sentry →** RequestID / RequestContext / recovery / CSRF / RequestLogging.
+Middleware order in `cmd/server/routes/router.go`: **echo-otel (if enabled) → Sentry →** RequestID / RequestContext / recovery / CSRF / RequestLogging.
 
 ## Local collector
 
@@ -58,7 +58,7 @@ make otel-down
 
 | Surface | How |
 |---------|-----|
-| HTTP server | Official Echo v4 `otelecho.Middleware` when traces are on |
+| HTTP server | Echo v4 `echootel.NewMiddleware` (`github.com/labstack/echo-otel/v4`) when traces are on. Scope name is `github.com/labstack/echo-otel/v4`. The middleware argument is the configured service name and is recorded as `server.address`; `service.name` stays on the resource. |
 | IAM services | `monitoring.Observe` / `Observe2` / `Observe3` / `ObserveErr`; OIDC uses `StartSpan`/`Finish` because OAuth errors are not `error` |
 | Postgres | GORM OpenTelemetry tracing plugin |
 | Redis | `redisotel.InstrumentTracing` / `InstrumentMetrics` |

@@ -5,7 +5,11 @@ Identity and access backend: **Echo**, **Uber FX**, **PostgreSQL**, **Redis**, *
 ## Before you ship a change
 
 - **Read feature docs first** when changing OIDC, SSO, federation, WebAuthn, MFA, tenants, or admin auth: [docs/README.md](docs/README.md) and the relevant [docs/features/](docs/features/) guide (see `rules/feature-knowledge.mdc`).
-- Run `make lint` and `make tests` (see `Makefile` for scoped test targets).
+- **Definition of Done** (block merge/claim-done until all pass):
+  1. **Lint** — `make lint`
+  2. **Tests** — add/update colocated `*_test.go` covering new/changed behavior (success + representative errors); then `make tests`
+  3. **Security** — follow `rules/security-practices.mdc` (auth, CSRF, secrets, PII); never commit credentials
+  4. **Coverage** — changed packages ≥ 90% statement coverage (`skills/clean-architecture-testing/SKILL.md`)
 - Run `go mod tidy` / `make dep` when dependencies change.
 - Run `make swagger-load` when routes, handlers, or swag annotations change.
 - Never commit secrets; use `cmd/server/.env.example` and `examples/env/` as references only.
@@ -73,7 +77,7 @@ Routes are registered in `cmd/server/routes/router.go`. **Two URL namespaces** �
 
 ### Logging & observability
 - **Global Zap** initialized in `cmd/server/main.go` via `logger.Init()` — use `logger.From(ctx)` on request paths (not injected `slog`)
-- HTTP spans: official Echo v4 `otelecho` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; business spans via `monitoring.Observe` on exported service methods
+- HTTP spans: Echo v4 `github.com/labstack/echo-otel/v4` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set; business spans via `monitoring.Observe` on exported service methods
 - Request logging: `internal/middlewares/logging.go` (no bodies/JWT); Sentry redaction in `internal/monitoring/sentry_headers.go`
 - Correlation ID: `pkg/correlationid/` via `internal/request/context.go` helpers
 - Local traces: `make otel-up` → Jaeger at http://localhost:16686 — see [docs/OPENTELEMETRY.md](docs/OPENTELEMETRY.md)

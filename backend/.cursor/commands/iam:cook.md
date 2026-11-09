@@ -21,8 +21,11 @@ Principles: **YAGNI, KISS, DRY** — minimal code, match existing patterns.
 - Wire in `cmd/server/main.go` and `cmd/server/routes/router.go`
 - `go build ./...` after significant changes
 
-### Step 5: Test
-- Colocated `*_test.go`; run scoped then `make tests`
+### Step 5: Test + gates
+- Add/update colocated `*_test.go` covering new/changed behavior (success + errors)
+- Run scoped `go test -race -cover ./internal/<pkg>` then `make tests` and `make lint`
+- Changed packages ≥ 90% coverage; walk `security-practices.mdc` on touched paths
+- Do not proceed if lint, tests, security, or coverage gates fail
 
 ### Step 6: HTTP / Schema
 - swag annotations + `make swagger-load` for `/api/v1` API changes
@@ -30,9 +33,9 @@ Principles: **YAGNI, KISS, DRY** — minimal code, match existing patterns.
 - Atlas SQL + `make migrate-hash` if schema changed
 
 ### Step 7: Self-Review
-- `.cursor/rules/code-review.mdc` checklist
+- `.cursor/rules/code-review.mdc` checklist + Definition of Done (lint, tests, security, coverage)
 - Suggest commit message; do not commit unless asked
 
 ## Rules
 - Update existing files; no duplicate "enhanced" modules
-- Never ignore failing tests
+- Never ignore failing lint/tests or ship new code without covering tests

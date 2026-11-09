@@ -15,8 +15,8 @@ Production ships as a **single hybrid binary** (`bin/gateforge-iam-server`) with
 
 1. Fork the repository and branch from `main` (see [Branch naming](#branch-naming) below).
 2. Install prerequisites:
-   - **Go 1.27+**
-   - **Node.js 26.10+**
+   - **Go 1.27.3+**
+   - **Node.js 26.13+**
    - **Docker** (Postgres + Redis for local dev)
    - **Make**
    - **[Atlas CLI](https://atlasgo.io/)** — required for database migrations in `backend/`
@@ -136,13 +136,13 @@ Rules: lowercase subject, imperative mood ("add" not "added"), no trailing perio
 4. Describe what changed, why, and how to test.
 5. Include screenshots for UI changes; include curl output or logs for API/auth flow changes when helpful.
 
-**CI must pass** for the areas you changed:
+**CI must pass** for the areas you changed. Agents and contributors treat this as the Definition of Done: **lint + tests covering new code + security practices**.
 
 | Area | Checks |
 |------|--------|
-| `backend/` | `make -C backend lint`, `go build ./...`, `make -C backend tests` |
-| `frontend/` | `npm run lint`, `npm run build` |
-| Embed / Docker / root Makefile | `make build-prod` |
+| `backend/` | `make -C backend lint`, `go build ./...`, `make -C backend tests`; new/changed paths covered (≥ 90% on changed packages); follow `backend/.cursor/rules/security-practices.mdc` |
+| `frontend/` | `npm run lint`, `npm run build`; cover new logic with automated tests when available (else document manual checklist); follow `frontend/.cursor/rules/security-practices.mdc` |
+| Embed / Docker / root Makefile | `make build-prod`; prefer `make security-fs` / `make security` for deploy-sensitive changes |
 
 ## Code style
 

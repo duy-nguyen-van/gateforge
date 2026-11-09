@@ -8,13 +8,15 @@ Run the narrowest useful checks first, then broader checks when requested or jus
 
 Use the backend AGENTS.md and $backend skill when available.
 
+Definition of Done: lint + tests covering new/changed paths + security practices + ≥ 90% coverage on changed packages. Fail the gate if any are missing.
+
 Preferred commands:
-- go test -race ./internal/<package>
+- go test -race -cover ./internal/<package>
 - make tests
 - make lint
 - make test-specific TEST=TestName
 - make swagger-load when HTTP annotations or /api/v1 surface changed
 - make migrate-hash after cmd/migrations/sql changes
 
-For manual IAM flow validation, use docs/testing/*.md. Report exact commands run, pass/fail, and the first useful failure cause. Never claim unrun checks passed.
+For manual IAM flow validation, use docs/testing/*.md. Report exact commands run, pass/fail, missing coverage for new code, security gaps, and the first useful failure cause. Never claim unrun checks passed.
 """

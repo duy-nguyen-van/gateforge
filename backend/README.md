@@ -32,7 +32,7 @@ Start at **[docs/README.md](docs/README.md)** — feature index, database tables
 
 ### Prerequisites
 
-- Go 1.27+
+- Go 1.27.3+
 - Docker (Postgres + Redis)
 - [Atlas CLI](https://atlasgo.io/) for migrations
 

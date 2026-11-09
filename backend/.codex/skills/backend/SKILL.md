@@ -37,20 +37,21 @@ Use this skill when working under `backend/` or when the user asks about the IAM
 - `/api/v1` routes are covered by swag OpenAPI. When routes, handlers, DTOs, status codes, params, tags, security, or annotations change, run `make swagger-load` and keep `docs/swagger.yaml`, `docs/swagger.json`, and `docs/docs.go` together.
 - Root OIDC routes (`/authorize`, `/token`, `/userinfo`, `/.well-known/*`, `/oidc/*`) are outside `@BasePath`; update manual docs in `docs/features/` or `docs/testing/` when behavior changes.
 
-## Tests And Checks
+## Tests And Checks (Definition of Done)
 
-- For changed Go behavior, add/update the smallest meaningful test: success plus representative error path.
+New/changed code is unfinished until all pass:
+1. **Lint** — `make lint`
+2. **Tests** — add/update the smallest meaningful test (success + representative error); then scoped `go test -race -cover ./internal/<package>` and `make tests`
+3. **Security** — auth/CSRF/secrets/PII per `security-practices.mdc`
+4. **Coverage** — changed packages ≥ 90% statement coverage
+
 - Unit tests stay fast; Docker/Postgres tests require `//go:build integration`.
 - Use table-driven tests and existing `testify/require` patterns.
-- Run the narrowest useful check first, then broader checks when relevant:
-  - `go test -race ./internal/<package>`
-  - `make tests`
-  - `make lint`
 - After migration SQL changes in `cmd/migrations/sql/`, run `make migrate-hash`; do not hand-edit `atlas.sum`.
 
 ## Review Checklist
 
-Check in this order: correctness, auth/security, error leaks, layer boundaries, concurrency/cache races, N+1 or extra Redis calls, tests, OpenAPI/manual docs drift.
+Check in this order: correctness, auth/security, error leaks, layer boundaries, concurrency/cache races, N+1 or extra Redis calls, tests + coverage for new paths, lint/tests green, OpenAPI/manual docs drift. Block if any gate fails.
 
 ## Git
 

@@ -18,9 +18,11 @@ alwaysApply: false
 - New routes: `src/routes/index.tsx` + guards; console nav in `console-nav.ts` if applicable
 - New API calls: `src/api/client.ts` + types in `src/api/types.ts`
 
-### 3. Test
-- Manual flow in browser with backend running on `:3000`
-- Run `make lint` and `make build` (TypeScript + Vite)
+### 3. Test + quality gates
+- Add/update automated tests for new/changed logic when a test runner is configured
+- Auth/OIDC/MFA: short manual browser checklist with backend on `:3000`
+- Run `make lint` and `make build` (or `make check`) — both must pass
+- Walk `security-practices.mdc` for tokens/CSRF/cookies/XSS on the touched paths
 
 ### 4. Backend alignment
 - Env vars: update `.env.example` and note matching backend vars in README
@@ -28,15 +30,16 @@ alwaysApply: false
 - API shape changes: update `src/api/types.ts`; optional `make generate-api`
 
 ### 5. Review & Integrate
-- Self-review diff; `make check`
-- Conventional commit; PR with test plan
+- Self-review diff against Definition of Done (lint + build/tests + security)
+- Conventional commit; PR with test plan — do not claim done if any gate failed
 
 ## Bug Fix Workflow
 1. Reproduce in browser (note route, network tab, console)
 2. Root cause — don't patch symptoms
 3. Minimal fix at correct layer (auth vs api vs feature vs route guard)
-4. `make lint` and `make build`
-5. Verify against backend if API-related
+4. Add/update a regression check (automated test when available, else manual step)
+5. `make lint` and `make build`
+6. Verify against backend if API-related
 
 ## Local Dev Commands
 ```bash

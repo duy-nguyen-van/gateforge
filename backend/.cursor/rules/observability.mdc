@@ -10,7 +10,7 @@ OpenTelemetry is the single trace/metrics/logs export. Sentry is errors only. Ne
 
 ## Traces
 
-- HTTP: official Echo v4 `otelecho.Middleware` in `cmd/server/routes/router.go` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set and traces are on. Do not add a custom Echo tracer.
+- HTTP: Echo v4 `echootel.NewMiddleware` from `github.com/labstack/echo-otel/v4` in `cmd/server/routes/router.go` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set and traces are on. Do not add a custom Echo tracer. Do not use deprecated `otelecho` or `github.com/labstack/echo-opentelemetry` (Echo v5).
 - Business: `monitoring.Observe` / `Observe2` / `Observe3` / `ObserveErr` on exported service methods. OIDC (`Authorize`, `Token`, `UserInfo`, `Introspect`) uses `StartSpan`/`Finish` because `*OAuthTokenError` / `*OAuthRedirectError` are not `error`.
 - Tracer name: `gateforge-iam/services/<domain>` (`oidcTracer`, `userTracer`, …). Span name: `Type.Method` (`OIDCService.Token`).
 - Attributes: `client_id`, `tenant_id`, `user_id`, `provider`. Never email, JWT, password, tokens, codes, or body.

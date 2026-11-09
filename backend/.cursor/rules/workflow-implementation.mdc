@@ -17,29 +17,34 @@ alwaysApply: false
 - Wire new deps in `cmd/server/main.go` (FX) and routes in `router.go`
 - Handle errors with `AppError` where the file already does
 
-### 3. Test
-- Add/update colocated `*_test.go`
-- Run narrow target first: `go test ./internal/handlers` (or services/repos)
+### 3. Test + coverage
+- Add/update colocated `*_test.go` for every new/changed behavior (success + representative errors)
+- Run narrow target first: `go test -race -cover ./internal/<package>`
 - Full suite: `make tests`
+- Changed packages must hit ≥ 90% coverage (see `skills/clean-architecture-testing/SKILL.md`)
 
-### 4. HTTP / OpenAPI
+### 4. Lint + security
+- `make lint` must pass
+- Walk `security-practices.mdc` for auth/CSRF/secrets/PII on the touched paths
+
+### 5. HTTP / OpenAPI
 - `/api/v1` changes: swag annotations + `make swagger-load`
 - Root OIDC changes: update matching [docs/features/](../../docs/features/) and [docs/testing/](../../docs/testing/) docs (not in swag spec)
 - CSRF: update `internal/middlewares/csrf.go` if new paths need skip rules
 
-### 5. Migrations
+### 6. Migrations
 - If schema changed: new SQL in `cmd/migrations/sql/` + `make migrate-hash`
 
-### 6. Review & Integrate
-- Self-review diff; `make lint`
-- Conventional commit; PR with test plan
+### 7. Review & Integrate
+- Self-review diff against Definition of Done (lint + tests + security + coverage)
+- Conventional commit; PR with test plan — do not claim done if any gate failed
 
 ## Bug Fix Workflow
 1. Reproduce (test or curl flow doc)
 2. Root cause — don't patch symptoms
 3. Minimal fix at correct layer
-4. Regression test
-5. `make tests`
+4. Regression test covering the fix
+5. `make lint` and `make tests`
 
 ## Local Dev Commands
 ```bash

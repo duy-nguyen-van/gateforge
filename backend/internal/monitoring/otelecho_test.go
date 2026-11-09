@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	echootel "github.com/labstack/echo-otel/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -25,7 +25,7 @@ func TestOtelEcho_SetsHTTPResponseStatusCode(t *testing.T) {
 	})
 
 	e := echo.New()
-	e.Use(otelecho.Middleware("gateforge-iam"))
+	e.Use(echootel.NewMiddleware("gateforge-iam"))
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})

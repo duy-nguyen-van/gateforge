@@ -28,7 +28,7 @@ jobs:
         run: make sdk-go-test
 
       - name: Create GitHub Release notes
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Go SDK ${{ github.ref_name }}
           body: |
@@ -86,7 +86,7 @@ jobs:
         run: npm publish --access public
 
       - name: Create GitHub Release notes
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: TypeScript SDK ${{ github.ref_name }}
           body: |

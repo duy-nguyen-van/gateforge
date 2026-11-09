@@ -267,5 +267,7 @@ See [`deployments/README.md`](deployments/README.md) for environment variables a
 ## Contributing
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — development workflow, PR expectations
+- [SUPPORT.md](SUPPORT.md) — how to get help
 - [SECURITY.md](SECURITY.md) — vulnerability reporting
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community standards
+- [LICENSE](LICENSE) — Apache License 2.0

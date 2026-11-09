@@ -1,0 +1,8 @@
+# Default reviewers for all paths.
+* @duy-nguyen-van
+
+/backend/ @duy-nguyen-van
+/frontend/ @duy-nguyen-van
+/api/ @duy-nguyen-van
+/sdk/ @duy-nguyen-van
+/.github/ @duy-nguyen-van

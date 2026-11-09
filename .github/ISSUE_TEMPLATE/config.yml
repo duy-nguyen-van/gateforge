@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/duy-nguyen-van/gateforge/security/advisories/new
+    about: Report security issues privately. Do not file a public issue.
+  - name: Documentation
+    url: https://github.com/duy-nguyen-van/gateforge/blob/main/backend/docs/README.md
+    about: IAM feature hub — OIDC, SSO, MFA, federation, and admin APIs.
+  - name: Ask a question
+    url: https://github.com/duy-nguyen-van/gateforge/discussions
+    about: Use Discussions for usage questions when Discussions are enabled.

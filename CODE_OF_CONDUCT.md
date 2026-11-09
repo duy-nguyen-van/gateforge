@@ -29,7 +29,7 @@ Maintainers may remove, edit, or reject contributions and temporarily or permane
 
 To report a violation:
 
-1. Open a **private** GitHub issue or contact a maintainer directly if you have an existing channel.
+1. Contact a maintainer privately (do not file a public issue for harassment or safety reports).
 2. Include what happened, when, links or screenshots if available, and who was involved.
 
 Reports are reviewed promptly and handled confidentially. Retaliation against reporters is not tolerated.

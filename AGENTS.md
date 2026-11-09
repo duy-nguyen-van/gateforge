@@ -46,8 +46,10 @@ See [`deployments/README.md`](deployments/README.md) for systemd, Docker Compose
 |-----|---------|
 | [`README.md`](README.md) | Monorepo quick start |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development workflow, PR expectations |
+| [`SUPPORT.md`](SUPPORT.md) | How to get help |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards |
+| [`LICENSE`](LICENSE) | Apache License 2.0 |
 | [`backend/AGENTS.md`](backend/AGENTS.md) | Backend layer map, routes, patterns |
 | [`frontend/AGENTS.md`](frontend/AGENTS.md) | Frontend routes, auth, API client |
 | [`backend/docs/README.md`](backend/docs/README.md) | IAM feature hub — OIDC, SSO, MFA, DB tables |

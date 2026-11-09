@@ -1,7 +1,8 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-labels: enhancement
+description: Suggest an idea for GateForge IAM
+title: "[feat]: "
+labels: ["enhancement"]
 ---
 
 ## Summary
@@ -10,7 +11,7 @@ Describe the feature you'd like.
 
 ## Motivation
 
-Why is this feature important?
+Why is this feature important? Who benefits?
 
 ## Proposed solution
 

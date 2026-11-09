@@ -19,6 +19,15 @@ GateForge IAM monorepo: Go API + React SPA, shipped as a single embedded binary 
 
 Per-package agent rules live in `backend/.cursor/` and `frontend/.cursor/`. Read those when working inside a single package.
 
+## Definition of Done (required for new/changed code)
+
+Do not claim a change is finished until all of these pass for the packages you touched:
+
+1. **Lint** — `make -C backend lint` and/or `make -C frontend lint` (or `make -C frontend check`)
+2. **Tests** — add/update tests that cover the new behavior; then `make -C backend tests` (backend) and/or frontend checks
+3. **Security** — follow package `security-practices.mdc`; no secrets; auth/CSRF/token handling unchanged-or-correct; root `make security-fs` when shipping security-sensitive or deploy/Docker changes
+4. **Coverage** — new/changed code paths have tests (backend: changed packages target ≥ 90% per `clean-architecture-testing`)
+
 ## Development
 
 ```bash
@@ -46,8 +55,10 @@ See [`deployments/README.md`](deployments/README.md) for systemd, Docker Compose
 |-----|---------|
 | [`README.md`](README.md) | Monorepo quick start |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development workflow, PR expectations |
+| [`SUPPORT.md`](SUPPORT.md) | How to get help |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards |
+| [`LICENSE`](LICENSE) | Apache License 2.0 |
 | [`backend/AGENTS.md`](backend/AGENTS.md) | Backend layer map, routes, patterns |
 | [`frontend/AGENTS.md`](frontend/AGENTS.md) | Frontend routes, auth, API client |
 | [`backend/docs/README.md`](backend/docs/README.md) | IAM feature hub — OIDC, SSO, MFA, DB tables |

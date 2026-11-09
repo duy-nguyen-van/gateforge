@@ -12,8 +12,9 @@ alwaysApply: false
 4. **Concurrency** — Race conditions, goroutine leaks, cache/session races
 5. **Performance** — N+1 queries, Redis round-trips, missing indexes
 6. **Readability** — Clear naming, layer boundaries respected
-7. **Tests** — Success + error paths; handler stubs; integration tag where needed
-8. **OpenAPI** — swag annotations + `make swagger-load` when `/api/v1` HTTP changed; manual docs for root OIDC routes
+7. **Tests + coverage** — New/changed paths covered (success + errors); handler stubs; integration tag where needed; changed packages ≥ 90%
+8. **Quality gates** — `make lint` and `make tests` must pass; security checklist clean
+9. **OpenAPI** — swag annotations + `make swagger-load` when `/api/v1` HTTP changed; manual docs for root OIDC routes
 
 ## Route registration
 - New endpoints go in `cmd/server/routes/router.go` — root OIDC vs `/api/v1` group

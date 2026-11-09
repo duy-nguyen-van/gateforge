@@ -22,12 +22,14 @@ alwaysApply: false
 - **Services**: Inject interfaces or fakes; avoid global singletons in new tests.
 - **Integration** (`//go:build integration`): Keep heavy tests (e.g. testcontainers) behind the tag; do not remove the tag so default `go test ./...` stays fast unless CI explicitly runs `-tags=integration`.
 
-## After changing behavior
+## After changing behavior (required)
 
-- Add or update tests for the code path you touched; cover **success + representative errors** (validation, not found, auth).
+- **Always** add or update tests for code you added or changed; cover **success + representative errors** (validation, not found, auth).
+- New behavior without a covering test is incomplete — do not skip this for "small" changes.
 - Run the narrowest command first, then full suite:
-  - Package: `go test -race ./internal/handlers` (or services/repos/utils)
+  - Package: `go test -race -cover ./internal/handlers` (or services/repos/utils)
   - Full CI-like: **`make tests`** (coverage + race + `count=1` + timeout — see `Makefile`)
+- Changed packages should reach **≥ 90%** statement coverage (`skills/clean-architecture-testing/SKILL.md`).
 
 ## Anti-patterns
 

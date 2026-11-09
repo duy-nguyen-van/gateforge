@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Stage 1: frontend (+ local @gateforge/sdk)
-FROM node:26.10.0-alpine3.24 AS frontend-builder
+FROM node:26.13.0-alpine3.24 AS frontend-builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: backend
-FROM golang:1.27.1-alpine3.24 AS backend-builder
+FROM golang:1.27.3-alpine3.24 AS backend-builder
 
 WORKDIR /app
 

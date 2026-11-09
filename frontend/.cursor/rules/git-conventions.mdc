@@ -38,7 +38,7 @@ Rules:
 - Title matches conventional commit format
 - Description: what changed, why, how to test
 - Keep PRs focused — one concern per PR
-- Ensure CI passes (`make lint`, `make build`)
+- Ensure CI passes (`make lint`, `make build`); new/changed logic covered by tests when available (else documented manual checklist) and security practices satisfied
 - Note backend env alignment when auth/OIDC/WebAuthn behavior changed
 
 ## What NOT to Commit

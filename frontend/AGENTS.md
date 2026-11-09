@@ -4,7 +4,10 @@ React + TypeScript SPA for the [backend](../backend) identity service: login, re
 
 ## Before you ship a change
 
-- Run `make lint` and `make build` (or `make check`).
+- **Definition of Done** (block merge/claim-done until all pass):
+  1. **Lint** — `make lint` (or `make check`)
+  2. **Build/tests** — `make build`; add/update automated tests for new/changed logic when a test runner exists; otherwise document a short manual checklist for auth/OIDC/MFA paths
+  3. **Security** — follow `rules/security-practices.mdc` (tokens, CSRF, cookies, XSS); never commit secrets
 - Update `src/api/types.ts` when backend API shapes change.
 - Never commit secrets; use `.env.example` as reference only.
 

@@ -38,7 +38,7 @@ Rules:
 - Title matches conventional commit format
 - Description: what changed, why, how to test
 - Keep PRs focused — one concern per PR
-- Ensure CI passes (`make lint`, `make tests`)
+- Ensure CI passes (`make lint`, `make tests`); new/changed code must have covering tests and satisfy security practices
 - Include API/swagger updates when HTTP surface changed
 
 ## What NOT to Commit

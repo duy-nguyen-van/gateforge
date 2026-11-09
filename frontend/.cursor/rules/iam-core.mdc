@@ -9,7 +9,7 @@ alwaysApply: true
 - **Backend**: Consumes [backend](../backend) — `/api/v1/*`, `/oidc/*`, root OIDC paths proxied in dev via `vite.config.ts`.
 - **Path alias**: `@/` → `src/` (see `vite.config.ts`, `tsconfig.app.json`).
 - **Security**: No real credentials in repo. Treat `.env` as local-only (gitignored). Use `.env.example` for documented vars.
-- **Quality bar**: `make lint`, `make build` (or `make check`) before push.
+- **Quality bar**: New/changed code must pass **lint**, **build/tests**, and **security** (`security-practices.mdc`) before done — `make lint`, `make build` (or `make check`) before push.
 - **IAM-sensitive**: Auth flows in `src/auth/`, API in `src/api/client.ts`, route guards in `src/routes/guards.tsx`. Match existing token/CSRF/cookie patterns.
 - **Structure**: Respect layer boundaries in `.cursor/rules/frontend-layering.mdc`.
 - **Workflow**: Plan → implement → test → review — see `.cursor/rules/workflow-implementation.mdc`.

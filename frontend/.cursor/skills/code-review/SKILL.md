@@ -25,7 +25,10 @@ Systematic review for frontend (React, TypeScript, OIDC, MFA/WebAuthn).
 4. Layer boundaries (`frontend-layering.mdc`)
 5. State races (concurrent refresh, double submit)
 6. Performance (query keys, unnecessary re-renders)
-7. Types + README/env docs
+7. Tests / coverage for new behavior + `make lint` / `make build` green
+8. Types + README/env docs
+
+**Block merge** if new behavior lacks coverage (automated or documented manual), lint/build fails, or security practices are violated.
 
 ### 3. Route & Guard Checks
 - New routes in `src/routes/index.tsx`

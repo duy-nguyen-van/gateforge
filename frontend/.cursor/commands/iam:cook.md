@@ -22,18 +22,20 @@ Principles: **YAGNI, KISS, DRY** — minimal code, match existing patterns.
 - API client + types for new endpoints
 - `make build` after significant changes
 
-### Step 5: Test
-- `make lint` and `make build`
-- Manual browser test for auth flows
+### Step 5: Test + gates
+- Add/update automated tests for new/changed logic when a runner exists
+- `make lint` and `make build` (or `make check`) — both must pass
+- Manual browser checklist for auth/OIDC/MFA flows; walk `security-practices.mdc`
+- Do not proceed if lint, build, security, or coverage gates fail
 
 ### Step 6: Docs
 - Update README / `.env.example` if routes or env changed
 - Note backend env alignment if OIDC/WebAuthn affected
 
 ### Step 7: Self-Review
-- `.cursor/rules/code-review.mdc` checklist
+- `.cursor/rules/code-review.mdc` checklist + Definition of Done (lint, build/tests, security)
 - Suggest commit message; do not commit unless asked
 
 ## Rules
 - Update existing files; no duplicate "enhanced" modules
-- Never ignore failing lint/build
+- Never ignore failing lint/build or ship new behavior without coverage (automated or documented manual)

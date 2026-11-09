@@ -25,7 +25,7 @@ GateForge IAM gives your applications one secure place for user sign-in and acce
 
 ## Quick start
 
-Prerequisites: Go 1.27+, Node.js 26.10+, Docker (for Postgres/Redis).
+Prerequisites: Go 1.27.3+, Node.js 26.13+, Docker (for Postgres/Redis).
 
 ```bash
 # Start Postgres, Redis, migrations, API (:3000), and Admin UI (:5173)
@@ -267,5 +267,7 @@ See [`deployments/README.md`](deployments/README.md) for environment variables a
 ## Contributing
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — development workflow, PR expectations
+- [SUPPORT.md](SUPPORT.md) — how to get help
 - [SECURITY.md](SECURITY.md) — vulnerability reporting
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community standards
+- [LICENSE](LICENSE) — Apache License 2.0

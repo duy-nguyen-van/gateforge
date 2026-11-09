@@ -12,9 +12,11 @@ Senior engineer reviewing frontend (React, TypeScript, OIDC, MFA/WebAuthn).
 ## Core Responsibilities
 1. **Code Quality** — Layer boundaries, readability, auth flow edge cases
 2. **Security** — Token storage, CSRF on `/oidc/login`, credential leakage
-3. **Build & Lint** — `make lint`, `make build`
+3. **Build & Lint** — `make lint`, `make build` must pass
 4. **Types** — `src/api/types.ts` aligned with backend API
 5. **Routes** — Guards, new routes in `src/routes/index.tsx`
+6. **Tests + coverage** — New/changed logic covered (automated when available, else documented manual checklist)
+7. **Block** — Fail review if lint/build fails, new behavior lacks coverage, or security practices are violated
 
 ## Review Process
 

@@ -1,7 +1,8 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-labels: bug
+description: Something is broken in GateForge IAM
+title: "[bug]: "
+labels: ["bug"]
 ---
 
 ## Describe the bug
@@ -20,16 +21,24 @@ Steps to reproduce the behavior:
 
 A clear and concise description of what you expected to happen.
 
+## Component
+
+- [ ] `backend/` (API, OIDC, sessions, MFA)
+- [ ] `frontend/` (admin SPA / login)
+- [ ] `sdk/` (Go or TypeScript client)
+- [ ] Deploy / Docker / hybrid binary
+
 ## Screenshots / Logs
 
-If applicable, add screenshots or logs to help explain your problem.
+If applicable, add screenshots or logs. Redact tokens, passwords, and PII.
 
-## Environment (please complete the following information)
+## Environment
 
 - OS: [e.g. macOS 15]
 - Go version: `go version` (if backend-related)
 - Node version: `node -v` (if frontend-related)
-- Commit/Tag: [e.g. main@abcd123]
+- Commit/Tag: [e.g. main@abcd123 or v0.x.y]
+- Deploy: [binary / Docker / other]
 
 ## Additional context
 

@@ -24,7 +24,10 @@ Systematic review for backend (Echo, FX, OIDC, sessions, MFA/WebAuthn).
 4. Layer boundaries (`go-layering.mdc`)
 5. Concurrency / Redis races
 6. Performance (N+1, extra Redis calls)
-7. Tests + OpenAPI sync (`/api/v1`) + manual OIDC docs (root routes)
+7. Tests + coverage for new/changed paths (changed packages ≥ 90%) + `make lint` / `make tests` green
+8. OpenAPI sync (`/api/v1`) + manual OIDC docs (root routes)
+
+**Block merge** if new behavior lacks tests, lint/tests fail, or security practices are violated.
 
 ### 3. Route & CSRF Checks
 - New routes in correct group (`router.go`): root OIDC vs `/api/v1`

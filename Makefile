@@ -117,7 +117,7 @@ sdk-generate:
 		2>/dev/null || true
 	# OpenAPI Generator leaves stale transitive checksums (e.g. ancient x/net) that
 	# Trivy treats as installed; tidy drops unused entries from the generated module.
-	cd sdk/go/openapi && go mod edit -go=1.26.5 && go mod tidy
+	cd sdk/go/openapi && go mod edit -go=1.27.3 && go mod tidy
 	cd sdk/go && go mod tidy
 	@printf '%s\n' "export * from './src/index.js'" > sdk/typescript/src/generated/index.ts
 	node sdk/typescript/scripts/patch-generated.mjs

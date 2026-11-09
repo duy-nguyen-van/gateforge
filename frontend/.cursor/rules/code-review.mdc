@@ -13,7 +13,8 @@ alwaysApply: false
 5. **Performance** — Unnecessary re-renders, missing query keys, duplicate fetches
 6. **Readability** — Layer boundaries, clear naming
 7. **Types** — `src/api/types.ts` matches backend; no unsafe casts
-8. **Docs** — README / `.env.example` when env or routes change
+8. **Tests + quality gates** — New/changed logic covered by automated tests when a runner exists; `make lint` + `make build` pass; security checklist clean
+9. **Docs** — README / `.env.example` when env or routes change
 
 ## Route & Guard Checks
 - New routes registered in `src/routes/index.tsx`
